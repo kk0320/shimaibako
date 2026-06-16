@@ -4,6 +4,7 @@ import UIKit
 
 struct PhotoDetailView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
+    @ObservedObject var ocrService: OCRService
     let asset: PhotoAsset
 
     @State private var displayImage: UIImage?
@@ -37,6 +38,8 @@ struct PhotoDetailView: View {
                     }
                     .padding(16)
                     .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
+
+                    ocrPanel
                 }
                 .padding(16)
             }
@@ -48,6 +51,55 @@ struct PhotoDetailView: View {
             displayImage = await photoLibrary.requestDisplayImage(for: asset)
             isLoadingImage = false
         }
+    }
+
+    private var ocrPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("端末内OCR", systemImage: "text.viewfinder")
+                    .font(.headline)
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                Spacer()
+            }
+
+            Text("この写真を1枚だけ端末内で読み取ります。外部OCR APIは使いません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button {
+                Task {
+                    if let displayImage {
+                        await ocrService.recognize(asset: asset, image: displayImage)
+                    }
+                }
+            } label: {
+                Label(ocrService.isProcessing(asset) ? "OCR中" : "この写真をOCR", systemImage: "doc.text.viewfinder")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(displayImage == nil || asset.mediaType != .image || ocrService.isProcessing(asset))
+
+            if let text = ocrService.text(for: asset) {
+                Text(text)
+                    .font(.body)
+                    .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
+            } else if let errorMessage = ocrService.errorMessage {
+                Text(errorMessage)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+            } else {
+                Text(asset.mediaType == .image ? "OCR結果はここに表示されます。" : "動画はOCR対象外です。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
     }
 
     @ViewBuilder

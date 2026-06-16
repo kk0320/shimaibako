@@ -17,6 +17,7 @@ enum PhotoGridMode {
 
 struct PhotoGridView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
+    @ObservedObject var ocrService: OCRService
     let mode: PhotoGridMode
 
     @State private var searchText = ""
@@ -65,7 +66,7 @@ struct PhotoGridView: View {
                 await photoLibrary.loadRecentAssets()
             }
             .navigationDestination(for: PhotoAsset.self) { asset in
-                PhotoDetailView(photoLibrary: photoLibrary, asset: asset)
+                PhotoDetailView(photoLibrary: photoLibrary, ocrService: ocrService, asset: asset)
             }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
