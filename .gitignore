@@ -19,3 +19,22 @@ __pycache__/
 .env
 *.env
 *.tmp
+
+# Xcode / iOS
+ios/**/DerivedData/
+ios/**/build/
+ios/**/*.xcuserdata/
+ios/**/*.xcuserstate
+ios/**/UserInterfaceState.xcuserstate
+ios/**/*.moved-aside
+ios/**/*.xcscmblueprint
+ios/**/*.dSYM
+ios/**/*.dSYM.zip
+ios/**/*.ipa
+
+# Xcode user state
+ios/**/xcuserdata/
+ios/**/*.xcuserdatad/
+ios/**/*.xcodeproj/xcuserdata/
+ios/**/*.xcworkspace/xcuserdata/
+ios/**/*.xcuserstate
