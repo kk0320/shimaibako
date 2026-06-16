@@ -53,6 +53,12 @@ struct PermissionView: View {
                                 .font(.callout.weight(.semibold))
                                 .foregroundStyle(Color(red: 0.10, green: 0.24, blue: 0.42))
 
+                            Text(statusDescription)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+
                             accessButton
                         }
                         .padding(18)
@@ -92,7 +98,27 @@ struct PermissionView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-        case .authorized, .limited:
+        case .limited:
+            VStack(spacing: 10) {
+                Button {
+                    photoLibrary.presentLimitedLibraryPicker()
+                } label: {
+                    Label("写真の選択を変更", systemImage: "person.crop.rectangle.stack")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    Task {
+                        await photoLibrary.loadRecentAssets()
+                    }
+                } label: {
+                    Label("写真を読み込む", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+        case .authorized:
             Button {
                 Task {
                     await photoLibrary.loadRecentAssets()
@@ -104,6 +130,23 @@ struct PermissionView: View {
             .buttonStyle(.borderedProminent)
         @unknown default:
             EmptyView()
+        }
+    }
+
+    private var statusDescription: String {
+        switch photoLibrary.authorizationStatus {
+        case .notDetermined:
+            "許可すると、直近の写真を読み取り専用で表示します。"
+        case .authorized:
+            "許可された範囲から写真を読み込みます。写真は外部送信しません。"
+        case .limited:
+            "選択中の写真のみ利用できます。必要に応じて選択を変更できます。"
+        case .denied:
+            "設定アプリで写真アクセスを許可すると、写真を表示できます。"
+        case .restricted:
+            "端末や管理設定により写真アクセスが制限されています。"
+        @unknown default:
+            "写真アクセス状態を確認できません。"
         }
     }
 }

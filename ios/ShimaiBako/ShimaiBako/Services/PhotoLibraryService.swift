@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import Photos
+import PhotosUI
 import UIKit
 
 @MainActor
@@ -27,6 +28,10 @@ final class PhotoLibraryService: ObservableObject {
 
     var canReadPhotos: Bool {
         assumesAuthorizedForDebugRun || authorizationStatus == .authorized || authorizationStatus == .limited
+    }
+
+    var readLimitTitle: String {
+        "直近\(fetchLimit)件"
     }
 
     var statusTitle: String {
@@ -67,6 +72,26 @@ final class PhotoLibraryService: ObservableObject {
         }
 
         authorizationStatus = status
+    }
+
+    func presentLimitedLibraryPicker() {
+        guard authorizationStatus == .limited,
+              assumesAuthorizedForDebugRun == false else {
+            return
+        }
+
+        guard let viewController = Self.activeViewController() else {
+            errorMessage = "写真の選択画面を開けませんでした。"
+            return
+        }
+
+        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: viewController)
+
+        Task {
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            refreshAuthorizationStatus()
+            await loadRecentAssets()
+        }
     }
 
     func loadRecentAssets() async {
@@ -158,5 +183,35 @@ final class PhotoLibraryService: ObservableObject {
                 }
             }
         }
+    }
+
+    private static func activeViewController() -> UIViewController? {
+        let rootViewController = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }?
+            .rootViewController
+
+        return rootViewController?.topMostPresentedViewController()
+    }
+}
+
+private extension UIViewController {
+    func topMostPresentedViewController() -> UIViewController {
+        if let navigationController = self as? UINavigationController,
+           let visibleViewController = navigationController.visibleViewController {
+            return visibleViewController.topMostPresentedViewController()
+        }
+
+        if let tabBarController = self as? UITabBarController,
+           let selectedViewController = tabBarController.selectedViewController {
+            return selectedViewController.topMostPresentedViewController()
+        }
+
+        if let presentedViewController {
+            return presentedViewController.topMostPresentedViewController()
+        }
+
+        return self
     }
 }

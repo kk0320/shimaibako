@@ -90,42 +90,70 @@ struct PhotoDetailView: View {
     }
 
     private var ocrPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let status = ocrService.status(for: asset)
+        let result = ocrService.result(for: asset)
+
+        return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("端末内OCR", systemImage: "text.viewfinder")
                     .font(.headline)
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
                 Spacer()
+
+                Label(status.title, systemImage: status.systemImage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(statusColor(status))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             Text("この写真を1枚だけ端末内で読み取ります。外部OCR APIは使いません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            VStack(alignment: .leading, spacing: 6) {
+                OCRInfoRow(title: "状態", value: status.title)
+
+                if let result {
+                    OCRInfoRow(title: "処理日時", value: result.processedAtLabel)
+                    OCRInfoRow(title: "言語", value: result.ocrLanguage)
+
+                    if let errorMessage = result.errorMessage, errorMessage.isEmpty == false {
+                        OCRInfoRow(title: "失敗理由", value: errorMessage)
+                    }
+                }
+            }
+            .padding(12)
+            .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8))
+
             Button {
                 Task {
                     await runOCRIfPossible()
                 }
             } label: {
-                Label(ocrService.isProcessing(asset) ? "OCR中" : "この写真をOCR", systemImage: "doc.text.viewfinder")
+                Label(ocrButtonTitle(for: status), systemImage: "doc.text.viewfinder")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .disabled(displayImage == nil || asset.mediaType != .image || ocrService.isProcessing(asset))
 
-            if let text = ocrService.text(for: asset) {
-                Text(text)
+            if status == .processing {
+                ProgressView("OCR処理中")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let result, result.ocrStatus == .completed {
+                Text(result.ocrText)
                     .font(.body)
                     .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
                     .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
-            } else if let errorMessage = ocrService.errorMessage {
-                Text(errorMessage)
+            } else if let result, result.ocrStatus == .failed {
+                Text(result.errorMessage ?? "読み取りに失敗しました。")
                     .font(.callout)
                     .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text(asset.mediaType == .image ? "OCR結果はここに表示されます。" : "動画はOCR対象外です。")
                     .font(.callout)
@@ -134,6 +162,30 @@ struct PhotoDetailView: View {
         }
         .padding(16)
         .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func ocrButtonTitle(for status: OCRStatus) -> String {
+        switch status {
+        case .unprocessed:
+            "この写真をOCR"
+        case .processing:
+            "OCR中"
+        case .completed, .failed:
+            "再OCR"
+        }
+    }
+
+    private func statusColor(_ status: OCRStatus) -> Color {
+        switch status {
+        case .unprocessed:
+            .secondary
+        case .processing:
+            Color(red: 0.16, green: 0.42, blue: 0.75)
+        case .completed:
+            Color(red: 0.14, green: 0.55, blue: 0.32)
+        case .failed:
+            Color(red: 0.75, green: 0.24, blue: 0.18)
+        }
     }
 
     @ViewBuilder
@@ -176,6 +228,27 @@ private struct DetailRow: View {
                 .font(.subheadline)
                 .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
                 .textSelection(.enabled)
+        }
+    }
+}
+
+private struct OCRInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 64, alignment: .leading)
+
+            Text(value)
+                .font(.caption)
+                .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
         }
     }
 }

@@ -53,7 +53,7 @@ struct PhotoAsset: Identifiable, Hashable {
         "\(pixelWidth) x \(pixelHeight)"
     }
 
-    func matches(_ query: String) -> Bool {
+    func matches(_ query: String, ocrText: String = "") -> Bool {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalizedQuery.isEmpty == false else {
             return true
@@ -65,7 +65,8 @@ struct PhotoAsset: Identifiable, Hashable {
             dateLabel,
             sizeLabel,
             localIdentifier,
-            isFavorite ? "お気に入り" : ""
+            isFavorite ? "お気に入り" : "",
+            ocrText
         ]
         .joined(separator: " ")
 

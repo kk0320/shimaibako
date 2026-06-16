@@ -1,38 +1,176 @@
 import Combine
 import ImageIO
+import Photos
 import UIKit
 import Vision
 
 @MainActor
 final class OCRService: ObservableObject {
-    @Published private(set) var recognizedTextByAssetID: [String: String] = [:]
+    @Published private(set) var resultsByAssetID: [String: OCRResultRecord] = [:]
     @Published private(set) var processingAssetIDs: Set<String> = []
     @Published var errorMessage: String?
 
+    private nonisolated static let recognitionLanguages = ["ja-JP", "en-US"]
+    private let resultStore: OCRResultStore
+
+    init(resultStore: OCRResultStore = OCRResultStore()) {
+        self.resultStore = resultStore
+
+        Task {
+            await loadPersistedResults()
+        }
+    }
+
+    var storedCompletedCount: Int {
+        resultsByAssetID.values.filter { $0.ocrStatus == .completed }.count
+    }
+
+    var storedFailedCount: Int {
+        resultsByAssetID.values.filter { $0.ocrStatus == .failed }.count
+    }
+
+    func result(for asset: PhotoAsset) -> OCRResultRecord? {
+        resultsByAssetID[asset.id]
+    }
+
     func text(for asset: PhotoAsset) -> String? {
-        recognizedTextByAssetID[asset.id]
+        resultsByAssetID[asset.id]?.ocrText
     }
 
     func isProcessing(_ asset: PhotoAsset) -> Bool {
         processingAssetIDs.contains(asset.id)
     }
 
-    func recognize(asset: PhotoAsset, image: UIImage) async {
+    func status(for asset: PhotoAsset) -> OCRStatus {
+        if processingAssetIDs.contains(asset.id) {
+            return .processing
+        }
+
+        return resultsByAssetID[asset.id]?.ocrStatus ?? .unprocessed
+    }
+
+    func searchText(for asset: PhotoAsset) -> String {
+        guard resultsByAssetID[asset.id]?.ocrStatus == .completed else {
+            return ""
+        }
+
+        return resultsByAssetID[asset.id]?.ocrText ?? ""
+    }
+
+    func summary(for assets: [PhotoAsset]) -> OCRSummary {
+        let imageAssets = assets.filter { $0.mediaType == .image }
+
+        return OCRSummary(
+            completedCount: imageAssets.filter { status(for: $0) == .completed }.count,
+            failedCount: imageAssets.filter { status(for: $0) == .failed }.count,
+            processingCount: imageAssets.filter { status(for: $0) == .processing }.count,
+            unprocessedCount: imageAssets.filter { status(for: $0) == .unprocessed }.count
+        )
+    }
+
+    @discardableResult
+    func recognize(asset: PhotoAsset, image: UIImage) async -> OCRResultRecord? {
         guard processingAssetIDs.contains(asset.id) == false else {
-            return
+            return resultsByAssetID[asset.id]
         }
 
         processingAssetIDs.insert(asset.id)
         errorMessage = nil
 
+        let language = Self.recognitionLanguages.joined(separator: ",")
+        resultsByAssetID[asset.id] = OCRResultRecord(
+            photoLocalIdentifier: asset.localIdentifier,
+            ocrText: resultsByAssetID[asset.id]?.ocrText ?? "",
+            ocrStatus: .processing,
+            ocrLanguage: language,
+            processedAt: Date(),
+            errorMessage: nil
+        )
+        await persistResults()
+
+        let finalResult: OCRResultRecord
+
         do {
             let text = try await Self.recognizeText(in: image)
-            recognizedTextByAssetID[asset.id] = text.isEmpty ? "テキストは見つかりませんでした。" : text
+            finalResult = OCRResultRecord(
+                photoLocalIdentifier: asset.localIdentifier,
+                ocrText: text.isEmpty ? "テキストは見つかりませんでした。" : text,
+                ocrStatus: .completed,
+                ocrLanguage: language,
+                processedAt: Date(),
+                errorMessage: nil
+            )
         } catch {
+            finalResult = OCRResultRecord(
+                photoLocalIdentifier: asset.localIdentifier,
+                ocrText: "",
+                ocrStatus: .failed,
+                ocrLanguage: language,
+                processedAt: Date(),
+                errorMessage: error.localizedDescription
+            )
             errorMessage = "OCRに失敗しました: \(error.localizedDescription)"
         }
 
+        resultsByAssetID[asset.id] = finalResult
         processingAssetIDs.remove(asset.id)
+        await persistResults()
+
+        return finalResult
+    }
+
+    @discardableResult
+    func markFailure(asset: PhotoAsset, message: String) async -> OCRResultRecord {
+        let result = OCRResultRecord(
+            photoLocalIdentifier: asset.localIdentifier,
+            ocrText: "",
+            ocrStatus: .failed,
+            ocrLanguage: Self.recognitionLanguages.joined(separator: ","),
+            processedAt: Date(),
+            errorMessage: message
+        )
+
+        resultsByAssetID[asset.id] = result
+        processingAssetIDs.remove(asset.id)
+        await persistResults()
+
+        return result
+    }
+
+    private func loadPersistedResults() async {
+        do {
+            let results = try await resultStore.load()
+            var loadedResults = Dictionary(uniqueKeysWithValues: results.map { ($0.photoLocalIdentifier, $0) })
+            var shouldPersist = false
+
+            for result in loadedResults.values where result.ocrStatus == .processing {
+                loadedResults[result.photoLocalIdentifier] = OCRResultRecord(
+                    photoLocalIdentifier: result.photoLocalIdentifier,
+                    ocrText: result.ocrText,
+                    ocrStatus: .failed,
+                    ocrLanguage: result.ocrLanguage,
+                    processedAt: Date(),
+                    errorMessage: "前回のOCR処理が完了しませんでした。"
+                )
+                shouldPersist = true
+            }
+
+            resultsByAssetID = loadedResults
+
+            if shouldPersist {
+                await persistResults()
+            }
+        } catch {
+            errorMessage = "OCR結果を読み込めませんでした: \(error.localizedDescription)"
+        }
+    }
+
+    private func persistResults() async {
+        do {
+            try await resultStore.save(Array(resultsByAssetID.values))
+        } catch {
+            errorMessage = "OCR結果を保存できませんでした: \(error.localizedDescription)"
+        }
     }
 
     private nonisolated static func recognizeText(in image: UIImage) async throws -> String {
@@ -76,7 +214,7 @@ final class OCRService: ObservableObject {
                 }
 
                 request.recognitionLevel = .accurate
-                request.recognitionLanguages = ["ja-JP", "en-US"]
+                request.recognitionLanguages = recognitionLanguages
                 request.usesLanguageCorrection = true
 
                 let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])

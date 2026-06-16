@@ -1,27 +1,55 @@
 import Photos
 import SwiftUI
 
+private enum HomeTab: Hashable {
+    case photos
+    case search
+    case settings
+}
+
 struct HomeView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
+    @State private var selectedTab = HomeTab.initialSelection
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             PhotoAccessRootView(photoLibrary: photoLibrary, ocrService: ocrService)
                 .tabItem {
                     Label("写真", systemImage: "photo.on.rectangle")
                 }
+                .tag(HomeTab.photos)
 
             PhotoGridView(photoLibrary: photoLibrary, ocrService: ocrService, mode: .search)
                 .tabItem {
                     Label("検索", systemImage: "magnifyingglass")
                 }
+                .tag(HomeTab.search)
 
-            SettingsView(photoLibrary: photoLibrary)
+            SettingsView(photoLibrary: photoLibrary, ocrService: ocrService)
                 .tabItem {
                     Label("設定", systemImage: "gearshape")
                 }
+                .tag(HomeTab.settings)
         }
+    }
+}
+
+private extension HomeTab {
+    static var initialSelection: HomeTab {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+
+        if arguments.contains("-ShimaiBakoOpenSearchTab") {
+            return .search
+        }
+
+        if arguments.contains("-ShimaiBakoOpenSettingsTab") {
+            return .settings
+        }
+        #endif
+
+        return .photos
     }
 }
 
