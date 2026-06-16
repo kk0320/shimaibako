@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="しまい箱">
+  <rect width="512" height="512" rx="96" fill="#0f766e"/>
+  <path d="M108 172c0-24 19-43 43-43h76l33 35h101c24 0 43 19 43 43v171c0 24-19 43-43 43H151c-24 0-43-19-43-43V172z" fill="#ffffff"/>
+  <path d="M108 214h296v164c0 24-19 43-43 43H151c-24 0-43-19-43-43V214z" fill="#f8faf9"/>
+  <path d="M148 360l64-75 54 49 42-44 60 70H148z" fill="#bfe9e2"/>
+  <circle cx="338" cy="268" r="34" fill="#f59e0b"/>
+  <path d="M151 129h76l33 35H151c-24 0-43 19-43 43v-35c0-24 19-43 43-43z" fill="#dff4ef"/>
+  <path d="M108 214h296" stroke="#0f766e" stroke-width="14" stroke-linecap="round" opacity=".24"/>
+</svg>

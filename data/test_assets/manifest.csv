@@ -1,0 +1,714 @@
+﻿id,file_name,relative_path,group,expected_category,expected_keywords,expected_ocr_text,difficulty,should_detect_as_screenshot,should_detect_as_duplicate,notes
+OCR-001,ocr-001_receipt_01_receipt.jpg,ocr_samples/receipt/ocr-001_receipt_01_receipt.jpg,ocr_samples,receipt,receipt|領収書|957|大阪|青葉デザイン,"青葉デザイン
+領収書 Receipt
+合計 Total 957 yen
+登録番号 T-0001
+ID OCR-001
+DATE 2025-02-02
+AREA 大阪",easy,False,False,
+OCR-002,ocr-002_receipt_02_receipt.jpg,ocr_samples/receipt/ocr-002_receipt_02_receipt.jpg,ocr_samples,receipt,receipt|領収書|1094|京都|港南メモ工房,"港南メモ工房
+領収書 Receipt
+合計 Total 1,094 yen
+登録番号 T-0002
+ID OCR-002
+DATE 2025-03-03
+AREA 京都",easy,False,False,
+OCR-003,ocr-003_receipt_03_receipt.jpg,ocr_samples/receipt/ocr-003_receipt_03_receipt.jpg,ocr_samples,receipt,receipt|領収書|1231|横浜|北町サンプル社,"北町サンプル社
+領収書 Receipt
+合計 Total 1,231 yen
+登録番号 T-0003
+ID OCR-003
+DATE 2025-04-04
+AREA 横浜",easy,False,False,
+OCR-004,ocr-004_receipt_04_receipt.jpg,ocr_samples/receipt/ocr-004_receipt_04_receipt.jpg,ocr_samples,receipt,receipt|領収書|1368|札幌|しまい箱商店,"しまい箱商店
+領収書 Receipt
+合計 Total 1,368 yen
+登録番号 T-0004
+ID OCR-004
+DATE 2025-05-05
+AREA 札幌",medium,False,False,
+OCR-005,ocr-005_receipt_05_receipt.jpg,ocr_samples/receipt/ocr-005_receipt_05_receipt.jpg,ocr_samples,receipt,receipt|領収書|1505|福岡|青葉デザイン,"青葉デザイン
+領収書 Receipt
+合計 Total 1,505 yen
+登録番号 T-0005
+ID OCR-005
+DATE 2025-06-06
+AREA 福岡",medium,False,False,
+OCR-006,ocr-006_receipt_06_receipt.jpg,ocr_samples/receipt/ocr-006_receipt_06_receipt.jpg,ocr_samples,receipt,receipt|領収書|1642|東京|港南メモ工房,"港南メモ工房
+領収書 Receipt
+合計 Total 1,642 yen
+登録番号 T-0006
+ID OCR-006
+DATE 2025-07-07
+AREA 東京",hard,False,False,
+OCR-007,ocr-007_receipt_07_receipt.jpg,ocr_samples/receipt/ocr-007_receipt_07_receipt.jpg,ocr_samples,receipt,receipt|領収書|1779|大阪|北町サンプル社,"北町サンプル社
+領収書 Receipt
+合計 Total 1,779 yen
+登録番号 T-0007
+ID OCR-007
+DATE 2025-08-08
+AREA 大阪",hard,False,False,
+OCR-008,ocr-008_business_card_01_business_card.jpg,ocr_samples/business_card/ocr-008_business_card_01_business_card.jpg,ocr_samples,business_card,名刺|しまい箱商店|TEL|example.local|営業,"しまい箱商店
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4508-1208
+mail sample8@example.local
+ID OCR-008
+DATE 2025-09-09
+AREA 京都",easy,False,False,
+OCR-009,ocr-009_business_card_02_business_card.jpg,ocr_samples/business_card/ocr-009_business_card_02_business_card.jpg,ocr_samples,business_card,名刺|青葉デザイン|TEL|example.local|営業,"青葉デザイン
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4509-1209
+mail sample9@example.local
+ID OCR-009
+DATE 2025-10-10
+AREA 横浜",easy,False,False,
+OCR-010,ocr-010_business_card_03_business_card.jpg,ocr_samples/business_card/ocr-010_business_card_03_business_card.jpg,ocr_samples,business_card,名刺|港南メモ工房|TEL|example.local|営業,"港南メモ工房
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4510-1210
+mail sample10@example.local
+ID OCR-010
+DATE 2025-11-11
+AREA 札幌",easy,False,False,
+OCR-011,ocr-011_business_card_04_business_card.jpg,ocr_samples/business_card/ocr-011_business_card_04_business_card.jpg,ocr_samples,business_card,名刺|北町サンプル社|TEL|example.local|営業,"北町サンプル社
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4511-1211
+mail sample11@example.local
+ID OCR-011
+DATE 2025-12-12
+AREA 福岡",medium,False,False,
+OCR-012,ocr-012_business_card_05_business_card.jpg,ocr_samples/business_card/ocr-012_business_card_05_business_card.jpg,ocr_samples,business_card,名刺|しまい箱商店|TEL|example.local|営業,"しまい箱商店
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4512-1212
+mail sample12@example.local
+ID OCR-012
+DATE 2025-01-13
+AREA 東京",medium,False,False,
+OCR-013,ocr-013_business_card_06_business_card.jpg,ocr_samples/business_card/ocr-013_business_card_06_business_card.jpg,ocr_samples,business_card,名刺|青葉デザイン|TEL|example.local|営業,"青葉デザイン
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4513-1213
+mail sample13@example.local
+ID OCR-013
+DATE 2025-02-14
+AREA 大阪",hard,False,False,
+OCR-014,ocr-014_business_card_07_business_card.jpg,ocr_samples/business_card/ocr-014_business_card_07_business_card.jpg,ocr_samples,business_card,名刺|港南メモ工房|TEL|example.local|営業,"港南メモ工房
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4514-1214
+mail sample14@example.local
+ID OCR-014
+DATE 2025-03-15
+AREA 京都",hard,False,False,
+OCR-015,ocr-015_signboard_01_signboard.jpg,ocr_samples/signboard/ocr-015_signboard_01_signboard.jpg,ocr_samples,signboard,signboard|看板|入口|横浜|OPEN,"横浜中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 15
+ID OCR-015
+DATE 2025-04-16
+AREA 横浜",easy,False,False,
+OCR-016,ocr-016_signboard_02_signboard.jpg,ocr_samples/signboard/ocr-016_signboard_02_signboard.jpg,ocr_samples,signboard,signboard|看板|入口|札幌|OPEN,"札幌中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 16
+ID OCR-016
+DATE 2025-05-17
+AREA 札幌",easy,False,False,
+OCR-017,ocr-017_signboard_03_signboard.jpg,ocr_samples/signboard/ocr-017_signboard_03_signboard.jpg,ocr_samples,signboard,signboard|看板|入口|福岡|OPEN,"福岡中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 17
+ID OCR-017
+DATE 2025-06-18
+AREA 福岡",easy,False,False,
+OCR-018,ocr-018_signboard_04_signboard.jpg,ocr_samples/signboard/ocr-018_signboard_04_signboard.jpg,ocr_samples,signboard,signboard|看板|入口|東京|OPEN,"東京中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 18
+ID OCR-018
+DATE 2025-07-19
+AREA 東京",medium,False,False,
+OCR-019,ocr-019_signboard_05_signboard.jpg,ocr_samples/signboard/ocr-019_signboard_05_signboard.jpg,ocr_samples,signboard,signboard|看板|入口|大阪|OPEN,"大阪中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 19
+ID OCR-019
+DATE 2025-08-20
+AREA 大阪",medium,False,False,
+OCR-020,ocr-020_signboard_06_signboard.jpg,ocr_samples/signboard/ocr-020_signboard_06_signboard.jpg,ocr_samples,signboard,signboard|看板|入口|京都|OPEN,"京都中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 20
+ID OCR-020
+DATE 2025-09-21
+AREA 京都",hard,False,False,
+OCR-021,ocr-021_signboard_07_signboard.jpg,ocr_samples/signboard/ocr-021_signboard_07_signboard.jpg,ocr_samples,signboard,signboard|看板|入口|横浜|OPEN,"横浜中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 21
+ID OCR-021
+DATE 2025-10-22
+AREA 横浜",hard,False,False,
+OCR-022,ocr-022_whiteboard_01_whiteboard.jpg,ocr_samples/whiteboard/ocr-022_whiteboard_01_whiteboard.jpg,ocr_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 22
+次回 10:30
+ID OCR-022
+DATE 2025-11-23
+AREA 札幌",easy,False,False,
+OCR-023,ocr-023_whiteboard_02_whiteboard.jpg,ocr_samples/whiteboard/ocr-023_whiteboard_02_whiteboard.jpg,ocr_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 23
+次回 10:30
+ID OCR-023
+DATE 2025-12-24
+AREA 福岡",easy,False,False,
+OCR-024,ocr-024_whiteboard_03_whiteboard.jpg,ocr_samples/whiteboard/ocr-024_whiteboard_03_whiteboard.jpg,ocr_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 24
+次回 10:30
+ID OCR-024
+DATE 2025-01-25
+AREA 東京",easy,False,False,
+OCR-025,ocr-025_whiteboard_04_whiteboard.jpg,ocr_samples/whiteboard/ocr-025_whiteboard_04_whiteboard.jpg,ocr_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 25
+次回 10:30
+ID OCR-025
+DATE 2025-02-26
+AREA 大阪",medium,False,False,
+OCR-026,ocr-026_whiteboard_05_whiteboard.jpg,ocr_samples/whiteboard/ocr-026_whiteboard_05_whiteboard.jpg,ocr_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 26
+次回 10:30
+ID OCR-026
+DATE 2025-03-01
+AREA 京都",medium,False,False,
+OCR-027,ocr-027_whiteboard_06_whiteboard.jpg,ocr_samples/whiteboard/ocr-027_whiteboard_06_whiteboard.jpg,ocr_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 27
+次回 10:30
+ID OCR-027
+DATE 2025-04-02
+AREA 横浜",hard,False,False,
+OCR-028,ocr-028_whiteboard_07_whiteboard.jpg,ocr_samples/whiteboard/ocr-028_whiteboard_07_whiteboard.jpg,ocr_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 28
+次回 10:30
+ID OCR-028
+DATE 2025-05-03
+AREA 札幌",hard,False,False,
+OCR-029,ocr-029_document_photo_01_document_photo.jpg,ocr_samples/document_photo/ocr-029_document_photo_01_document_photo.jpg,ocr_samples,document_photo,document|報告書|DOC|承認|福岡,"業務報告書 Document
+案件番号 DOC-0029
+確認欄 / 承認欄
+添付資料あり
+ID OCR-029
+DATE 2025-06-04
+AREA 福岡",easy,False,False,
+OCR-030,ocr-030_document_photo_02_document_photo.jpg,ocr_samples/document_photo/ocr-030_document_photo_02_document_photo.jpg,ocr_samples,document_photo,document|報告書|DOC|承認|東京,"業務報告書 Document
+案件番号 DOC-0030
+確認欄 / 承認欄
+添付資料あり
+ID OCR-030
+DATE 2025-07-05
+AREA 東京",easy,False,False,
+OCR-031,ocr-031_document_photo_03_document_photo.jpg,ocr_samples/document_photo/ocr-031_document_photo_03_document_photo.jpg,ocr_samples,document_photo,document|報告書|DOC|承認|大阪,"業務報告書 Document
+案件番号 DOC-0031
+確認欄 / 承認欄
+添付資料あり
+ID OCR-031
+DATE 2025-08-06
+AREA 大阪",easy,False,False,
+OCR-032,ocr-032_document_photo_04_document_photo.jpg,ocr_samples/document_photo/ocr-032_document_photo_04_document_photo.jpg,ocr_samples,document_photo,document|報告書|DOC|承認|京都,"業務報告書 Document
+案件番号 DOC-0032
+確認欄 / 承認欄
+添付資料あり
+ID OCR-032
+DATE 2025-09-07
+AREA 京都",medium,False,False,
+OCR-033,ocr-033_document_photo_05_document_photo.jpg,ocr_samples/document_photo/ocr-033_document_photo_05_document_photo.jpg,ocr_samples,document_photo,document|報告書|DOC|承認|横浜,"業務報告書 Document
+案件番号 DOC-0033
+確認欄 / 承認欄
+添付資料あり
+ID OCR-033
+DATE 2025-10-08
+AREA 横浜",medium,False,False,
+OCR-034,ocr-034_document_photo_06_document_photo.jpg,ocr_samples/document_photo/ocr-034_document_photo_06_document_photo.jpg,ocr_samples,document_photo,document|報告書|DOC|承認|札幌,"業務報告書 Document
+案件番号 DOC-0034
+確認欄 / 承認欄
+添付資料あり
+ID OCR-034
+DATE 2025-11-09
+AREA 札幌",hard,False,False,
+OCR-035,ocr-035_screenshot_01_screenshot.png,ocr_samples/screenshot/ocr-035_screenshot_01_screenshot.png,ocr_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-035
+09:42  Wi-Fi
+ID OCR-035
+DATE 2025-12-10
+AREA 福岡",easy,True,False,
+OCR-036,ocr-036_screenshot_02_screenshot.png,ocr_samples/screenshot/ocr-036_screenshot_02_screenshot.png,ocr_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-036
+09:42  Wi-Fi
+ID OCR-036
+DATE 2025-01-11
+AREA 東京",easy,True,False,
+OCR-037,ocr-037_screenshot_03_screenshot.png,ocr_samples/screenshot/ocr-037_screenshot_03_screenshot.png,ocr_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-037
+09:42  Wi-Fi
+ID OCR-037
+DATE 2025-02-12
+AREA 大阪",easy,True,False,
+OCR-038,ocr-038_screenshot_04_screenshot.png,ocr_samples/screenshot/ocr-038_screenshot_04_screenshot.png,ocr_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-038
+09:42  Wi-Fi
+ID OCR-038
+DATE 2025-03-13
+AREA 京都",medium,True,False,
+OCR-039,ocr-039_screenshot_05_screenshot.png,ocr_samples/screenshot/ocr-039_screenshot_05_screenshot.png,ocr_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-039
+09:42  Wi-Fi
+ID OCR-039
+DATE 2025-04-14
+AREA 横浜",medium,True,False,
+OCR-040,ocr-040_screenshot_06_screenshot.png,ocr_samples/screenshot/ocr-040_screenshot_06_screenshot.png,ocr_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-040
+09:42  Wi-Fi
+ID OCR-040
+DATE 2025-05-15
+AREA 札幌",hard,True,False,
+CLS-001,cls-001_receipt_01_receipt.jpg,classification_samples/receipt/cls-001_receipt_01_receipt.jpg,classification_samples,receipt,receipt|領収書|6437|福岡|青葉デザイン,"青葉デザイン
+領収書 Receipt
+合計 Total 6,437 yen
+登録番号 T-0041
+ID CLS-001
+DATE 2025-06-16
+AREA 福岡",easy,False,False,
+CLS-002,cls-002_receipt_02_receipt.jpg,classification_samples/receipt/cls-002_receipt_02_receipt.jpg,classification_samples,receipt,receipt|領収書|6574|東京|港南メモ工房,"港南メモ工房
+領収書 Receipt
+合計 Total 6,574 yen
+登録番号 T-0042
+ID CLS-002
+DATE 2025-07-17
+AREA 東京",easy,False,False,
+CLS-003,cls-003_receipt_03_receipt.jpg,classification_samples/receipt/cls-003_receipt_03_receipt.jpg,classification_samples,receipt,receipt|領収書|6711|大阪|北町サンプル社,"北町サンプル社
+領収書 Receipt
+合計 Total 6,711 yen
+登録番号 T-0043
+ID CLS-003
+DATE 2025-08-18
+AREA 大阪",medium,False,False,
+CLS-004,cls-004_receipt_04_receipt.jpg,classification_samples/receipt/cls-004_receipt_04_receipt.jpg,classification_samples,receipt,receipt|領収書|6848|京都|しまい箱商店,"しまい箱商店
+領収書 Receipt
+合計 Total 6,848 yen
+登録番号 T-0044
+ID CLS-004
+DATE 2025-09-19
+AREA 京都",medium,False,False,
+CLS-005,cls-005_business_card_01_business_card.jpg,classification_samples/business_card/cls-005_business_card_01_business_card.jpg,classification_samples,business_card,名刺|青葉デザイン|TEL|example.local|営業,"青葉デザイン
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4545-1245
+mail sample45@example.local
+ID CLS-005
+DATE 2025-10-20
+AREA 横浜",easy,False,False,
+CLS-006,cls-006_business_card_02_business_card.jpg,classification_samples/business_card/cls-006_business_card_02_business_card.jpg,classification_samples,business_card,名刺|港南メモ工房|TEL|example.local|営業,"港南メモ工房
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4546-1246
+mail sample46@example.local
+ID CLS-006
+DATE 2025-11-21
+AREA 札幌",easy,False,False,
+CLS-007,cls-007_business_card_03_business_card.jpg,classification_samples/business_card/cls-007_business_card_03_business_card.jpg,classification_samples,business_card,名刺|北町サンプル社|TEL|example.local|営業,"北町サンプル社
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4547-1247
+mail sample47@example.local
+ID CLS-007
+DATE 2025-12-22
+AREA 福岡",medium,False,False,
+CLS-008,cls-008_business_card_04_business_card.jpg,classification_samples/business_card/cls-008_business_card_04_business_card.jpg,classification_samples,business_card,名刺|しまい箱商店|TEL|example.local|営業,"しまい箱商店
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4548-1248
+mail sample48@example.local
+ID CLS-008
+DATE 2025-01-23
+AREA 東京",medium,False,False,
+CLS-009,cls-009_whiteboard_01_whiteboard.jpg,classification_samples/whiteboard/cls-009_whiteboard_01_whiteboard.jpg,classification_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 49
+次回 10:30
+ID CLS-009
+DATE 2025-02-24
+AREA 大阪",easy,False,False,
+CLS-010,cls-010_whiteboard_02_whiteboard.jpg,classification_samples/whiteboard/cls-010_whiteboard_02_whiteboard.jpg,classification_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 50
+次回 10:30
+ID CLS-010
+DATE 2025-03-25
+AREA 京都",easy,False,False,
+CLS-011,cls-011_whiteboard_03_whiteboard.jpg,classification_samples/whiteboard/cls-011_whiteboard_03_whiteboard.jpg,classification_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 51
+次回 10:30
+ID CLS-011
+DATE 2025-04-26
+AREA 横浜",medium,False,False,
+CLS-012,cls-012_whiteboard_04_whiteboard.jpg,classification_samples/whiteboard/cls-012_whiteboard_04_whiteboard.jpg,classification_samples,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 52
+次回 10:30
+ID CLS-012
+DATE 2025-05-01
+AREA 札幌",medium,False,False,
+CLS-013,cls-013_signboard_01_signboard.jpg,classification_samples/signboard/cls-013_signboard_01_signboard.jpg,classification_samples,signboard,signboard|看板|入口|福岡|OPEN,"福岡中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 53
+ID CLS-013
+DATE 2025-06-02
+AREA 福岡",easy,False,False,
+CLS-014,cls-014_signboard_02_signboard.jpg,classification_samples/signboard/cls-014_signboard_02_signboard.jpg,classification_samples,signboard,signboard|看板|入口|東京|OPEN,"東京中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 54
+ID CLS-014
+DATE 2025-07-03
+AREA 東京",easy,False,False,
+CLS-015,cls-015_signboard_03_signboard.jpg,classification_samples/signboard/cls-015_signboard_03_signboard.jpg,classification_samples,signboard,signboard|看板|入口|大阪|OPEN,"大阪中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 55
+ID CLS-015
+DATE 2025-08-04
+AREA 大阪",medium,False,False,
+CLS-016,cls-016_signboard_04_signboard.jpg,classification_samples/signboard/cls-016_signboard_04_signboard.jpg,classification_samples,signboard,signboard|看板|入口|京都|OPEN,"京都中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 56
+ID CLS-016
+DATE 2025-09-05
+AREA 京都",medium,False,False,
+CLS-017,cls-017_document_photo_01_document_photo.jpg,classification_samples/document_photo/cls-017_document_photo_01_document_photo.jpg,classification_samples,document_photo,document|報告書|DOC|承認|横浜,"業務報告書 Document
+案件番号 DOC-0057
+確認欄 / 承認欄
+添付資料あり
+ID CLS-017
+DATE 2025-10-06
+AREA 横浜",easy,False,False,
+CLS-018,cls-018_document_photo_02_document_photo.jpg,classification_samples/document_photo/cls-018_document_photo_02_document_photo.jpg,classification_samples,document_photo,document|報告書|DOC|承認|札幌,"業務報告書 Document
+案件番号 DOC-0058
+確認欄 / 承認欄
+添付資料あり
+ID CLS-018
+DATE 2025-11-07
+AREA 札幌",easy,False,False,
+CLS-019,cls-019_document_photo_03_document_photo.jpg,classification_samples/document_photo/cls-019_document_photo_03_document_photo.jpg,classification_samples,document_photo,document|報告書|DOC|承認|福岡,"業務報告書 Document
+案件番号 DOC-0059
+確認欄 / 承認欄
+添付資料あり
+ID CLS-019
+DATE 2025-12-08
+AREA 福岡",medium,False,False,
+CLS-020,cls-020_document_photo_04_document_photo.jpg,classification_samples/document_photo/cls-020_document_photo_04_document_photo.jpg,classification_samples,document_photo,document|報告書|DOC|承認|東京,"業務報告書 Document
+案件番号 DOC-0060
+確認欄 / 承認欄
+添付資料あり
+ID CLS-020
+DATE 2025-01-09
+AREA 東京",medium,False,False,
+CLS-021,cls-021_screenshot_01_screenshot.png,classification_samples/screenshot/cls-021_screenshot_01_screenshot.png,classification_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-061
+09:42  Wi-Fi
+ID CLS-021
+DATE 2025-02-10
+AREA 大阪",easy,True,False,
+CLS-022,cls-022_screenshot_02_screenshot.png,classification_samples/screenshot/cls-022_screenshot_02_screenshot.png,classification_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-062
+09:42  Wi-Fi
+ID CLS-022
+DATE 2025-03-11
+AREA 京都",easy,True,False,
+CLS-023,cls-023_screenshot_03_screenshot.png,classification_samples/screenshot/cls-023_screenshot_03_screenshot.png,classification_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-063
+09:42  Wi-Fi
+ID CLS-023
+DATE 2025-04-12
+AREA 横浜",medium,True,False,
+CLS-024,cls-024_screenshot_04_screenshot.png,classification_samples/screenshot/cls-024_screenshot_04_screenshot.png,classification_samples,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-064
+09:42  Wi-Fi
+ID CLS-024
+DATE 2025-05-13
+AREA 札幌",medium,True,False,
+CLS-025,cls-025_family_photo_01_family_photo.jpg,classification_samples/family_photo/cls-025_family_photo_01_family_photo.jpg,classification_samples,family_photo,family|album|誕生日|記念|home,"Family album
+誕生日と記念写真
+home event
+album 65
+ID CLS-025
+DATE 2025-06-14
+AREA 福岡",easy,False,False,
+CLS-026,cls-026_family_photo_02_family_photo.jpg,classification_samples/family_photo/cls-026_family_photo_02_family_photo.jpg,classification_samples,family_photo,family|album|誕生日|記念|home,"Family album
+誕生日と記念写真
+home event
+album 66
+ID CLS-026
+DATE 2025-07-15
+AREA 東京",easy,False,False,
+CLS-027,cls-027_family_photo_03_family_photo.jpg,classification_samples/family_photo/cls-027_family_photo_03_family_photo.jpg,classification_samples,family_photo,family|album|誕生日|記念|home,"Family album
+誕生日と記念写真
+home event
+album 67
+ID CLS-027
+DATE 2025-08-16
+AREA 大阪",medium,False,False,
+CLS-028,cls-028_family_photo_04_family_photo.jpg,classification_samples/family_photo/cls-028_family_photo_04_family_photo.jpg,classification_samples,family_photo,family|album|誕生日|記念|home,"Family album
+誕生日と記念写真
+home event
+album 68
+ID CLS-028
+DATE 2025-09-17
+AREA 京都",medium,False,False,
+CLS-029,cls-029_travel_photo_01_travel_photo.jpg,classification_samples/travel_photo/cls-029_travel_photo_01_travel_photo.jpg,classification_samples,travel_photo,travel|横浜|駅|trip|hotel,"横浜 travel photo
+駅前広場 / landmark
+trip album
+hotel note 69
+ID CLS-029
+DATE 2025-10-18
+AREA 横浜",easy,False,False,
+CLS-030,cls-030_travel_photo_02_travel_photo.jpg,classification_samples/travel_photo/cls-030_travel_photo_02_travel_photo.jpg,classification_samples,travel_photo,travel|札幌|駅|trip|hotel,"札幌 travel photo
+駅前広場 / landmark
+trip album
+hotel note 70
+ID CLS-030
+DATE 2025-11-19
+AREA 札幌",easy,False,False,
+CLS-031,cls-031_travel_photo_03_travel_photo.jpg,classification_samples/travel_photo/cls-031_travel_photo_03_travel_photo.jpg,classification_samples,travel_photo,travel|福岡|駅|trip|hotel,"福岡 travel photo
+駅前広場 / landmark
+trip album
+hotel note 71
+ID CLS-031
+DATE 2025-12-20
+AREA 福岡",medium,False,False,
+CLS-032,cls-032_travel_photo_04_travel_photo.jpg,classification_samples/travel_photo/cls-032_travel_photo_04_travel_photo.jpg,classification_samples,travel_photo,travel|東京|駅|trip|hotel,"東京 travel photo
+駅前広場 / landmark
+trip album
+hotel note 72
+ID CLS-032
+DATE 2025-01-21
+AREA 東京",medium,False,False,
+CLS-033,cls-033_construction_board_01_construction_board.jpg,classification_samples/construction_board/cls-033_construction_board_01_construction_board.jpg,classification_samples,construction_board,construction|工事|黒板|現場|安全,"工事黒板 Construction Board
+現場 大阪 2丁目
+施工: 架空建設
+検査 OK / 安全確認
+ID CLS-033
+DATE 2025-02-22
+AREA 大阪",easy,False,False,
+CLS-034,cls-034_construction_board_02_construction_board.jpg,classification_samples/construction_board/cls-034_construction_board_02_construction_board.jpg,classification_samples,construction_board,construction|工事|黒板|現場|安全,"工事黒板 Construction Board
+現場 京都 2丁目
+施工: 架空建設
+検査 OK / 安全確認
+ID CLS-034
+DATE 2025-03-23
+AREA 京都",easy,False,False,
+CLS-035,cls-035_construction_board_03_construction_board.jpg,classification_samples/construction_board/cls-035_construction_board_03_construction_board.jpg,classification_samples,construction_board,construction|工事|黒板|現場|安全,"工事黒板 Construction Board
+現場 横浜 2丁目
+施工: 架空建設
+検査 OK / 安全確認
+ID CLS-035
+DATE 2025-04-24
+AREA 横浜",medium,False,False,
+CLS-036,cls-036_construction_board_04_construction_board.jpg,classification_samples/construction_board/cls-036_construction_board_04_construction_board.jpg,classification_samples,construction_board,construction|工事|黒板|現場|安全,"工事黒板 Construction Board
+現場 札幌 2丁目
+施工: 架空建設
+検査 OK / 安全確認
+ID CLS-036
+DATE 2025-05-25
+AREA 札幌",medium,False,False,
+CLS-037,cls-037_misc_01_misc.jpg,classification_samples/misc/cls-037_misc_01_misc.jpg,classification_samples,misc,misc|しまい箱|分類保留|box|label,"Misc label
+しまい箱 No.42
+分類保留
+box-077
+ID CLS-037
+DATE 2025-06-26
+AREA 福岡",easy,False,False,
+CLS-038,cls-038_misc_02_misc.jpg,classification_samples/misc/cls-038_misc_02_misc.jpg,classification_samples,misc,misc|しまい箱|分類保留|box|label,"Misc label
+しまい箱 No.42
+分類保留
+box-078
+ID CLS-038
+DATE 2025-07-01
+AREA 東京",easy,False,False,
+CLS-039,cls-039_misc_03_misc.jpg,classification_samples/misc/cls-039_misc_03_misc.jpg,classification_samples,misc,misc|しまい箱|分類保留|box|label,"Misc label
+しまい箱 No.42
+分類保留
+box-079
+ID CLS-039
+DATE 2025-08-02
+AREA 大阪",medium,False,False,
+CLS-040,cls-040_misc_04_misc.jpg,classification_samples/misc/cls-040_misc_04_misc.jpg,classification_samples,misc,misc|しまい箱|分類保留|box|label,"Misc label
+しまい箱 No.42
+分類保留
+box-080
+ID CLS-040
+DATE 2025-09-03
+AREA 京都",medium,False,False,
+EDG-001,edg-001_document_like_photo_document_photo.jpg,edge_cases/document_like_photo/edg-001_document_like_photo_document_photo.jpg,edge_cases,document_photo,document|報告書|DOC|承認|横浜,"業務報告書 Document
+案件番号 DOC-0081
+確認欄 / 承認欄
+添付資料あり
+ID EDG-001
+DATE 2025-10-04
+AREA 横浜",edge,False,False,書類っぽい写真
+EDG-002,edg-002_screenlike_real_photo_screenshot.png,edge_cases/screenlike_real_photo/edg-002_screenlike_real_photo_screenshot.png,edge_cases,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-082
+09:42  Wi-Fi
+ID EDG-002
+DATE 2025-11-05
+AREA 札幌",edge,True,False,スクショっぽい実写風
+EDG-003,edg-003_cardlike_flyer_business_card.jpg,edge_cases/cardlike_flyer/edg-003_cardlike_flyer_business_card.jpg,edge_cases,business_card,名刺|北町サンプル社|TEL|example.local|営業,"北町サンプル社
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4583-1283
+mail sample83@example.local
+ID EDG-003
+DATE 2025-12-06
+AREA 福岡",edge,False,False,名刺っぽいチラシ
+EDG-004,edg-004_signlike_whiteboard_whiteboard.jpg,edge_cases/signlike_whiteboard/edg-004_signlike_whiteboard_whiteboard.jpg,edge_cases,whiteboard,whiteboard|TODO|議事|OCR|分類,"Whiteboard meeting
+TODO: scan / OCR / 分類
+議事メモ 84
+次回 10:30
+ID EDG-004
+DATE 2025-01-07
+AREA 東京",edge,False,False,看板っぽいホワイトボード
+EDG-005,edg-005_ocr_difficult_dense_document_photo.jpg,edge_cases/ocr_difficult_dense/edg-005_ocr_difficult_dense_document_photo.jpg,edge_cases,document_photo,document|報告書|DOC|承認|大阪,"業務報告書 Document
+案件番号 DOC-0085
+確認欄 / 承認欄
+添付資料あり
+ID EDG-005
+DATE 2025-02-08
+AREA 大阪",hard,False,False,OCR困難画像
+EDG-006,edg-006_low_contrast_receipt_receipt.jpg,edge_cases/low_contrast_receipt/edg-006_low_contrast_receipt_receipt.jpg,edge_cases,receipt,receipt|領収書|12602|京都|港南メモ工房,"港南メモ工房
+領収書 Receipt
+合計 Total 12,602 yen
+登録番号 T-0086
+ID EDG-006
+DATE 2025-03-09
+AREA 京都",hard,False,False,低コントラスト
+EDG-007,edg-007_tilted_signboard_signboard.jpg,edge_cases/tilted_signboard/edg-007_tilted_signboard_signboard.jpg,edge_cases,signboard,signboard|看板|入口|横浜|OPEN,"横浜中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 87
+ID EDG-007
+DATE 2025-04-10
+AREA 横浜",hard,False,False,傾き
+EDG-008,edg-008_blurred_business_card_business_card.jpg,edge_cases/blurred_business_card/edg-008_blurred_business_card_business_card.jpg,edge_cases,business_card,名刺|しまい箱商店|TEL|example.local|営業,"しまい箱商店
+営業企画部 Sample Manager
+山田 みなと
+TEL 03-4588-1288
+mail sample88@example.local
+ID EDG-008
+DATE 2025-05-11
+AREA 札幌",hard,False,False,ぼけ
+EDG-009,edg-009_busy_text_background_signboard.jpg,edge_cases/busy_text_background/edg-009_busy_text_background_signboard.jpg,edge_cases,signboard,signboard|看板|入口|福岡|OPEN,"福岡中央案内
+SIGNBOARD / OPEN
+入口はこちら
+Route 89
+ID EDG-009
+DATE 2025-06-12
+AREA 福岡",hard,False,False,文字多め背景
+EDG-010,edg-010_short_receipt_receipt.jpg,edge_cases/short_receipt/edg-010_short_receipt_receipt.jpg,edge_cases,receipt,receipt|領収書|13150|東京|港南メモ工房,"港南メモ工房
+領収書 Receipt
+合計 Total 13,150 yen
+登録番号 T-0090
+ID EDG-010
+DATE 2025-07-13
+AREA 東京",medium,False,False,文字少なめ領収書
+EDG-011,edg-011_similar_filename_receipt_a_receipt.jpg,edge_cases/similar_filename_receipt_a/edg-011_similar_filename_receipt_a_receipt.jpg,edge_cases,receipt,receipt|領収書|13287|大阪|北町サンプル社,"北町サンプル社
+領収書 Receipt
+合計 Total 13,287 yen
+登録番号 T-0091
+ID EDG-011
+DATE 2025-08-14
+AREA 大阪",medium,False,False,似たファイル名A
+EDG-012,edg-012_similar_filename_receipt_b_receipt.jpg,edge_cases/similar_filename_receipt_b/edg-012_similar_filename_receipt_b_receipt.jpg,edge_cases,receipt,receipt|領収書|13424|京都|しまい箱商店,"しまい箱商店
+領収書 Receipt
+合計 Total 13,424 yen
+登録番号 T-0092
+ID EDG-012
+DATE 2025-09-15
+AREA 京都",medium,False,False,似たファイル名B
+EDG-013,edg-013_duplicate_family_a_family_photo.jpg,edge_cases/duplicate_family_a/edg-013_duplicate_family_a_family_photo.jpg,edge_cases,family_photo,family|album|誕生日|記念|home,"Family album
+誕生日と記念写真
+home event
+album 93
+ID EDG-013
+DATE 2025-10-16
+AREA 横浜",medium,False,True,重複画像A
+EDG-014,edg-014_duplicate_family_b_family_photo.jpg,edge_cases/duplicate_family_b/edg-014_duplicate_family_b_family_photo.jpg,edge_cases,family_photo,family|album|誕生日|記念|home,"Family album
+誕生日と記念写真
+home event
+album 94
+ID EDG-014
+DATE 2025-11-17
+AREA 札幌",medium,False,True,重複画像B
+EDG-015,edg-015_construction_board_small_text_construction_board.jpg,edge_cases/construction_board_small_text/edg-015_construction_board_small_text_construction_board.jpg,edge_cases,construction_board,construction|工事|黒板|現場|安全,"工事黒板 Construction Board
+現場 福岡 2丁目
+施工: 架空建設
+検査 OK / 安全確認
+ID EDG-015
+DATE 2025-12-18
+AREA 福岡",hard,False,False,工事黒板の小さい文字
+EDG-016,edg-016_travel_sign_mixed_travel_photo.jpg,edge_cases/travel_sign_mixed/edg-016_travel_sign_mixed_travel_photo.jpg,edge_cases,travel_photo,travel|東京|駅|trip|hotel,"東京 travel photo
+駅前広場 / landmark
+trip album
+hotel note 96
+ID EDG-016
+DATE 2025-01-19
+AREA 東京",edge,False,False,旅行写真に看板文字
+EDG-017,edg-017_family_album_caption_family_photo.jpg,edge_cases/family_album_caption/edg-017_family_album_caption_family_photo.jpg,edge_cases,family_photo,family|album|誕生日|記念|home,"Family album
+誕生日と記念写真
+home event
+album 97
+ID EDG-017
+DATE 2025-02-20
+AREA 大阪",easy,False,False,家族写真に短いキャプション
+EDG-018,edg-018_misc_label_box_misc.jpg,edge_cases/misc_label_box/edg-018_misc_label_box_misc.jpg,edge_cases,misc,misc|しまい箱|分類保留|box|label,"Misc label
+しまい箱 No.42
+分類保留
+box-098
+ID EDG-018
+DATE 2025-03-21
+AREA 京都",medium,False,False,ラベルだけの箱
+EDG-019,edg-019_document_shadow_document_photo.jpg,edge_cases/document_shadow/edg-019_document_shadow_document_photo.jpg,edge_cases,document_photo,document|報告書|DOC|承認|横浜,"業務報告書 Document
+案件番号 DOC-0099
+確認欄 / 承認欄
+添付資料あり
+ID EDG-019
+DATE 2025-04-22
+AREA 横浜",hard,False,False,影あり書類
+EDG-020,edg-020_screenshot_darkmode_screenshot.png,edge_cases/screenshot_darkmode/edg-020_screenshot_darkmode_screenshot.png,edge_cases,screenshot,screenshot|Memo|通知|shimai|Wi-Fi,"Memo Screen
+通知: OCR検証
+検索語 shimai-100
+09:42  Wi-Fi
+ID EDG-020
+DATE 2025-05-23
+AREA 札幌",medium,True,False,ダークモード画面

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="しまい箱">
+  <rect width="64" height="64" rx="12" fill="#0f766e"/>
+  <path d="M13.5 21.5c0-3 2.4-5.5 5.5-5.5h9.5l4.1 4.4H45c3 0 5.5 2.4 5.5 5.5v21.4c0 3-2.4 5.5-5.5 5.5H19c-3 0-5.5-2.4-5.5-5.5V21.5z" fill="#fff"/>
+  <path d="M13.5 26.8h37v20.5c0 3-2.4 5.5-5.5 5.5H19c-3 0-5.5-2.4-5.5-5.5V26.8z" fill="#f8faf9"/>
+  <path d="M18.5 45l8-9.4 6.7 6.1 5.3-5.5L46 45H18.5z" fill="#bfe9e2"/>
+  <circle cx="42.2" cy="33.5" r="4.2" fill="#f59e0b"/>
+</svg>

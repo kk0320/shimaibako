@@ -1,0 +1,1908 @@
+﻿{
+  "dataset_name": "しまい箱 local OCR and classification test assets",
+  "version": "1.0",
+  "total": 100,
+  "generated_at": "2026-06-16",
+  "items": [
+    {
+      "id": "OCR-001",
+      "file_name": "ocr-001_receipt_01_receipt.jpg",
+      "relative_path": "ocr_samples/receipt/ocr-001_receipt_01_receipt.jpg",
+      "group": "ocr_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "957",
+        "大阪",
+        "青葉デザイン"
+      ],
+      "expected_ocr_text": "青葉デザイン\n領収書 Receipt\n合計 Total 957 yen\n登録番号 T-0001\nID OCR-001\nDATE 2025-02-02\nAREA 大阪",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-002",
+      "file_name": "ocr-002_receipt_02_receipt.jpg",
+      "relative_path": "ocr_samples/receipt/ocr-002_receipt_02_receipt.jpg",
+      "group": "ocr_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "1094",
+        "京都",
+        "港南メモ工房"
+      ],
+      "expected_ocr_text": "港南メモ工房\n領収書 Receipt\n合計 Total 1,094 yen\n登録番号 T-0002\nID OCR-002\nDATE 2025-03-03\nAREA 京都",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-003",
+      "file_name": "ocr-003_receipt_03_receipt.jpg",
+      "relative_path": "ocr_samples/receipt/ocr-003_receipt_03_receipt.jpg",
+      "group": "ocr_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "1231",
+        "横浜",
+        "北町サンプル社"
+      ],
+      "expected_ocr_text": "北町サンプル社\n領収書 Receipt\n合計 Total 1,231 yen\n登録番号 T-0003\nID OCR-003\nDATE 2025-04-04\nAREA 横浜",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-004",
+      "file_name": "ocr-004_receipt_04_receipt.jpg",
+      "relative_path": "ocr_samples/receipt/ocr-004_receipt_04_receipt.jpg",
+      "group": "ocr_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "1368",
+        "札幌",
+        "しまい箱商店"
+      ],
+      "expected_ocr_text": "しまい箱商店\n領収書 Receipt\n合計 Total 1,368 yen\n登録番号 T-0004\nID OCR-004\nDATE 2025-05-05\nAREA 札幌",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-005",
+      "file_name": "ocr-005_receipt_05_receipt.jpg",
+      "relative_path": "ocr_samples/receipt/ocr-005_receipt_05_receipt.jpg",
+      "group": "ocr_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "1505",
+        "福岡",
+        "青葉デザイン"
+      ],
+      "expected_ocr_text": "青葉デザイン\n領収書 Receipt\n合計 Total 1,505 yen\n登録番号 T-0005\nID OCR-005\nDATE 2025-06-06\nAREA 福岡",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-006",
+      "file_name": "ocr-006_receipt_06_receipt.jpg",
+      "relative_path": "ocr_samples/receipt/ocr-006_receipt_06_receipt.jpg",
+      "group": "ocr_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "1642",
+        "東京",
+        "港南メモ工房"
+      ],
+      "expected_ocr_text": "港南メモ工房\n領収書 Receipt\n合計 Total 1,642 yen\n登録番号 T-0006\nID OCR-006\nDATE 2025-07-07\nAREA 東京",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-007",
+      "file_name": "ocr-007_receipt_07_receipt.jpg",
+      "relative_path": "ocr_samples/receipt/ocr-007_receipt_07_receipt.jpg",
+      "group": "ocr_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "1779",
+        "大阪",
+        "北町サンプル社"
+      ],
+      "expected_ocr_text": "北町サンプル社\n領収書 Receipt\n合計 Total 1,779 yen\n登録番号 T-0007\nID OCR-007\nDATE 2025-08-08\nAREA 大阪",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-008",
+      "file_name": "ocr-008_business_card_01_business_card.jpg",
+      "relative_path": "ocr_samples/business_card/ocr-008_business_card_01_business_card.jpg",
+      "group": "ocr_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "しまい箱商店",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "しまい箱商店\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4508-1208\nmail sample8@example.local\nID OCR-008\nDATE 2025-09-09\nAREA 京都",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-009",
+      "file_name": "ocr-009_business_card_02_business_card.jpg",
+      "relative_path": "ocr_samples/business_card/ocr-009_business_card_02_business_card.jpg",
+      "group": "ocr_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "青葉デザイン",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "青葉デザイン\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4509-1209\nmail sample9@example.local\nID OCR-009\nDATE 2025-10-10\nAREA 横浜",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-010",
+      "file_name": "ocr-010_business_card_03_business_card.jpg",
+      "relative_path": "ocr_samples/business_card/ocr-010_business_card_03_business_card.jpg",
+      "group": "ocr_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "港南メモ工房",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "港南メモ工房\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4510-1210\nmail sample10@example.local\nID OCR-010\nDATE 2025-11-11\nAREA 札幌",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-011",
+      "file_name": "ocr-011_business_card_04_business_card.jpg",
+      "relative_path": "ocr_samples/business_card/ocr-011_business_card_04_business_card.jpg",
+      "group": "ocr_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "北町サンプル社",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "北町サンプル社\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4511-1211\nmail sample11@example.local\nID OCR-011\nDATE 2025-12-12\nAREA 福岡",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-012",
+      "file_name": "ocr-012_business_card_05_business_card.jpg",
+      "relative_path": "ocr_samples/business_card/ocr-012_business_card_05_business_card.jpg",
+      "group": "ocr_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "しまい箱商店",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "しまい箱商店\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4512-1212\nmail sample12@example.local\nID OCR-012\nDATE 2025-01-13\nAREA 東京",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-013",
+      "file_name": "ocr-013_business_card_06_business_card.jpg",
+      "relative_path": "ocr_samples/business_card/ocr-013_business_card_06_business_card.jpg",
+      "group": "ocr_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "青葉デザイン",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "青葉デザイン\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4513-1213\nmail sample13@example.local\nID OCR-013\nDATE 2025-02-14\nAREA 大阪",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-014",
+      "file_name": "ocr-014_business_card_07_business_card.jpg",
+      "relative_path": "ocr_samples/business_card/ocr-014_business_card_07_business_card.jpg",
+      "group": "ocr_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "港南メモ工房",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "港南メモ工房\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4514-1214\nmail sample14@example.local\nID OCR-014\nDATE 2025-03-15\nAREA 京都",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-015",
+      "file_name": "ocr-015_signboard_01_signboard.jpg",
+      "relative_path": "ocr_samples/signboard/ocr-015_signboard_01_signboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "横浜",
+        "OPEN"
+      ],
+      "expected_ocr_text": "横浜中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 15\nID OCR-015\nDATE 2025-04-16\nAREA 横浜",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-016",
+      "file_name": "ocr-016_signboard_02_signboard.jpg",
+      "relative_path": "ocr_samples/signboard/ocr-016_signboard_02_signboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "札幌",
+        "OPEN"
+      ],
+      "expected_ocr_text": "札幌中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 16\nID OCR-016\nDATE 2025-05-17\nAREA 札幌",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-017",
+      "file_name": "ocr-017_signboard_03_signboard.jpg",
+      "relative_path": "ocr_samples/signboard/ocr-017_signboard_03_signboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "福岡",
+        "OPEN"
+      ],
+      "expected_ocr_text": "福岡中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 17\nID OCR-017\nDATE 2025-06-18\nAREA 福岡",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-018",
+      "file_name": "ocr-018_signboard_04_signboard.jpg",
+      "relative_path": "ocr_samples/signboard/ocr-018_signboard_04_signboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "東京",
+        "OPEN"
+      ],
+      "expected_ocr_text": "東京中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 18\nID OCR-018\nDATE 2025-07-19\nAREA 東京",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-019",
+      "file_name": "ocr-019_signboard_05_signboard.jpg",
+      "relative_path": "ocr_samples/signboard/ocr-019_signboard_05_signboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "大阪",
+        "OPEN"
+      ],
+      "expected_ocr_text": "大阪中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 19\nID OCR-019\nDATE 2025-08-20\nAREA 大阪",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-020",
+      "file_name": "ocr-020_signboard_06_signboard.jpg",
+      "relative_path": "ocr_samples/signboard/ocr-020_signboard_06_signboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "京都",
+        "OPEN"
+      ],
+      "expected_ocr_text": "京都中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 20\nID OCR-020\nDATE 2025-09-21\nAREA 京都",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-021",
+      "file_name": "ocr-021_signboard_07_signboard.jpg",
+      "relative_path": "ocr_samples/signboard/ocr-021_signboard_07_signboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "横浜",
+        "OPEN"
+      ],
+      "expected_ocr_text": "横浜中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 21\nID OCR-021\nDATE 2025-10-22\nAREA 横浜",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-022",
+      "file_name": "ocr-022_whiteboard_01_whiteboard.jpg",
+      "relative_path": "ocr_samples/whiteboard/ocr-022_whiteboard_01_whiteboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 22\n次回 10:30\nID OCR-022\nDATE 2025-11-23\nAREA 札幌",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-023",
+      "file_name": "ocr-023_whiteboard_02_whiteboard.jpg",
+      "relative_path": "ocr_samples/whiteboard/ocr-023_whiteboard_02_whiteboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 23\n次回 10:30\nID OCR-023\nDATE 2025-12-24\nAREA 福岡",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-024",
+      "file_name": "ocr-024_whiteboard_03_whiteboard.jpg",
+      "relative_path": "ocr_samples/whiteboard/ocr-024_whiteboard_03_whiteboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 24\n次回 10:30\nID OCR-024\nDATE 2025-01-25\nAREA 東京",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-025",
+      "file_name": "ocr-025_whiteboard_04_whiteboard.jpg",
+      "relative_path": "ocr_samples/whiteboard/ocr-025_whiteboard_04_whiteboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 25\n次回 10:30\nID OCR-025\nDATE 2025-02-26\nAREA 大阪",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-026",
+      "file_name": "ocr-026_whiteboard_05_whiteboard.jpg",
+      "relative_path": "ocr_samples/whiteboard/ocr-026_whiteboard_05_whiteboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 26\n次回 10:30\nID OCR-026\nDATE 2025-03-01\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-027",
+      "file_name": "ocr-027_whiteboard_06_whiteboard.jpg",
+      "relative_path": "ocr_samples/whiteboard/ocr-027_whiteboard_06_whiteboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 27\n次回 10:30\nID OCR-027\nDATE 2025-04-02\nAREA 横浜",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-028",
+      "file_name": "ocr-028_whiteboard_07_whiteboard.jpg",
+      "relative_path": "ocr_samples/whiteboard/ocr-028_whiteboard_07_whiteboard.jpg",
+      "group": "ocr_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 28\n次回 10:30\nID OCR-028\nDATE 2025-05-03\nAREA 札幌",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-029",
+      "file_name": "ocr-029_document_photo_01_document_photo.jpg",
+      "relative_path": "ocr_samples/document_photo/ocr-029_document_photo_01_document_photo.jpg",
+      "group": "ocr_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "福岡"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0029\n確認欄 / 承認欄\n添付資料あり\nID OCR-029\nDATE 2025-06-04\nAREA 福岡",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-030",
+      "file_name": "ocr-030_document_photo_02_document_photo.jpg",
+      "relative_path": "ocr_samples/document_photo/ocr-030_document_photo_02_document_photo.jpg",
+      "group": "ocr_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "東京"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0030\n確認欄 / 承認欄\n添付資料あり\nID OCR-030\nDATE 2025-07-05\nAREA 東京",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-031",
+      "file_name": "ocr-031_document_photo_03_document_photo.jpg",
+      "relative_path": "ocr_samples/document_photo/ocr-031_document_photo_03_document_photo.jpg",
+      "group": "ocr_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "大阪"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0031\n確認欄 / 承認欄\n添付資料あり\nID OCR-031\nDATE 2025-08-06\nAREA 大阪",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-032",
+      "file_name": "ocr-032_document_photo_04_document_photo.jpg",
+      "relative_path": "ocr_samples/document_photo/ocr-032_document_photo_04_document_photo.jpg",
+      "group": "ocr_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "京都"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0032\n確認欄 / 承認欄\n添付資料あり\nID OCR-032\nDATE 2025-09-07\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-033",
+      "file_name": "ocr-033_document_photo_05_document_photo.jpg",
+      "relative_path": "ocr_samples/document_photo/ocr-033_document_photo_05_document_photo.jpg",
+      "group": "ocr_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "横浜"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0033\n確認欄 / 承認欄\n添付資料あり\nID OCR-033\nDATE 2025-10-08\nAREA 横浜",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-034",
+      "file_name": "ocr-034_document_photo_06_document_photo.jpg",
+      "relative_path": "ocr_samples/document_photo/ocr-034_document_photo_06_document_photo.jpg",
+      "group": "ocr_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "札幌"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0034\n確認欄 / 承認欄\n添付資料あり\nID OCR-034\nDATE 2025-11-09\nAREA 札幌",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-035",
+      "file_name": "ocr-035_screenshot_01_screenshot.png",
+      "relative_path": "ocr_samples/screenshot/ocr-035_screenshot_01_screenshot.png",
+      "group": "ocr_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-035\n09:42  Wi-Fi\nID OCR-035\nDATE 2025-12-10\nAREA 福岡",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-036",
+      "file_name": "ocr-036_screenshot_02_screenshot.png",
+      "relative_path": "ocr_samples/screenshot/ocr-036_screenshot_02_screenshot.png",
+      "group": "ocr_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-036\n09:42  Wi-Fi\nID OCR-036\nDATE 2025-01-11\nAREA 東京",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-037",
+      "file_name": "ocr-037_screenshot_03_screenshot.png",
+      "relative_path": "ocr_samples/screenshot/ocr-037_screenshot_03_screenshot.png",
+      "group": "ocr_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-037\n09:42  Wi-Fi\nID OCR-037\nDATE 2025-02-12\nAREA 大阪",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-038",
+      "file_name": "ocr-038_screenshot_04_screenshot.png",
+      "relative_path": "ocr_samples/screenshot/ocr-038_screenshot_04_screenshot.png",
+      "group": "ocr_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-038\n09:42  Wi-Fi\nID OCR-038\nDATE 2025-03-13\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-039",
+      "file_name": "ocr-039_screenshot_05_screenshot.png",
+      "relative_path": "ocr_samples/screenshot/ocr-039_screenshot_05_screenshot.png",
+      "group": "ocr_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-039\n09:42  Wi-Fi\nID OCR-039\nDATE 2025-04-14\nAREA 横浜",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "OCR-040",
+      "file_name": "ocr-040_screenshot_06_screenshot.png",
+      "relative_path": "ocr_samples/screenshot/ocr-040_screenshot_06_screenshot.png",
+      "group": "ocr_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-040\n09:42  Wi-Fi\nID OCR-040\nDATE 2025-05-15\nAREA 札幌",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-001",
+      "file_name": "cls-001_receipt_01_receipt.jpg",
+      "relative_path": "classification_samples/receipt/cls-001_receipt_01_receipt.jpg",
+      "group": "classification_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "6437",
+        "福岡",
+        "青葉デザイン"
+      ],
+      "expected_ocr_text": "青葉デザイン\n領収書 Receipt\n合計 Total 6,437 yen\n登録番号 T-0041\nID CLS-001\nDATE 2025-06-16\nAREA 福岡",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-002",
+      "file_name": "cls-002_receipt_02_receipt.jpg",
+      "relative_path": "classification_samples/receipt/cls-002_receipt_02_receipt.jpg",
+      "group": "classification_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "6574",
+        "東京",
+        "港南メモ工房"
+      ],
+      "expected_ocr_text": "港南メモ工房\n領収書 Receipt\n合計 Total 6,574 yen\n登録番号 T-0042\nID CLS-002\nDATE 2025-07-17\nAREA 東京",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-003",
+      "file_name": "cls-003_receipt_03_receipt.jpg",
+      "relative_path": "classification_samples/receipt/cls-003_receipt_03_receipt.jpg",
+      "group": "classification_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "6711",
+        "大阪",
+        "北町サンプル社"
+      ],
+      "expected_ocr_text": "北町サンプル社\n領収書 Receipt\n合計 Total 6,711 yen\n登録番号 T-0043\nID CLS-003\nDATE 2025-08-18\nAREA 大阪",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-004",
+      "file_name": "cls-004_receipt_04_receipt.jpg",
+      "relative_path": "classification_samples/receipt/cls-004_receipt_04_receipt.jpg",
+      "group": "classification_samples",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "6848",
+        "京都",
+        "しまい箱商店"
+      ],
+      "expected_ocr_text": "しまい箱商店\n領収書 Receipt\n合計 Total 6,848 yen\n登録番号 T-0044\nID CLS-004\nDATE 2025-09-19\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-005",
+      "file_name": "cls-005_business_card_01_business_card.jpg",
+      "relative_path": "classification_samples/business_card/cls-005_business_card_01_business_card.jpg",
+      "group": "classification_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "青葉デザイン",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "青葉デザイン\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4545-1245\nmail sample45@example.local\nID CLS-005\nDATE 2025-10-20\nAREA 横浜",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-006",
+      "file_name": "cls-006_business_card_02_business_card.jpg",
+      "relative_path": "classification_samples/business_card/cls-006_business_card_02_business_card.jpg",
+      "group": "classification_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "港南メモ工房",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "港南メモ工房\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4546-1246\nmail sample46@example.local\nID CLS-006\nDATE 2025-11-21\nAREA 札幌",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-007",
+      "file_name": "cls-007_business_card_03_business_card.jpg",
+      "relative_path": "classification_samples/business_card/cls-007_business_card_03_business_card.jpg",
+      "group": "classification_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "北町サンプル社",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "北町サンプル社\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4547-1247\nmail sample47@example.local\nID CLS-007\nDATE 2025-12-22\nAREA 福岡",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-008",
+      "file_name": "cls-008_business_card_04_business_card.jpg",
+      "relative_path": "classification_samples/business_card/cls-008_business_card_04_business_card.jpg",
+      "group": "classification_samples",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "しまい箱商店",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "しまい箱商店\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4548-1248\nmail sample48@example.local\nID CLS-008\nDATE 2025-01-23\nAREA 東京",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-009",
+      "file_name": "cls-009_whiteboard_01_whiteboard.jpg",
+      "relative_path": "classification_samples/whiteboard/cls-009_whiteboard_01_whiteboard.jpg",
+      "group": "classification_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 49\n次回 10:30\nID CLS-009\nDATE 2025-02-24\nAREA 大阪",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-010",
+      "file_name": "cls-010_whiteboard_02_whiteboard.jpg",
+      "relative_path": "classification_samples/whiteboard/cls-010_whiteboard_02_whiteboard.jpg",
+      "group": "classification_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 50\n次回 10:30\nID CLS-010\nDATE 2025-03-25\nAREA 京都",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-011",
+      "file_name": "cls-011_whiteboard_03_whiteboard.jpg",
+      "relative_path": "classification_samples/whiteboard/cls-011_whiteboard_03_whiteboard.jpg",
+      "group": "classification_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 51\n次回 10:30\nID CLS-011\nDATE 2025-04-26\nAREA 横浜",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-012",
+      "file_name": "cls-012_whiteboard_04_whiteboard.jpg",
+      "relative_path": "classification_samples/whiteboard/cls-012_whiteboard_04_whiteboard.jpg",
+      "group": "classification_samples",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 52\n次回 10:30\nID CLS-012\nDATE 2025-05-01\nAREA 札幌",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-013",
+      "file_name": "cls-013_signboard_01_signboard.jpg",
+      "relative_path": "classification_samples/signboard/cls-013_signboard_01_signboard.jpg",
+      "group": "classification_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "福岡",
+        "OPEN"
+      ],
+      "expected_ocr_text": "福岡中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 53\nID CLS-013\nDATE 2025-06-02\nAREA 福岡",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-014",
+      "file_name": "cls-014_signboard_02_signboard.jpg",
+      "relative_path": "classification_samples/signboard/cls-014_signboard_02_signboard.jpg",
+      "group": "classification_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "東京",
+        "OPEN"
+      ],
+      "expected_ocr_text": "東京中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 54\nID CLS-014\nDATE 2025-07-03\nAREA 東京",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-015",
+      "file_name": "cls-015_signboard_03_signboard.jpg",
+      "relative_path": "classification_samples/signboard/cls-015_signboard_03_signboard.jpg",
+      "group": "classification_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "大阪",
+        "OPEN"
+      ],
+      "expected_ocr_text": "大阪中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 55\nID CLS-015\nDATE 2025-08-04\nAREA 大阪",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-016",
+      "file_name": "cls-016_signboard_04_signboard.jpg",
+      "relative_path": "classification_samples/signboard/cls-016_signboard_04_signboard.jpg",
+      "group": "classification_samples",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "京都",
+        "OPEN"
+      ],
+      "expected_ocr_text": "京都中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 56\nID CLS-016\nDATE 2025-09-05\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-017",
+      "file_name": "cls-017_document_photo_01_document_photo.jpg",
+      "relative_path": "classification_samples/document_photo/cls-017_document_photo_01_document_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "横浜"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0057\n確認欄 / 承認欄\n添付資料あり\nID CLS-017\nDATE 2025-10-06\nAREA 横浜",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-018",
+      "file_name": "cls-018_document_photo_02_document_photo.jpg",
+      "relative_path": "classification_samples/document_photo/cls-018_document_photo_02_document_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "札幌"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0058\n確認欄 / 承認欄\n添付資料あり\nID CLS-018\nDATE 2025-11-07\nAREA 札幌",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-019",
+      "file_name": "cls-019_document_photo_03_document_photo.jpg",
+      "relative_path": "classification_samples/document_photo/cls-019_document_photo_03_document_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "福岡"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0059\n確認欄 / 承認欄\n添付資料あり\nID CLS-019\nDATE 2025-12-08\nAREA 福岡",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-020",
+      "file_name": "cls-020_document_photo_04_document_photo.jpg",
+      "relative_path": "classification_samples/document_photo/cls-020_document_photo_04_document_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "東京"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0060\n確認欄 / 承認欄\n添付資料あり\nID CLS-020\nDATE 2025-01-09\nAREA 東京",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-021",
+      "file_name": "cls-021_screenshot_01_screenshot.png",
+      "relative_path": "classification_samples/screenshot/cls-021_screenshot_01_screenshot.png",
+      "group": "classification_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-061\n09:42  Wi-Fi\nID CLS-021\nDATE 2025-02-10\nAREA 大阪",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-022",
+      "file_name": "cls-022_screenshot_02_screenshot.png",
+      "relative_path": "classification_samples/screenshot/cls-022_screenshot_02_screenshot.png",
+      "group": "classification_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-062\n09:42  Wi-Fi\nID CLS-022\nDATE 2025-03-11\nAREA 京都",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-023",
+      "file_name": "cls-023_screenshot_03_screenshot.png",
+      "relative_path": "classification_samples/screenshot/cls-023_screenshot_03_screenshot.png",
+      "group": "classification_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-063\n09:42  Wi-Fi\nID CLS-023\nDATE 2025-04-12\nAREA 横浜",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-024",
+      "file_name": "cls-024_screenshot_04_screenshot.png",
+      "relative_path": "classification_samples/screenshot/cls-024_screenshot_04_screenshot.png",
+      "group": "classification_samples",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-064\n09:42  Wi-Fi\nID CLS-024\nDATE 2025-05-13\nAREA 札幌",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-025",
+      "file_name": "cls-025_family_photo_01_family_photo.jpg",
+      "relative_path": "classification_samples/family_photo/cls-025_family_photo_01_family_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "family_photo",
+      "expected_keywords": [
+        "family",
+        "album",
+        "誕生日",
+        "記念",
+        "home"
+      ],
+      "expected_ocr_text": "Family album\n誕生日と記念写真\nhome event\nalbum 65\nID CLS-025\nDATE 2025-06-14\nAREA 福岡",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-026",
+      "file_name": "cls-026_family_photo_02_family_photo.jpg",
+      "relative_path": "classification_samples/family_photo/cls-026_family_photo_02_family_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "family_photo",
+      "expected_keywords": [
+        "family",
+        "album",
+        "誕生日",
+        "記念",
+        "home"
+      ],
+      "expected_ocr_text": "Family album\n誕生日と記念写真\nhome event\nalbum 66\nID CLS-026\nDATE 2025-07-15\nAREA 東京",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-027",
+      "file_name": "cls-027_family_photo_03_family_photo.jpg",
+      "relative_path": "classification_samples/family_photo/cls-027_family_photo_03_family_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "family_photo",
+      "expected_keywords": [
+        "family",
+        "album",
+        "誕生日",
+        "記念",
+        "home"
+      ],
+      "expected_ocr_text": "Family album\n誕生日と記念写真\nhome event\nalbum 67\nID CLS-027\nDATE 2025-08-16\nAREA 大阪",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-028",
+      "file_name": "cls-028_family_photo_04_family_photo.jpg",
+      "relative_path": "classification_samples/family_photo/cls-028_family_photo_04_family_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "family_photo",
+      "expected_keywords": [
+        "family",
+        "album",
+        "誕生日",
+        "記念",
+        "home"
+      ],
+      "expected_ocr_text": "Family album\n誕生日と記念写真\nhome event\nalbum 68\nID CLS-028\nDATE 2025-09-17\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-029",
+      "file_name": "cls-029_travel_photo_01_travel_photo.jpg",
+      "relative_path": "classification_samples/travel_photo/cls-029_travel_photo_01_travel_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "travel_photo",
+      "expected_keywords": [
+        "travel",
+        "横浜",
+        "駅",
+        "trip",
+        "hotel"
+      ],
+      "expected_ocr_text": "横浜 travel photo\n駅前広場 / landmark\ntrip album\nhotel note 69\nID CLS-029\nDATE 2025-10-18\nAREA 横浜",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-030",
+      "file_name": "cls-030_travel_photo_02_travel_photo.jpg",
+      "relative_path": "classification_samples/travel_photo/cls-030_travel_photo_02_travel_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "travel_photo",
+      "expected_keywords": [
+        "travel",
+        "札幌",
+        "駅",
+        "trip",
+        "hotel"
+      ],
+      "expected_ocr_text": "札幌 travel photo\n駅前広場 / landmark\ntrip album\nhotel note 70\nID CLS-030\nDATE 2025-11-19\nAREA 札幌",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-031",
+      "file_name": "cls-031_travel_photo_03_travel_photo.jpg",
+      "relative_path": "classification_samples/travel_photo/cls-031_travel_photo_03_travel_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "travel_photo",
+      "expected_keywords": [
+        "travel",
+        "福岡",
+        "駅",
+        "trip",
+        "hotel"
+      ],
+      "expected_ocr_text": "福岡 travel photo\n駅前広場 / landmark\ntrip album\nhotel note 71\nID CLS-031\nDATE 2025-12-20\nAREA 福岡",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-032",
+      "file_name": "cls-032_travel_photo_04_travel_photo.jpg",
+      "relative_path": "classification_samples/travel_photo/cls-032_travel_photo_04_travel_photo.jpg",
+      "group": "classification_samples",
+      "expected_category": "travel_photo",
+      "expected_keywords": [
+        "travel",
+        "東京",
+        "駅",
+        "trip",
+        "hotel"
+      ],
+      "expected_ocr_text": "東京 travel photo\n駅前広場 / landmark\ntrip album\nhotel note 72\nID CLS-032\nDATE 2025-01-21\nAREA 東京",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-033",
+      "file_name": "cls-033_construction_board_01_construction_board.jpg",
+      "relative_path": "classification_samples/construction_board/cls-033_construction_board_01_construction_board.jpg",
+      "group": "classification_samples",
+      "expected_category": "construction_board",
+      "expected_keywords": [
+        "construction",
+        "工事",
+        "黒板",
+        "現場",
+        "安全"
+      ],
+      "expected_ocr_text": "工事黒板 Construction Board\n現場 大阪 2丁目\n施工: 架空建設\n検査 OK / 安全確認\nID CLS-033\nDATE 2025-02-22\nAREA 大阪",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-034",
+      "file_name": "cls-034_construction_board_02_construction_board.jpg",
+      "relative_path": "classification_samples/construction_board/cls-034_construction_board_02_construction_board.jpg",
+      "group": "classification_samples",
+      "expected_category": "construction_board",
+      "expected_keywords": [
+        "construction",
+        "工事",
+        "黒板",
+        "現場",
+        "安全"
+      ],
+      "expected_ocr_text": "工事黒板 Construction Board\n現場 京都 2丁目\n施工: 架空建設\n検査 OK / 安全確認\nID CLS-034\nDATE 2025-03-23\nAREA 京都",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-035",
+      "file_name": "cls-035_construction_board_03_construction_board.jpg",
+      "relative_path": "classification_samples/construction_board/cls-035_construction_board_03_construction_board.jpg",
+      "group": "classification_samples",
+      "expected_category": "construction_board",
+      "expected_keywords": [
+        "construction",
+        "工事",
+        "黒板",
+        "現場",
+        "安全"
+      ],
+      "expected_ocr_text": "工事黒板 Construction Board\n現場 横浜 2丁目\n施工: 架空建設\n検査 OK / 安全確認\nID CLS-035\nDATE 2025-04-24\nAREA 横浜",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-036",
+      "file_name": "cls-036_construction_board_04_construction_board.jpg",
+      "relative_path": "classification_samples/construction_board/cls-036_construction_board_04_construction_board.jpg",
+      "group": "classification_samples",
+      "expected_category": "construction_board",
+      "expected_keywords": [
+        "construction",
+        "工事",
+        "黒板",
+        "現場",
+        "安全"
+      ],
+      "expected_ocr_text": "工事黒板 Construction Board\n現場 札幌 2丁目\n施工: 架空建設\n検査 OK / 安全確認\nID CLS-036\nDATE 2025-05-25\nAREA 札幌",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-037",
+      "file_name": "cls-037_misc_01_misc.jpg",
+      "relative_path": "classification_samples/misc/cls-037_misc_01_misc.jpg",
+      "group": "classification_samples",
+      "expected_category": "misc",
+      "expected_keywords": [
+        "misc",
+        "しまい箱",
+        "分類保留",
+        "box",
+        "label"
+      ],
+      "expected_ocr_text": "Misc label\nしまい箱 No.42\n分類保留\nbox-077\nID CLS-037\nDATE 2025-06-26\nAREA 福岡",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-038",
+      "file_name": "cls-038_misc_02_misc.jpg",
+      "relative_path": "classification_samples/misc/cls-038_misc_02_misc.jpg",
+      "group": "classification_samples",
+      "expected_category": "misc",
+      "expected_keywords": [
+        "misc",
+        "しまい箱",
+        "分類保留",
+        "box",
+        "label"
+      ],
+      "expected_ocr_text": "Misc label\nしまい箱 No.42\n分類保留\nbox-078\nID CLS-038\nDATE 2025-07-01\nAREA 東京",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-039",
+      "file_name": "cls-039_misc_03_misc.jpg",
+      "relative_path": "classification_samples/misc/cls-039_misc_03_misc.jpg",
+      "group": "classification_samples",
+      "expected_category": "misc",
+      "expected_keywords": [
+        "misc",
+        "しまい箱",
+        "分類保留",
+        "box",
+        "label"
+      ],
+      "expected_ocr_text": "Misc label\nしまい箱 No.42\n分類保留\nbox-079\nID CLS-039\nDATE 2025-08-02\nAREA 大阪",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "CLS-040",
+      "file_name": "cls-040_misc_04_misc.jpg",
+      "relative_path": "classification_samples/misc/cls-040_misc_04_misc.jpg",
+      "group": "classification_samples",
+      "expected_category": "misc",
+      "expected_keywords": [
+        "misc",
+        "しまい箱",
+        "分類保留",
+        "box",
+        "label"
+      ],
+      "expected_ocr_text": "Misc label\nしまい箱 No.42\n分類保留\nbox-080\nID CLS-040\nDATE 2025-09-03\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": ""
+    },
+    {
+      "id": "EDG-001",
+      "file_name": "edg-001_document_like_photo_document_photo.jpg",
+      "relative_path": "edge_cases/document_like_photo/edg-001_document_like_photo_document_photo.jpg",
+      "group": "edge_cases",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "横浜"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0081\n確認欄 / 承認欄\n添付資料あり\nID EDG-001\nDATE 2025-10-04\nAREA 横浜",
+      "difficulty": "edge",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "書類っぽい写真"
+    },
+    {
+      "id": "EDG-002",
+      "file_name": "edg-002_screenlike_real_photo_screenshot.png",
+      "relative_path": "edge_cases/screenlike_real_photo/edg-002_screenlike_real_photo_screenshot.png",
+      "group": "edge_cases",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-082\n09:42  Wi-Fi\nID EDG-002\nDATE 2025-11-05\nAREA 札幌",
+      "difficulty": "edge",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": "スクショっぽい実写風"
+    },
+    {
+      "id": "EDG-003",
+      "file_name": "edg-003_cardlike_flyer_business_card.jpg",
+      "relative_path": "edge_cases/cardlike_flyer/edg-003_cardlike_flyer_business_card.jpg",
+      "group": "edge_cases",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "北町サンプル社",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "北町サンプル社\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4583-1283\nmail sample83@example.local\nID EDG-003\nDATE 2025-12-06\nAREA 福岡",
+      "difficulty": "edge",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "名刺っぽいチラシ"
+    },
+    {
+      "id": "EDG-004",
+      "file_name": "edg-004_signlike_whiteboard_whiteboard.jpg",
+      "relative_path": "edge_cases/signlike_whiteboard/edg-004_signlike_whiteboard_whiteboard.jpg",
+      "group": "edge_cases",
+      "expected_category": "whiteboard",
+      "expected_keywords": [
+        "whiteboard",
+        "TODO",
+        "議事",
+        "OCR",
+        "分類"
+      ],
+      "expected_ocr_text": "Whiteboard meeting\nTODO: scan / OCR / 分類\n議事メモ 84\n次回 10:30\nID EDG-004\nDATE 2025-01-07\nAREA 東京",
+      "difficulty": "edge",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "看板っぽいホワイトボード"
+    },
+    {
+      "id": "EDG-005",
+      "file_name": "edg-005_ocr_difficult_dense_document_photo.jpg",
+      "relative_path": "edge_cases/ocr_difficult_dense/edg-005_ocr_difficult_dense_document_photo.jpg",
+      "group": "edge_cases",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "大阪"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0085\n確認欄 / 承認欄\n添付資料あり\nID EDG-005\nDATE 2025-02-08\nAREA 大阪",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "OCR困難画像"
+    },
+    {
+      "id": "EDG-006",
+      "file_name": "edg-006_low_contrast_receipt_receipt.jpg",
+      "relative_path": "edge_cases/low_contrast_receipt/edg-006_low_contrast_receipt_receipt.jpg",
+      "group": "edge_cases",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "12602",
+        "京都",
+        "港南メモ工房"
+      ],
+      "expected_ocr_text": "港南メモ工房\n領収書 Receipt\n合計 Total 12,602 yen\n登録番号 T-0086\nID EDG-006\nDATE 2025-03-09\nAREA 京都",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "低コントラスト"
+    },
+    {
+      "id": "EDG-007",
+      "file_name": "edg-007_tilted_signboard_signboard.jpg",
+      "relative_path": "edge_cases/tilted_signboard/edg-007_tilted_signboard_signboard.jpg",
+      "group": "edge_cases",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "横浜",
+        "OPEN"
+      ],
+      "expected_ocr_text": "横浜中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 87\nID EDG-007\nDATE 2025-04-10\nAREA 横浜",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "傾き"
+    },
+    {
+      "id": "EDG-008",
+      "file_name": "edg-008_blurred_business_card_business_card.jpg",
+      "relative_path": "edge_cases/blurred_business_card/edg-008_blurred_business_card_business_card.jpg",
+      "group": "edge_cases",
+      "expected_category": "business_card",
+      "expected_keywords": [
+        "名刺",
+        "しまい箱商店",
+        "TEL",
+        "example.local",
+        "営業"
+      ],
+      "expected_ocr_text": "しまい箱商店\n営業企画部 Sample Manager\n山田 みなと\nTEL 03-4588-1288\nmail sample88@example.local\nID EDG-008\nDATE 2025-05-11\nAREA 札幌",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "ぼけ"
+    },
+    {
+      "id": "EDG-009",
+      "file_name": "edg-009_busy_text_background_signboard.jpg",
+      "relative_path": "edge_cases/busy_text_background/edg-009_busy_text_background_signboard.jpg",
+      "group": "edge_cases",
+      "expected_category": "signboard",
+      "expected_keywords": [
+        "signboard",
+        "看板",
+        "入口",
+        "福岡",
+        "OPEN"
+      ],
+      "expected_ocr_text": "福岡中央案内\nSIGNBOARD / OPEN\n入口はこちら\nRoute 89\nID EDG-009\nDATE 2025-06-12\nAREA 福岡",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "文字多め背景"
+    },
+    {
+      "id": "EDG-010",
+      "file_name": "edg-010_short_receipt_receipt.jpg",
+      "relative_path": "edge_cases/short_receipt/edg-010_short_receipt_receipt.jpg",
+      "group": "edge_cases",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "13150",
+        "東京",
+        "港南メモ工房"
+      ],
+      "expected_ocr_text": "港南メモ工房\n領収書 Receipt\n合計 Total 13,150 yen\n登録番号 T-0090\nID EDG-010\nDATE 2025-07-13\nAREA 東京",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "文字少なめ領収書"
+    },
+    {
+      "id": "EDG-011",
+      "file_name": "edg-011_similar_filename_receipt_a_receipt.jpg",
+      "relative_path": "edge_cases/similar_filename_receipt_a/edg-011_similar_filename_receipt_a_receipt.jpg",
+      "group": "edge_cases",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "13287",
+        "大阪",
+        "北町サンプル社"
+      ],
+      "expected_ocr_text": "北町サンプル社\n領収書 Receipt\n合計 Total 13,287 yen\n登録番号 T-0091\nID EDG-011\nDATE 2025-08-14\nAREA 大阪",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "似たファイル名A"
+    },
+    {
+      "id": "EDG-012",
+      "file_name": "edg-012_similar_filename_receipt_b_receipt.jpg",
+      "relative_path": "edge_cases/similar_filename_receipt_b/edg-012_similar_filename_receipt_b_receipt.jpg",
+      "group": "edge_cases",
+      "expected_category": "receipt",
+      "expected_keywords": [
+        "receipt",
+        "領収書",
+        "13424",
+        "京都",
+        "しまい箱商店"
+      ],
+      "expected_ocr_text": "しまい箱商店\n領収書 Receipt\n合計 Total 13,424 yen\n登録番号 T-0092\nID EDG-012\nDATE 2025-09-15\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "似たファイル名B"
+    },
+    {
+      "id": "EDG-013",
+      "file_name": "edg-013_duplicate_family_a_family_photo.jpg",
+      "relative_path": "edge_cases/duplicate_family_a/edg-013_duplicate_family_a_family_photo.jpg",
+      "group": "edge_cases",
+      "expected_category": "family_photo",
+      "expected_keywords": [
+        "family",
+        "album",
+        "誕生日",
+        "記念",
+        "home"
+      ],
+      "expected_ocr_text": "Family album\n誕生日と記念写真\nhome event\nalbum 93\nID EDG-013\nDATE 2025-10-16\nAREA 横浜",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": true,
+      "notes": "重複画像A"
+    },
+    {
+      "id": "EDG-014",
+      "file_name": "edg-014_duplicate_family_b_family_photo.jpg",
+      "relative_path": "edge_cases/duplicate_family_b/edg-014_duplicate_family_b_family_photo.jpg",
+      "group": "edge_cases",
+      "expected_category": "family_photo",
+      "expected_keywords": [
+        "family",
+        "album",
+        "誕生日",
+        "記念",
+        "home"
+      ],
+      "expected_ocr_text": "Family album\n誕生日と記念写真\nhome event\nalbum 94\nID EDG-014\nDATE 2025-11-17\nAREA 札幌",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": true,
+      "notes": "重複画像B"
+    },
+    {
+      "id": "EDG-015",
+      "file_name": "edg-015_construction_board_small_text_construction_board.jpg",
+      "relative_path": "edge_cases/construction_board_small_text/edg-015_construction_board_small_text_construction_board.jpg",
+      "group": "edge_cases",
+      "expected_category": "construction_board",
+      "expected_keywords": [
+        "construction",
+        "工事",
+        "黒板",
+        "現場",
+        "安全"
+      ],
+      "expected_ocr_text": "工事黒板 Construction Board\n現場 福岡 2丁目\n施工: 架空建設\n検査 OK / 安全確認\nID EDG-015\nDATE 2025-12-18\nAREA 福岡",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "工事黒板の小さい文字"
+    },
+    {
+      "id": "EDG-016",
+      "file_name": "edg-016_travel_sign_mixed_travel_photo.jpg",
+      "relative_path": "edge_cases/travel_sign_mixed/edg-016_travel_sign_mixed_travel_photo.jpg",
+      "group": "edge_cases",
+      "expected_category": "travel_photo",
+      "expected_keywords": [
+        "travel",
+        "東京",
+        "駅",
+        "trip",
+        "hotel"
+      ],
+      "expected_ocr_text": "東京 travel photo\n駅前広場 / landmark\ntrip album\nhotel note 96\nID EDG-016\nDATE 2025-01-19\nAREA 東京",
+      "difficulty": "edge",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "旅行写真に看板文字"
+    },
+    {
+      "id": "EDG-017",
+      "file_name": "edg-017_family_album_caption_family_photo.jpg",
+      "relative_path": "edge_cases/family_album_caption/edg-017_family_album_caption_family_photo.jpg",
+      "group": "edge_cases",
+      "expected_category": "family_photo",
+      "expected_keywords": [
+        "family",
+        "album",
+        "誕生日",
+        "記念",
+        "home"
+      ],
+      "expected_ocr_text": "Family album\n誕生日と記念写真\nhome event\nalbum 97\nID EDG-017\nDATE 2025-02-20\nAREA 大阪",
+      "difficulty": "easy",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "家族写真に短いキャプション"
+    },
+    {
+      "id": "EDG-018",
+      "file_name": "edg-018_misc_label_box_misc.jpg",
+      "relative_path": "edge_cases/misc_label_box/edg-018_misc_label_box_misc.jpg",
+      "group": "edge_cases",
+      "expected_category": "misc",
+      "expected_keywords": [
+        "misc",
+        "しまい箱",
+        "分類保留",
+        "box",
+        "label"
+      ],
+      "expected_ocr_text": "Misc label\nしまい箱 No.42\n分類保留\nbox-098\nID EDG-018\nDATE 2025-03-21\nAREA 京都",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "ラベルだけの箱"
+    },
+    {
+      "id": "EDG-019",
+      "file_name": "edg-019_document_shadow_document_photo.jpg",
+      "relative_path": "edge_cases/document_shadow/edg-019_document_shadow_document_photo.jpg",
+      "group": "edge_cases",
+      "expected_category": "document_photo",
+      "expected_keywords": [
+        "document",
+        "報告書",
+        "DOC",
+        "承認",
+        "横浜"
+      ],
+      "expected_ocr_text": "業務報告書 Document\n案件番号 DOC-0099\n確認欄 / 承認欄\n添付資料あり\nID EDG-019\nDATE 2025-04-22\nAREA 横浜",
+      "difficulty": "hard",
+      "should_detect_as_screenshot": false,
+      "should_detect_as_duplicate": false,
+      "notes": "影あり書類"
+    },
+    {
+      "id": "EDG-020",
+      "file_name": "edg-020_screenshot_darkmode_screenshot.png",
+      "relative_path": "edge_cases/screenshot_darkmode/edg-020_screenshot_darkmode_screenshot.png",
+      "group": "edge_cases",
+      "expected_category": "screenshot",
+      "expected_keywords": [
+        "screenshot",
+        "Memo",
+        "通知",
+        "shimai",
+        "Wi-Fi"
+      ],
+      "expected_ocr_text": "Memo Screen\n通知: OCR検証\n検索語 shimai-100\n09:42  Wi-Fi\nID EDG-020\nDATE 2025-05-23\nAREA 札幌",
+      "difficulty": "medium",
+      "should_detect_as_screenshot": true,
+      "should_detect_as_duplicate": false,
+      "notes": "ダークモード画面"
+    }
+  ]
+}
