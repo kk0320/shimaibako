@@ -1,4 +1,5 @@
 import Photos
+import Foundation
 import SwiftUI
 
 enum PhotoGridMode {
@@ -22,6 +23,8 @@ struct PhotoGridView: View {
 
     @State private var searchText = ""
     @State private var selectedFilter: PhotoFilter = .all
+    @State private var debugPresentedAsset: PhotoAsset?
+    @State private var didPresentDebugAsset = false
 
     private let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -68,12 +71,54 @@ struct PhotoGridView: View {
             .navigationDestination(for: PhotoAsset.self) { asset in
                 PhotoDetailView(photoLibrary: photoLibrary, ocrService: ocrService, asset: asset)
             }
+            .sheet(item: $debugPresentedAsset) { asset in
+                NavigationStack {
+                    PhotoDetailView(
+                        photoLibrary: photoLibrary,
+                        ocrService: ocrService,
+                        asset: asset,
+                        automaticallyRunOCR: shouldRunOCRForDebug
+                    )
+                }
+            }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
                     await photoLibrary.loadRecentAssets()
                 }
+
+                presentDebugAssetIfNeeded()
+            }
+            .onChange(of: photoLibrary.assets) {
+                presentDebugAssetIfNeeded()
             }
         }
+    }
+
+    private var shouldPresentFirstAssetForDebug: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-ShimaiBakoOpenFirstPhoto")
+        #else
+        false
+        #endif
+    }
+
+    private var shouldRunOCRForDebug: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunOCR")
+        #else
+        false
+        #endif
+    }
+
+    private func presentDebugAssetIfNeeded() {
+        guard shouldPresentFirstAssetForDebug,
+              didPresentDebugAsset == false,
+              let asset = photoLibrary.assets.first else {
+            return
+        }
+
+        didPresentDebugAsset = true
+        debugPresentedAsset = asset
     }
 
     private var statusHeader: some View {

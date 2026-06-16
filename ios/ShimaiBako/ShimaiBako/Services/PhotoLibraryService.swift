@@ -13,13 +13,20 @@ final class PhotoLibraryService: ObservableObject {
 
     private let imageManager = PHCachingImageManager()
     private let fetchLimit = 100
+    private let assumesAuthorizedForDebugRun: Bool
 
     init() {
-        authorizationStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        #if DEBUG
+        assumesAuthorizedForDebugRun = ProcessInfo.processInfo.arguments.contains("-ShimaiBakoAssumePhotosAuthorized")
+        #else
+        assumesAuthorizedForDebugRun = false
+        #endif
+
+        authorizationStatus = assumesAuthorizedForDebugRun ? .authorized : PHPhotoLibrary.authorizationStatus(for: .readWrite)
     }
 
     var canReadPhotos: Bool {
-        authorizationStatus == .authorized || authorizationStatus == .limited
+        assumesAuthorizedForDebugRun || authorizationStatus == .authorized || authorizationStatus == .limited
     }
 
     var statusTitle: String {
@@ -41,14 +48,14 @@ final class PhotoLibraryService: ObservableObject {
 
     func prepare() async {
         refreshAuthorizationStatus()
-        guard canReadPhotos else {
-            return
-        }
-
-        await loadRecentAssets()
     }
 
     func refreshAuthorizationStatus() {
+        guard assumesAuthorizedForDebugRun == false else {
+            authorizationStatus = .authorized
+            return
+        }
+
         authorizationStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
     }
 
@@ -60,10 +67,6 @@ final class PhotoLibraryService: ObservableObject {
         }
 
         authorizationStatus = status
-
-        if canReadPhotos {
-            await loadRecentAssets()
-        }
     }
 
     func loadRecentAssets() async {

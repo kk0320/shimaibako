@@ -6,9 +6,23 @@ struct PhotoDetailView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     let asset: PhotoAsset
+    let automaticallyRunOCR: Bool
 
     @State private var displayImage: UIImage?
     @State private var isLoadingImage = false
+    @State private var didRunAutomaticOCR = false
+
+    init(
+        photoLibrary: PhotoLibraryService,
+        ocrService: OCRService,
+        asset: PhotoAsset,
+        automaticallyRunOCR: Bool = false
+    ) {
+        self.photoLibrary = photoLibrary
+        self.ocrService = ocrService
+        self.asset = asset
+        self.automaticallyRunOCR = automaticallyRunOCR
+    }
 
     var body: some View {
         ZStack {
@@ -50,7 +64,29 @@ struct PhotoDetailView: View {
             isLoadingImage = true
             displayImage = await photoLibrary.requestDisplayImage(for: asset)
             isLoadingImage = false
+
+            if automaticallyRunOCR {
+                await runOCRIfPossible()
+            }
         }
+    }
+
+    private func runOCRIfPossible() async {
+        guard let displayImage,
+              asset.mediaType == .image,
+              ocrService.isProcessing(asset) == false else {
+            return
+        }
+
+        if automaticallyRunOCR {
+            guard didRunAutomaticOCR == false else {
+                return
+            }
+
+            didRunAutomaticOCR = true
+        }
+
+        await ocrService.recognize(asset: asset, image: displayImage)
     }
 
     private var ocrPanel: some View {
@@ -69,9 +105,7 @@ struct PhotoDetailView: View {
 
             Button {
                 Task {
-                    if let displayImage {
-                        await ocrService.recognize(asset: asset, image: displayImage)
-                    }
+                    await runOCRIfPossible()
                 }
             } label: {
                 Label(ocrService.isProcessing(asset) ? "OCR中" : "この写真をOCR", systemImage: "doc.text.viewfinder")
