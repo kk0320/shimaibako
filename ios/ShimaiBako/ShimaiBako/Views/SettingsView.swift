@@ -31,10 +31,10 @@ struct SettingsView: View {
                         .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
 
                         VStack(alignment: .leading, spacing: 14) {
-                            SafetyRow(title: "写真は外部送信しません", systemImage: "lock.shield.fill")
-                            SafetyRow(title: "写真は読み取り専用で扱います", systemImage: "eye.fill")
-                            SafetyRow(title: "削除・移動・リネームは行いません", systemImage: "checkmark.shield.fill")
-                            SafetyRow(title: "検索は端末内で実行します", systemImage: "iphone")
+                            SettingsSafetyRow(title: "写真は外部送信しません", systemImage: "lock.shield.fill")
+                            SettingsSafetyRow(title: "写真は読み取り専用で扱います", systemImage: "eye.fill")
+                            SettingsSafetyRow(title: "削除・移動・リネームは行いません", systemImage: "checkmark.shield.fill")
+                            SettingsSafetyRow(title: "検索は端末内で実行します", systemImage: "iphone")
                         }
                         .padding(16)
                         .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
@@ -54,6 +54,27 @@ struct SettingsView: View {
             }
             .navigationTitle("設定")
         }
+    }
+}
+
+private struct SettingsSafetyRow: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.callout.weight(.semibold))
+                .frame(width: 18, alignment: .center)
+
+            Text(title)
+                .font(.callout.weight(.medium))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+        }
+        .foregroundStyle(Color(red: 0.10, green: 0.24, blue: 0.42))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
