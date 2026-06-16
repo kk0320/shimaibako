@@ -2,7 +2,7 @@
 
 ## 概要
 
-しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、端末内OCRの試作を実装した。
+しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存を実装した。
 
 現時点の方針は完全ローカル処理。写真は外部送信せず、削除・移動・編集・共有は行わない。
 
@@ -29,9 +29,19 @@
   - スクリーンショット
   - 動画
 - 設定/ヘルプ画面
-- Vision frameworkによる端末内OCRの試作
+- Vision frameworkによる端末内OCR
 - 詳細画面から1枚だけOCRを実行する導線
-- OCR結果のメモリ保持
+- OCR済み写真の再OCR導線
+- 表示中の写真を最大20件までまとめてOCRする導線
+- OCR状態表示
+  - 未処理
+  - 処理中
+  - OCR済み
+  - 読み取り失敗
+- OCR結果のJSON保存
+- OCR結果を含む検索
+- 設定画面での写真アクセス状態、読み込み上限、OCR件数、安全方針の表示
+- 限定アクセス時の写真選択変更導線
 
 ## 主なファイル
 
@@ -39,8 +49,10 @@
 - `ios/ShimaiBako/ShimaiBako/ShimaiBakoApp.swift`
 - `ios/ShimaiBako/ShimaiBako/ContentView.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/PhotoAsset.swift`
+- `ios/ShimaiBako/ShimaiBako/Models/OCRResult.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoLibraryService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRService.swift`
+- `ios/ShimaiBako/ShimaiBako/Services/OCRResultStore.swift`
 - `ios/ShimaiBako/ShimaiBako/Views/HomeView.swift`
 - `ios/ShimaiBako/ShimaiBako/Views/PermissionView.swift`
 - `ios/ShimaiBako/ShimaiBako/Views/PhotoGridView.swift`
@@ -56,7 +68,7 @@ xcodebuild build \
   -project ios/ShimaiBako/ShimaiBako.xcodeproj \
   -scheme ShimaiBako \
   -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath /tmp/shimaibako-final-derived
+  -derivedDataPath /tmp/shimaibako-ocr-final-derived
 ```
 
 ## Simulator確認
@@ -75,11 +87,15 @@ xcodebuild build \
 - `NSPhotoLibraryUsageDescription` 設定: PASS
 - AppIcon設定: PASS
 - `xcodebuild build`: PASS
-- AppIcon警告なし: PASS
+- warning/errorなし: PASS
 - 写真権限拒否時の表示: PASS
 - 写真グリッド表示: PASS
 - 詳細画面表示: PASS
 - Vision OCR処理: PASS
+- OCR結果のJSON保存: PASS
+- アプリ再起動後のOCR結果読み込み: PASS
+- OCR結果検索: PASS
+- 設定画面の安全方針表示順維持: PASS
 
 補足:
 
@@ -99,16 +115,20 @@ xcodebuild build \
 
 - 未確認: 説明画面と許可ボタンを表示
 - 許可: 最大100件の写真を読み取り専用で表示
-- 限定アクセス: 許可された範囲だけを表示
+- 限定アクセス: 許可された範囲だけを表示し、設定画面で写真の選択変更導線を表示
 - 拒否: 設定画面への導線を表示
-- 制限: 設定画面への導線を表示
+- 制限: 端末や管理設定による制限として説明を表示
 
 ## OCR状況
 
 - `VNRecognizeTextRequest` を利用
 - 認識言語は日本語と英語
 - 詳細画面の「この写真をOCR」ボタンで1枚だけ処理
-- OCR結果はメモリ上に保持
+- OCR済みまたは失敗した写真は詳細画面で状態、処理日時、結果を表示
+- 写真グリッドではOCR状態バッジを表示
+- 写真一覧/検索画面では、表示中の未処理写真を最大20件まで順番にOCR可能
+- OCR結果は `Application Support/ShimaiBako/ocr_results.json` に保存
+- 検索は撮影日、種別、サイズ、スクリーンショット判定、OCRテキストを対象にする
 - 外部OCR APIは未使用
 
 ローカルのテスト画像では次の文字列を認識できた。
@@ -122,10 +142,10 @@ xcodebuild build \
 
 ## 未実装
 
-- OCR結果の永続化
-- OCR結果を対象にした横断検索
 - ユーザータグ
 - お気に入り管理
 - ファイル名や追加メタデータの安定取得
 - 実機での限定アクセス選択確認
+- まとめてOCRのキャンセル
+- OCR対象画像のサイズ最適化
 - UIテストターゲット

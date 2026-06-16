@@ -4,8 +4,8 @@
 
 1. 実機または手動Simulator操作で写真権限フローを確認する
 2. 限定アクセスで選択写真だけが表示されることを確認する
-3. OCR結果を写真IDごとに永続化する
-4. OCR結果を検索対象に含める
+3. 実機でOCR結果の保存と再起動後の復元を確認する
+4. まとめてOCR中の中断やバックグラウンド移行時の挙動を確認する
 5. 写真詳細画面のメタデータ表示を増やす
 
 ## 優先度中
@@ -14,7 +14,7 @@
 2. 写真グリッドの空状態と読み込み状態を追加検証する
 3. スクリーンショット判定の精度を上げる
 4. 動画サムネイル表示と種別バッジを追加確認する
-5. SettingsViewに安全方針とバージョン情報を整理する
+5. SettingsViewにバージョン情報を追加する
 
 ## 優先度低
 
@@ -32,7 +32,7 @@ xcodebuild build \
   -project ios/ShimaiBako/ShimaiBako.xcodeproj \
   -scheme ShimaiBako \
   -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath /tmp/shimaibako-final-derived
+  -derivedDataPath /tmp/shimaibako-ocr-final-derived
 ```
 
 ## 注意点
@@ -42,3 +42,12 @@ xcodebuild build \
 - 外部APIモードは次段階以降に回す
 - App Store提出、証明書、課金関連はこの段階では扱わない
 - テスト用の起動引数はDebugビルドのみで使う
+
+## 実機確認メモ
+
+1. 写真アクセスを未確認から許可へ進める
+2. 限定アクセスで数枚だけ選び、グリッドが選択範囲だけになることを確認する
+3. 設定画面の「写真の選択を変更」から選択範囲を変更する
+4. 1枚OCRして結果が詳細画面に表示されることを確認する
+5. アプリを終了して再起動し、OCR結果が残ることを確認する
+6. OCR結果に含まれる語句で検索し、対象写真が表示されることを確認する
