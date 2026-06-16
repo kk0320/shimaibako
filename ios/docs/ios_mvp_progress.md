@@ -1,0 +1,131 @@
+# iOS MVP進捗
+
+## 概要
+
+しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、端末内OCRの試作を実装した。
+
+現時点の方針は完全ローカル処理。写真は外部送信せず、削除・移動・編集・共有は行わない。
+
+## 実装済み
+
+- SwiftUIアプリの基本構成
+- 日本語UI
+- AppIcon設定
+- 写真アクセス前の説明画面
+- PhotoKit権限状態の扱い
+  - 未確認
+  - 許可
+  - 限定アクセス
+  - 拒否
+  - 制限
+- 許可または限定アクセス時の直近写真読み取り
+- 最大100件のサムネイルグリッド表示
+- 写真詳細画面
+- 日付順表示
+- 検索欄
+- 種類フィルタ
+  - すべて
+  - 写真
+  - スクリーンショット
+  - 動画
+- 設定/ヘルプ画面
+- Vision frameworkによる端末内OCRの試作
+- 詳細画面から1枚だけOCRを実行する導線
+- OCR結果のメモリ保持
+
+## 主なファイル
+
+- `ios/ShimaiBako/Info.plist`
+- `ios/ShimaiBako/ShimaiBako/ShimaiBakoApp.swift`
+- `ios/ShimaiBako/ShimaiBako/ContentView.swift`
+- `ios/ShimaiBako/ShimaiBako/Models/PhotoAsset.swift`
+- `ios/ShimaiBako/ShimaiBako/Services/PhotoLibraryService.swift`
+- `ios/ShimaiBako/ShimaiBako/Services/OCRService.swift`
+- `ios/ShimaiBako/ShimaiBako/Views/HomeView.swift`
+- `ios/ShimaiBako/ShimaiBako/Views/PermissionView.swift`
+- `ios/ShimaiBako/ShimaiBako/Views/PhotoGridView.swift`
+- `ios/ShimaiBako/ShimaiBako/Views/PhotoDetailView.swift`
+- `ios/ShimaiBako/ShimaiBako/Views/SettingsView.swift`
+- `ios/ShimaiBako/ShimaiBako/Assets.xcassets/AppIcon.appiconset/Contents.json`
+
+## ビルド方法
+
+```sh
+cd ~/Desktop/all_dev/shimaibako
+xcodebuild build \
+  -project ios/ShimaiBako/ShimaiBako.xcodeproj \
+  -scheme ShimaiBako \
+  -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /tmp/shimaibako-final-derived
+```
+
+## Simulator確認
+
+確認環境:
+
+- Xcode 26.2
+- Swift 6.2.3
+- iPhone 17 Pro Simulator
+- iOS 26.3 runtime
+
+確認結果:
+
+- アプリ起動: PASS
+- 権限前の説明画面表示: PASS
+- `NSPhotoLibraryUsageDescription` 設定: PASS
+- AppIcon設定: PASS
+- `xcodebuild build`: PASS
+- AppIcon警告なし: PASS
+- 写真権限拒否時の表示: PASS
+- 写真グリッド表示: PASS
+- 詳細画面表示: PASS
+- Vision OCR処理: PASS
+
+補足:
+
+- Simulatorの写真権限自動付与では、iOS 26.3 runtimeで追加アクセス確認が残る場合があった。
+- そのため、検証用SimulatorではTCCの写真アクセス状態を確認しながら検証した。
+- 通常のアプリ操作では、アプリ内の説明画面からシステムの写真アクセス許可へ進む。
+- 限定アクセスはコード上で扱っているが、今回の自動確認では実機操作に近い限定選択までは未確認。
+
+## PhotoKit権限
+
+設定済みキー:
+
+- `NSPhotoLibraryUsageDescription`
+- `PHPhotoLibraryPreventAutomaticLimitedAccessAlert`
+
+権限ごとの挙動:
+
+- 未確認: 説明画面と許可ボタンを表示
+- 許可: 最大100件の写真を読み取り専用で表示
+- 限定アクセス: 許可された範囲だけを表示
+- 拒否: 設定画面への導線を表示
+- 制限: 設定画面への導線を表示
+
+## OCR状況
+
+- `VNRecognizeTextRequest` を利用
+- 認識言語は日本語と英語
+- 詳細画面の「この写真をOCR」ボタンで1枚だけ処理
+- OCR結果はメモリ上に保持
+- 外部OCR APIは未使用
+
+ローカルのテスト画像では次の文字列を認識できた。
+
+```text
+しまい箱OCR テスト
+写真は外部送しません
+読み取り専用で扱います
+端末内で検索します
+```
+
+## 未実装
+
+- OCR結果の永続化
+- OCR結果を対象にした横断検索
+- ユーザータグ
+- お気に入り管理
+- ファイル名や追加メタデータの安定取得
+- 実機での限定アクセス選択確認
+- UIテストターゲット
