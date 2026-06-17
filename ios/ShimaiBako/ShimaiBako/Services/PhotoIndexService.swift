@@ -142,6 +142,143 @@ final class PhotoIndexService: ObservableObject {
         await rebuild(for: assets, ocrService: ocrService)
     }
 
+    func clearOCRResult(localIdentifier: String) async {
+        let now = Date()
+        if let record = recordsByAssetID[localIdentifier] {
+            recordsByAssetID[localIdentifier] = record.clearingOCR(at: now)
+            refreshSummary()
+        }
+
+        do {
+            try await store.clearOCRResult(localIdentifier: localIdentifier)
+        } catch {
+            errorMessage = "OCR結果を削除できませんでした: \(error.localizedDescription)"
+        }
+    }
+
+    func clearOCRResult(for asset: PhotoAsset, ocrService: OCRService) async {
+        await ocrService.clearResult(for: asset)
+
+        let record = makeClearedOCRRecord(for: asset)
+        recordsByAssetID[asset.id] = record
+        refreshSummary()
+        await persistRecords([record])
+    }
+
+    func clearOCRResults(localIdentifiers: [String]) async {
+        let identifiers = Set(localIdentifiers)
+        guard identifiers.isEmpty == false else {
+            return
+        }
+
+        let now = Date()
+        for identifier in identifiers {
+            if let record = recordsByAssetID[identifier] {
+                recordsByAssetID[identifier] = record.clearingOCR(at: now)
+            }
+        }
+
+        refreshSummary()
+
+        do {
+            try await store.clearOCRResults(localIdentifiers: Array(identifiers))
+        } catch {
+            errorMessage = "OCR結果を削除できませんでした: \(error.localizedDescription)"
+        }
+    }
+
+    func clearOCRResults(for assets: [PhotoAsset], ocrService: OCRService) async {
+        let imageAssets = assets.filter { $0.mediaType == .image }
+        guard imageAssets.isEmpty == false else {
+            return
+        }
+
+        await ocrService.clearResults(for: imageAssets)
+
+        let records = imageAssets.map { makeClearedOCRRecord(for: $0) }
+        for record in records {
+            recordsByAssetID[record.localIdentifier] = record
+        }
+
+        refreshSummary()
+        await persistRecords(records)
+    }
+
+    func clearAllOCRResults(ocrService: OCRService) async {
+        await clearAllOCRResults(for: [], ocrService: ocrService)
+    }
+
+    func clearAllOCRResults(for assets: [PhotoAsset], ocrService: OCRService) async {
+        await ocrService.clearAllResults()
+
+        let now = Date()
+        var nextRecords = recordsByAssetID.mapValues { $0.clearingOCR(at: now) }
+
+        for asset in assets where asset.mediaType == .image {
+            nextRecords[asset.id] = makeClearedOCRRecord(for: asset)
+        }
+
+        recordsByAssetID = nextRecords
+        refreshSummary()
+        await persistAllRecords(Array(nextRecords.values))
+    }
+
+    func resetCategory(localIdentifier: String) async {
+        let now = Date()
+        if let record = recordsByAssetID[localIdentifier] {
+            recordsByAssetID[localIdentifier] = record.resettingCategory(at: now)
+            refreshSummary()
+        }
+
+        do {
+            try await store.resetCategory(localIdentifier: localIdentifier)
+        } catch {
+            errorMessage = "分類をリセットできませんでした: \(error.localizedDescription)"
+        }
+    }
+
+    func resetCategory(for asset: PhotoAsset, ocrService: OCRService) async {
+        let record = (recordsByAssetID[asset.id] ?? makeRecord(for: asset, ocrService: ocrService))
+            .resettingCategory()
+        recordsByAssetID[asset.id] = record
+        refreshSummary()
+        await persistRecords([record])
+    }
+
+    func rebuildCategory(for asset: PhotoAsset, ocrService: OCRService) async {
+        let record = makeRecord(for: asset, ocrService: ocrService)
+        recordsByAssetID[asset.id] = record
+        refreshSummary()
+        await persistRecords([record])
+    }
+
+    func rebuildCategories(for assets: [PhotoAsset], ocrService: OCRService) async {
+        guard assets.isEmpty == false else {
+            return
+        }
+
+        var records: [PhotoIndexRecord] = []
+        records.reserveCapacity(assets.count)
+
+        for (index, asset) in assets.enumerated() {
+            let record = makeRecord(for: asset, ocrService: ocrService)
+            recordsByAssetID[asset.id] = record
+            records.append(record)
+
+            if index.isMultiple(of: 500) {
+                refreshSummary()
+                await Task.yield()
+            }
+        }
+
+        refreshSummary()
+        await persistRecords(records)
+    }
+
+    func rebuildAllCategories(for assets: [PhotoAsset], ocrService: OCRService) async {
+        await rebuildCategories(for: assets, ocrService: ocrService)
+    }
+
     private func makeRecord(for asset: PhotoAsset, ocrService: OCRService) -> PhotoIndexRecord {
         let existingRecord = recordsByAssetID[asset.id]
         let ocrResult = ocrService.result(for: asset)
@@ -192,6 +329,31 @@ final class PhotoIndexService: ObservableObject {
         )
     }
 
+    private func makeClearedOCRRecord(for asset: PhotoAsset) -> PhotoIndexRecord {
+        let inference = CategoryInference.infer(asset: asset, ocrText: nil)
+        let now = Date()
+
+        return PhotoIndexRecord(
+            localIdentifier: asset.localIdentifier,
+            creationDate: asset.creationDate,
+            mediaTypeRawValue: asset.mediaType.rawValue,
+            mediaSubtypesRawValue: asset.mediaSubtypes.rawValue,
+            pixelWidth: asset.pixelWidth,
+            pixelHeight: asset.pixelHeight,
+            isScreenshot: asset.isScreenshot,
+            ocrStatus: .unprocessed,
+            ocrText: "",
+            ocrLanguage: nil,
+            ocrProcessedAt: nil,
+            ocrErrorMessage: nil,
+            inferredCategory: inference.category,
+            categoryConfidence: inference.confidence,
+            categoryUpdatedAt: inference.updatedAt,
+            lastSeenAt: now,
+            updatedAt: now
+        )
+    }
+
     private func loadPersistedRecords() async {
         do {
             let records = try await store.loadAll()
@@ -205,6 +367,15 @@ final class PhotoIndexService: ObservableObject {
     private func persistRecords(_ records: [PhotoIndexRecord]) async {
         do {
             try await store.upsert(records)
+            refreshSummary()
+        } catch {
+            errorMessage = "インデックスを保存できませんでした: \(error.localizedDescription)"
+        }
+    }
+
+    private func persistAllRecords(_ records: [PhotoIndexRecord]) async {
+        do {
+            try await store.saveAll(records)
             refreshSummary()
         } catch {
             errorMessage = "インデックスを保存できませんでした: \(error.localizedDescription)"

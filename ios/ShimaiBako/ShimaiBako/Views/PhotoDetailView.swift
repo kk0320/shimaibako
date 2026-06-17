@@ -12,6 +12,8 @@ struct PhotoDetailView: View {
     @State private var displayImage: UIImage?
     @State private var isLoadingImage = false
     @State private var didRunAutomaticOCR = false
+    @State private var showingClearOCRConfirmation = false
+    @State private var showingResetCategoryConfirmation = false
 
     init(
         photoLibrary: PhotoLibraryService,
@@ -49,6 +51,33 @@ struct PhotoDetailView: View {
                             title: "仮想フォルダ",
                             value: "\(indexService.category(for: asset, ocrService: ocrService).title) / 信頼度 \(indexService.confidenceLabel(for: asset, ocrService: ocrService))"
                         )
+
+                        Text("分類はしまい箱内の仮想フォルダです。写真アプリ側のアルバムや写真本体は変更しません。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        HStack(spacing: 8) {
+                            Button {
+                                Task {
+                                    await indexService.rebuildCategory(for: asset, ocrService: ocrService)
+                                }
+                            } label: {
+                                Label("分類を再判定", systemImage: "arrow.triangle.2.circlepath")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+
+                            Button {
+                                showingResetCategoryConfirmation = true
+                            } label: {
+                                Label("未分類に戻す", systemImage: "folder")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
                     }
                     .padding(16)
                     .background(.white.opacity(0.80), in: RoundedRectangle(cornerRadius: 8))
@@ -68,6 +97,26 @@ struct PhotoDetailView: View {
         }
         .navigationTitle("詳細")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("OCR結果を削除しますか？", isPresented: $showingClearOCRConfirmation) {
+            Button("キャンセル", role: .cancel) {}
+            Button("OCR結果を削除", role: .destructive) {
+                Task {
+                    await clearOCRResult()
+                }
+            }
+        } message: {
+            Text("写真本体は削除されません。しまい箱に保存されたOCR文字だけを削除し、この写真を未処理に戻します。")
+        }
+        .alert("分類を未分類に戻しますか？", isPresented: $showingResetCategoryConfirmation) {
+            Button("キャンセル", role: .cancel) {}
+            Button("未分類に戻す", role: .destructive) {
+                Task {
+                    await indexService.resetCategory(for: asset, ocrService: ocrService)
+                }
+            }
+        } message: {
+            Text("写真本体は変更されません。しまい箱内の仮想フォルダ分類だけを未分類に戻します。")
+        }
         .task(id: asset.id) {
             isLoadingImage = true
             displayImage = await photoLibrary.requestDisplayImage(for: asset)
@@ -96,6 +145,14 @@ struct PhotoDetailView: View {
 
         await ocrService.recognize(asset: asset, image: displayImage)
         await indexService.update(asset: asset, ocrService: ocrService)
+    }
+
+    private func clearOCRResult() async {
+        guard ocrService.isProcessing(asset) == false else {
+            return
+        }
+
+        await indexService.clearOCRResult(for: asset, ocrService: ocrService)
     }
 
     private var ocrPanel: some View {
@@ -146,6 +203,22 @@ struct PhotoDetailView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(displayImage == nil || asset.mediaType != .image || ocrService.isProcessing(asset))
+
+            if status == .completed || status == .failed {
+                Button(role: .destructive) {
+                    showingClearOCRConfirmation = true
+                } label: {
+                    Label("OCR結果を削除", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(ocrService.isProcessing(asset))
+
+                Text("削除するのはしまい箱内のOCR文字だけです。写真本体は削除・変更されません。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if status == .processing {
                 ProgressView("OCR処理中")

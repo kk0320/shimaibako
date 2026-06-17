@@ -10,6 +10,7 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
     @State private var pendingReadMode: PhotoReadMode?
     @State private var showingLargeModeSafety = false
+    @State private var showingClearAllOCRConfirmation = false
 
     private var indexSummary: PhotoIndexSummary {
         indexService.summary(for: photoLibrary.assets, ocrService: ocrService)
@@ -17,6 +18,10 @@ struct SettingsView: View {
 
     private var categoryCounts: [PhotoCategory: Int] {
         indexService.counts(for: photoLibrary.assets, ocrService: ocrService)
+    }
+
+    private var ocrCacheCount: Int {
+        indexService.indexSummary.completedOCRCount + indexService.indexSummary.failedOCRCount
     }
 
     var body: some View {
@@ -33,6 +38,7 @@ struct SettingsView: View {
                         iCloudSettingsCard
                         categoryCountsCard
                         ocrSettingsCard
+                        cacheMaintenanceCard
                         deviceSafetyCard
                         permissionCard
                         safetyPolicyCard
@@ -69,6 +75,16 @@ struct SettingsView: View {
                     }
                 )
                 .presentationDetents([.large])
+            }
+            .alert("すべてのOCR結果を削除しますか？", isPresented: $showingClearAllOCRConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("すべてのOCR結果を削除", role: .destructive) {
+                    Task {
+                        await indexService.clearAllOCRResults(for: photoLibrary.assets, ocrService: ocrService)
+                    }
+                }
+            } message: {
+                Text("しまい箱に保存されたOCR文字をすべて削除します。写真本体は削除されません。削除後、OCR文字検索には出なくなります。必要な写真は再OCRできます。")
             }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
@@ -269,6 +285,26 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var cacheMaintenanceCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("保存データの整理", systemImage: "internaldrive")
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            DetailInfoRow(title: "OCR結果キャッシュ件数", value: "\(ocrCacheCount)件")
+            DetailInfoRow(title: "検索インデックス件数", value: "\(indexService.indexedRecordCount)件")
+            DetailInfoRow(title: "保存先", value: "端末内")
+
+            Text("これらはしまい箱内のデータだけを整理します。写真本体は削除されません。写真アプリ側の写真、アルバム、iCloud写真も変更しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             Button {
                 Task {
@@ -280,6 +316,31 @@ struct SettingsView: View {
             }
             .buttonStyle(.bordered)
             .disabled(photoLibrary.assets.isEmpty)
+
+            Button {
+                Task {
+                    await indexService.rebuildAllCategories(for: photoLibrary.assets, ocrService: ocrService)
+                }
+            } label: {
+                Label("分類を再構築", systemImage: "folder.badge.gearshape")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(photoLibrary.assets.isEmpty)
+
+            Button(role: .destructive) {
+                showingClearAllOCRConfirmation = true
+            } label: {
+                Label("OCR結果キャッシュを削除", systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(ocrCacheCount == 0)
+
+            Text("OCR結果を削除しても、必要な写真は詳細画面や一覧から再OCRできます。分類は読み込み済み写真についてOCRなしの軽量分類へ戻ります。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

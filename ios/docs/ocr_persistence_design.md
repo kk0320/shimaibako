@@ -55,6 +55,34 @@ OCR状態は次の4種類。
 
 検索UIは `PhotoIndexService` 経由で検索用テキストを参照する。OCR未処理または失敗した写真は、OCRテキスト検索には含めない。
 
+## OCR結果削除
+
+OCR結果削除は写真削除ではない。対象は、しまい箱が `Application Support/ShimaiBako` に保存しているOCR結果と検索インデックスだけに限定する。
+
+削除対象:
+
+- `ocr_results.json` の対象レコード
+- `photo_index.json` のOCR欄
+  - `ocrText`
+  - `ocrStatus`
+  - `ocrLanguage`
+  - `ocrProcessedAt`
+  - `ocrErrorMessage`
+
+削除しないもの:
+
+- 写真本体
+- 写真アプリ側の写真
+- iCloud写真
+- 写真アプリ側のアルバムやフォルダ
+- サムネイル本体
+
+1枚削除、表示中削除、全OCR結果削除のいずれも、削除後は対象写真のOCR状態を `unprocessed` に戻す。詳細画面ではOCRテキスト欄を空にし、再OCRボタンを表示する。
+
+全OCR結果削除では、OCR文字検索に使うテキストが消えるため、削除後はOCR由来の語句では検索に出なくなる。必要な写真は再OCRすると `ocr_results.json` と `photo_index.json` に再作成される。
+
+分類結果については、読み込み済み写真はOCRテキストなしの軽量分類へ再判定する。読み込み範囲外の既存インデックスはOCR欄だけを消し、分類再構築を行う場合は読み込みモードで対象を読み込んでから実行する。
+
 ## OCR画像準備
 
 Vision OCRに渡す前に、画像の長辺が1800pxを超える場合は長辺1800px目安に縮小する。

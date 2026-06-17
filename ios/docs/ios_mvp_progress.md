@@ -70,6 +70,11 @@
 - `PhotoIndexStoring` protocolによる保存層の抽象化
 - `JSONPhotoIndexStore` による `photo_index.json` version 2保存
 - 既存 `ocr_results.json` との互換読み込み
+- 1枚ごとのOCR結果削除と未処理戻し
+- 表示中写真のOCR結果まとめて削除
+- 設定画面からの全OCR結果キャッシュ削除
+- 詳細画面での分類再判定と未分類戻し
+- 設定画面からの分類再構築
 - 設定画面でのインデックス件数、分類済み件数、OCR件数表示
 - 検索インデックス再構築ボタン
 - 30,000件相当のダミー検索インデックス性能確認スクリプト
@@ -109,6 +114,7 @@
 - `ios/scripts/index_store_performance_check.swift`
 - `ios/docs/index_store_design.md`
 - `ios/docs/large_library_performance_notes.md`
+- `ios/docs/cache_reset_design.md`
 
 ## ビルド方法
 
@@ -143,6 +149,10 @@ xcodebuild build \
 - 詳細画面表示: PASS
 - Vision OCR処理: PASS
 - OCR結果のJSON保存: PASS
+- 1枚OCR結果削除後の未処理表示: PASS
+- 表示中OCR結果削除UI: PASS
+- 全OCR結果キャッシュ削除UI: PASS
+- 分類再判定UI: PASS
 - 検索インデックスJSON保存: PASS
 - アプリ再起動後のOCR結果読み込み: PASS
 - OCR結果検索: PASS

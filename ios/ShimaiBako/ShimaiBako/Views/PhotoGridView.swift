@@ -40,6 +40,7 @@ struct PhotoGridView: View {
     @State private var didStartDebugBulkOCR = false
     @State private var pendingBulkTargets: [PhotoAsset] = []
     @State private var showingBulkSafety = false
+    @State private var showingVisibleOCRClearConfirmation = false
 
     private let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -101,6 +102,17 @@ struct PhotoGridView: View {
             indexService.status(for: asset, ocrService: ocrService) != .completed &&
             indexService.status(for: asset, ocrService: ocrService) != .processing
         }.prefix(OCRConfiguration.batchLimit))
+    }
+
+    private var visibleOCRClearTargets: [PhotoAsset] {
+        filteredAssets.filter { asset in
+            guard asset.mediaType == .image else {
+                return false
+            }
+
+            let status = indexService.status(for: asset, ocrService: ocrService)
+            return status == .completed || status == .failed
+        }
     }
 
     private var bulkProcessingCount: Int {
@@ -200,6 +212,16 @@ struct PhotoGridView: View {
                     }
                 )
                 .presentationDetents([.medium, .large])
+            }
+            .alert("表示中のOCR結果を削除しますか？", isPresented: $showingVisibleOCRClearConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("OCR結果を削除", role: .destructive) {
+                    Task {
+                        await clearVisibleOCRResults()
+                    }
+                }
+            } message: {
+                Text("表示中の写真について、しまい箱に保存されたOCR文字だけを削除します。写真本体は削除・変更されません。")
             }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
@@ -482,6 +504,25 @@ struct PhotoGridView: View {
                     }
                 }
             }
+
+            if visibleOCRClearTargets.isEmpty == false {
+                Divider()
+
+                Button(role: .destructive) {
+                    showingVisibleOCRClearConfirmation = true
+                } label: {
+                    Label("表示中のOCR結果を削除", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isRunningBulkOCR)
+
+                Text("現在の検索・カテゴリで表示中の写真だけが対象です。写真本体は削除・変更されません。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(12)
         .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
@@ -589,6 +630,24 @@ struct PhotoGridView: View {
                 break
             }
         }
+    }
+
+    private func clearVisibleOCRResults() async {
+        guard isRunningBulkOCR == false else {
+            return
+        }
+
+        let targets = visibleOCRClearTargets
+        guard targets.isEmpty == false else {
+            return
+        }
+
+        await indexService.clearOCRResults(for: targets, ocrService: ocrService)
+        bulkTotal = 0
+        bulkCompleted = 0
+        bulkFailed = 0
+        bulkWasCancelled = false
+        bulkInterruptedReason = nil
     }
 
     private var imageLoadFailureMessage: String {

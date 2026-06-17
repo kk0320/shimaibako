@@ -70,6 +70,35 @@ SQLiteまたはSwiftDataへ移行する時は、`PhotoIndexStoring` の実装を
 
 SettingsViewのOCR件数、分類済み件数、カテゴリ別件数は `PhotoIndexService` 経由で計算する。将来SQLiteへ移行した場合は、同じ集計をSQL側へ寄せられる。
 
+## リセット操作
+
+`PhotoIndexStoring` はOCR欄と分類欄を分けて更新できるようにする。
+
+OCR欄の操作:
+
+- `clearOCRResult(localIdentifier:)`
+- `clearOCRResults(localIdentifiers:)`
+- `clearAllOCRResults()`
+
+分類欄の操作:
+
+- `resetCategory(localIdentifier:)`
+- `resetCategories(localIdentifiers:)`
+- `resetAllCategories()`
+
+`PhotoIndexService` はUIから使うための高レベル操作として、OCR結果削除時に `OCRService` 側の `ocr_results.json` と `PhotoIndexStore` 側の `photo_index.json` を同時に更新する。
+
+リセット操作はすべて検索データのみを対象にする。写真本体、サムネイル本体、写真アプリ側のアルバム、iCloud写真は変更しない。
+
+削除後の状態:
+
+- OCR状態は `unprocessed` に戻る
+- OCRテキスト、言語、処理日時、失敗理由は空になる
+- OCR文字検索の対象から外れる
+- 再OCRすると新しい結果を保存できる
+
+分類の未分類戻しは `inferredCategory` を `other`、`categoryConfidence` を0に戻す。分類再構築は読み込み済みの `PhotoAsset` と保存済みOCRテキストから再推定する。
+
 ## SQLite移行方針
 
 3万件規模で検索語が増え、JSON全体の読み書きが重くなった段階でSQLiteへ移行する。

@@ -136,6 +136,37 @@ final class OCRService: ObservableObject {
         return result
     }
 
+    func clearResult(for asset: PhotoAsset) async {
+        await clearResult(localIdentifier: asset.localIdentifier)
+    }
+
+    func clearResult(localIdentifier: String) async {
+        resultsByAssetID.removeValue(forKey: localIdentifier)
+        processingAssetIDs.remove(localIdentifier)
+        await persistResults()
+    }
+
+    func clearResults(for assets: [PhotoAsset]) async {
+        await clearResults(localIdentifiers: assets.map(\.localIdentifier))
+    }
+
+    func clearResults(localIdentifiers: [String]) async {
+        let identifiers = Set(localIdentifiers)
+        guard identifiers.isEmpty == false else {
+            return
+        }
+
+        resultsByAssetID = resultsByAssetID.filter { identifiers.contains($0.key) == false }
+        processingAssetIDs.subtract(identifiers)
+        await persistResults()
+    }
+
+    func clearAllResults() async {
+        resultsByAssetID = [:]
+        processingAssetIDs = []
+        await persistResults()
+    }
+
     private func loadPersistedResults() async {
         do {
             let results = try await resultStore.load()

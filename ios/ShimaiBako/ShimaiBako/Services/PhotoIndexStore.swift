@@ -4,6 +4,12 @@ nonisolated protocol PhotoIndexStoring: Sendable {
     func loadAll() async throws -> [PhotoIndexRecord]
     func saveAll(_ records: [PhotoIndexRecord]) async throws
     func upsert(_ records: [PhotoIndexRecord]) async throws
+    func clearOCRResult(localIdentifier: String) async throws
+    func clearOCRResults(localIdentifiers: [String]) async throws
+    func clearAllOCRResults() async throws
+    func resetCategory(localIdentifier: String) async throws
+    func resetCategories(localIdentifiers: [String]) async throws
+    func resetAllCategories() async throws
     func searchLocalIdentifiers(matching query: String) async throws -> Set<String>
     func categoryCounts() async throws -> [PhotoCategory: Int]
     func summary() async throws -> PhotoIndexSummary
@@ -63,6 +69,54 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
         try write(Array(nextRecords.values))
     }
 
+    func clearOCRResult(localIdentifier: String) async throws {
+        try await clearOCRResults(localIdentifiers: [localIdentifier])
+    }
+
+    func clearOCRResults(localIdentifiers: [String]) async throws {
+        let identifiers = Set(localIdentifiers)
+        guard identifiers.isEmpty == false else {
+            return
+        }
+
+        let now = Date()
+        let records = try await loadAll().map { record in
+            identifiers.contains(record.localIdentifier) ? record.clearingOCR(at: now) : record
+        }
+
+        try await saveAll(records)
+    }
+
+    func clearAllOCRResults() async throws {
+        let now = Date()
+        let records = try await loadAll().map { $0.clearingOCR(at: now) }
+        try await saveAll(records)
+    }
+
+    func resetCategory(localIdentifier: String) async throws {
+        try await resetCategories(localIdentifiers: [localIdentifier])
+    }
+
+    func resetCategories(localIdentifiers: [String]) async throws {
+        let identifiers = Set(localIdentifiers)
+        guard identifiers.isEmpty == false else {
+            return
+        }
+
+        let now = Date()
+        let records = try await loadAll().map { record in
+            identifiers.contains(record.localIdentifier) ? record.resettingCategory(at: now) : record
+        }
+
+        try await saveAll(records)
+    }
+
+    func resetAllCategories() async throws {
+        let now = Date()
+        let records = try await loadAll().map { $0.resettingCategory(at: now) }
+        try await saveAll(records)
+    }
+
     func searchLocalIdentifiers(matching query: String) async throws -> Set<String> {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalizedQuery.isEmpty == false else {
@@ -109,6 +163,26 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
 }
 
 extension PhotoIndexRecord {
+    nonisolated func clearingOCR(at date: Date = Date()) -> PhotoIndexRecord {
+        var record = self
+        record.ocrStatus = .unprocessed
+        record.ocrText = ""
+        record.ocrLanguage = nil
+        record.ocrProcessedAt = nil
+        record.ocrErrorMessage = nil
+        record.updatedAt = date
+        return record
+    }
+
+    nonisolated func resettingCategory(at date: Date = Date()) -> PhotoIndexRecord {
+        var record = self
+        record.inferredCategory = .other
+        record.categoryConfidence = 0
+        record.categoryUpdatedAt = date
+        record.updatedAt = date
+        return record
+    }
+
     nonisolated var searchableIndexText: String {
         [
             localIdentifier,
