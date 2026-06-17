@@ -64,12 +64,7 @@ struct PhotoGridView: View {
 
     private var filteredAssets: [PhotoAsset] {
         photoLibrary.assets.filter { asset in
-            categoryIncludes(asset) &&
-            asset.matches(
-                searchText,
-                ocrText: ocrService.searchText(for: asset),
-                categoryTitle: indexService.category(for: asset, ocrService: ocrService).title
-            )
+            categoryIncludes(asset) && indexService.matches(asset: asset, query: searchText, ocrService: ocrService)
         }
     }
 
@@ -95,16 +90,16 @@ struct PhotoGridView: View {
     private var bulkTargetCandidateCount: Int {
         bulkTargetAssets.filter { asset in
             asset.mediaType == .image &&
-            ocrService.status(for: asset) != .completed &&
-            ocrService.status(for: asset) != .processing
+            indexService.status(for: asset, ocrService: ocrService) != .completed &&
+            indexService.status(for: asset, ocrService: ocrService) != .processing
         }.count
     }
 
     private var bulkCandidates: [PhotoAsset] {
         Array(bulkTargetAssets.filter { asset in
             asset.mediaType == .image &&
-            ocrService.status(for: asset) != .completed &&
-            ocrService.status(for: asset) != .processing
+            indexService.status(for: asset, ocrService: ocrService) != .completed &&
+            indexService.status(for: asset, ocrService: ocrService) != .processing
         }.prefix(OCRConfiguration.batchLimit))
     }
 
@@ -216,6 +211,10 @@ struct PhotoGridView: View {
                 startDebugBulkOCRIfNeeded()
             }
             .onChange(of: photoLibrary.assets) {
+                Task {
+                    await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
+                }
+
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
             }

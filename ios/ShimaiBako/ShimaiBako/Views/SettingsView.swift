@@ -11,8 +11,8 @@ struct SettingsView: View {
     @State private var pendingReadMode: PhotoReadMode?
     @State private var showingLargeModeSafety = false
 
-    private var ocrSummary: OCRSummary {
-        ocrService.summary(for: photoLibrary.assets)
+    private var indexSummary: PhotoIndexSummary {
+        indexService.summary(for: photoLibrary.assets, ocrService: ocrService)
     }
 
     private var categoryCounts: [PhotoCategory: Int] {
@@ -99,9 +99,11 @@ struct SettingsView: View {
             DetailInfoRow(title: "読み込み上限", value: photoLibrary.readLimitTitle)
             DetailInfoRow(title: "読み込み済み", value: photoLibrary.loadingSummaryTitle)
             DetailInfoRow(title: "iCloud取得", value: photoLibrary.iCloudMode.title)
-            DetailInfoRow(title: "OCR済み件数", value: "\(ocrService.storedCompletedCount)件")
-            DetailInfoRow(title: "OCR未処理件数", value: "\(ocrSummary.unprocessedCount)件")
-            DetailInfoRow(title: "OCR失敗件数", value: "\(ocrService.storedFailedCount)件")
+            DetailInfoRow(title: "インデックス件数", value: "\(indexService.indexedRecordCount)件")
+            DetailInfoRow(title: "OCR済み件数", value: "\(indexSummary.completedOCRCount)件")
+            DetailInfoRow(title: "OCR未処理件数", value: "\(indexSummary.unprocessedOCRCount)件")
+            DetailInfoRow(title: "OCR失敗件数", value: "\(indexSummary.failedOCRCount)件")
+            DetailInfoRow(title: "分類済み件数", value: "\(indexSummary.categorizedCount)件")
             DetailInfoRow(title: "外部送信", value: "なし")
             DetailInfoRow(title: "保存先", value: "端末内")
             DetailInfoRow(title: "写真操作", value: "読み取り専用")
@@ -236,10 +238,11 @@ struct SettingsView: View {
             DetailInfoRow(title: "OCR精度", value: OCRConfiguration.recognitionQualityTitle)
             DetailInfoRow(title: "まとめてOCR上限", value: "\(OCRConfiguration.batchLimit)件")
             DetailInfoRow(title: "OCR画像サイズ", value: OCRConfiguration.maxRecognitionImageLongSideTitle)
-            DetailInfoRow(title: "OCR結果件数", value: "\(ocrService.resultsByAssetID.count)件")
-            DetailInfoRow(title: "OCR結果キャッシュ", value: "端末内JSON")
+            DetailInfoRow(title: "OCR結果件数", value: "\(indexSummary.completedOCRCount)件")
+            DetailInfoRow(title: "インデックス保存先", value: "端末内")
+            DetailInfoRow(title: "保存内容", value: "検索インデックスのみ")
 
-            Text("OCR結果だけを端末内に保存します。写真本体は保存・削除しません。")
+            Text("OCR結果、分類結果、検索用メタデータだけを端末内に保存します。写真本体やサムネイル本体は保存しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -248,6 +251,17 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                Task {
+                    await indexService.rebuildSearchIndex(for: photoLibrary.assets, ocrService: ocrService)
+                }
+            } label: {
+                Label("検索インデックスを再構築", systemImage: "arrow.triangle.2.circlepath")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(photoLibrary.assets.isEmpty)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -18,7 +18,7 @@ enum PhotoCategory: String, CaseIterable, Identifiable, Codable {
         rawValue
     }
 
-    var title: String {
+    nonisolated var title: String {
         switch self {
         case .all:
             "すべて"
@@ -45,7 +45,7 @@ enum PhotoCategory: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var shortTitle: String {
+    nonisolated var shortTitle: String {
         switch self {
         case .documentCandidate:
             "書類"
@@ -64,7 +64,7 @@ enum PhotoCategory: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var systemImage: String {
+    nonisolated var systemImage: String {
         switch self {
         case .all:
             "square.grid.2x2"
@@ -112,11 +112,142 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
     var pixelWidth: Int
     var pixelHeight: Int
     var isScreenshot: Bool
+    var ocrStatus: OCRStatus
+    var ocrText: String
+    var ocrLanguage: String?
+    var ocrProcessedAt: Date?
+    var ocrErrorMessage: String?
     var inferredCategory: PhotoCategory
     var categoryConfidence: Double
-    var ocrStatus: OCRStatus
-    var hasOCRText: Bool
+    var categoryUpdatedAt: Date
+    var lastSeenAt: Date
     var updatedAt: Date
+
+    var hasOCRText: Bool {
+        ocrStatus == .completed && ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
+    init(
+        localIdentifier: String,
+        creationDate: Date?,
+        mediaTypeRawValue: Int,
+        mediaSubtypesRawValue: UInt,
+        pixelWidth: Int,
+        pixelHeight: Int,
+        isScreenshot: Bool,
+        ocrStatus: OCRStatus,
+        ocrText: String,
+        ocrLanguage: String?,
+        ocrProcessedAt: Date?,
+        ocrErrorMessage: String?,
+        inferredCategory: PhotoCategory,
+        categoryConfidence: Double,
+        categoryUpdatedAt: Date,
+        lastSeenAt: Date,
+        updatedAt: Date
+    ) {
+        self.localIdentifier = localIdentifier
+        self.creationDate = creationDate
+        self.mediaTypeRawValue = mediaTypeRawValue
+        self.mediaSubtypesRawValue = mediaSubtypesRawValue
+        self.pixelWidth = pixelWidth
+        self.pixelHeight = pixelHeight
+        self.isScreenshot = isScreenshot
+        self.ocrStatus = ocrStatus
+        self.ocrText = ocrText
+        self.ocrLanguage = ocrLanguage
+        self.ocrProcessedAt = ocrProcessedAt
+        self.ocrErrorMessage = ocrErrorMessage
+        self.inferredCategory = inferredCategory
+        self.categoryConfidence = categoryConfidence
+        self.categoryUpdatedAt = categoryUpdatedAt
+        self.lastSeenAt = lastSeenAt
+        self.updatedAt = updatedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case localIdentifier
+        case creationDate
+        case mediaTypeRawValue
+        case mediaSubtypesRawValue
+        case pixelWidth
+        case pixelHeight
+        case isScreenshot
+        case ocrStatus
+        case ocrText
+        case ocrLanguage
+        case ocrProcessedAt
+        case ocrErrorMessage
+        case inferredCategory
+        case categoryConfidence
+        case hasOCRText
+        case categoryUpdatedAt
+        case lastSeenAt
+        case updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let now = Date()
+
+        localIdentifier = try container.decode(String.self, forKey: .localIdentifier)
+        creationDate = try container.decodeIfPresent(Date.self, forKey: .creationDate)
+        mediaTypeRawValue = try container.decode(Int.self, forKey: .mediaTypeRawValue)
+        mediaSubtypesRawValue = try container.decode(UInt.self, forKey: .mediaSubtypesRawValue)
+        pixelWidth = try container.decode(Int.self, forKey: .pixelWidth)
+        pixelHeight = try container.decode(Int.self, forKey: .pixelHeight)
+        isScreenshot = try container.decode(Bool.self, forKey: .isScreenshot)
+        ocrStatus = try container.decodeIfPresent(OCRStatus.self, forKey: .ocrStatus) ?? .unprocessed
+        ocrText = try container.decodeIfPresent(String.self, forKey: .ocrText) ?? ""
+        ocrLanguage = try container.decodeIfPresent(String.self, forKey: .ocrLanguage)
+        ocrProcessedAt = try container.decodeIfPresent(Date.self, forKey: .ocrProcessedAt)
+        ocrErrorMessage = try container.decodeIfPresent(String.self, forKey: .ocrErrorMessage)
+        inferredCategory = try container.decodeIfPresent(PhotoCategory.self, forKey: .inferredCategory) ?? .other
+        categoryConfidence = try container.decodeIfPresent(Double.self, forKey: .categoryConfidence) ?? 0
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? now
+        categoryUpdatedAt = try container.decodeIfPresent(Date.self, forKey: .categoryUpdatedAt) ?? updatedAt
+        lastSeenAt = try container.decodeIfPresent(Date.self, forKey: .lastSeenAt) ?? updatedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(localIdentifier, forKey: .localIdentifier)
+        try container.encodeIfPresent(creationDate, forKey: .creationDate)
+        try container.encode(mediaTypeRawValue, forKey: .mediaTypeRawValue)
+        try container.encode(mediaSubtypesRawValue, forKey: .mediaSubtypesRawValue)
+        try container.encode(pixelWidth, forKey: .pixelWidth)
+        try container.encode(pixelHeight, forKey: .pixelHeight)
+        try container.encode(isScreenshot, forKey: .isScreenshot)
+        try container.encode(ocrStatus, forKey: .ocrStatus)
+        try container.encode(ocrText, forKey: .ocrText)
+        try container.encodeIfPresent(ocrLanguage, forKey: .ocrLanguage)
+        try container.encodeIfPresent(ocrProcessedAt, forKey: .ocrProcessedAt)
+        try container.encodeIfPresent(ocrErrorMessage, forKey: .ocrErrorMessage)
+        try container.encode(inferredCategory, forKey: .inferredCategory)
+        try container.encode(categoryConfidence, forKey: .categoryConfidence)
+        try container.encode(hasOCRText, forKey: .hasOCRText)
+        try container.encode(categoryUpdatedAt, forKey: .categoryUpdatedAt)
+        try container.encode(lastSeenAt, forKey: .lastSeenAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+    }
+}
+
+struct PhotoIndexSummary: Equatable {
+    var indexedCount: Int
+    var completedOCRCount: Int
+    var failedOCRCount: Int
+    var processingOCRCount: Int
+    var unprocessedOCRCount: Int
+    var categorizedCount: Int
+
+    static let empty = PhotoIndexSummary(
+        indexedCount: 0,
+        completedOCRCount: 0,
+        failedOCRCount: 0,
+        processingOCRCount: 0,
+        unprocessedOCRCount: 0,
+        categorizedCount: 0
+    )
 }
 
 enum CategoryInference {
