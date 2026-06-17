@@ -26,9 +26,13 @@ struct PhotoGridView: View {
     @State private var debugPresentedAsset: PhotoAsset?
     @State private var didPresentDebugAsset = false
     @State private var isRunningBulkOCR = false
+    @State private var bulkOCRTask: Task<Void, Never>?
+    @State private var bulkCancellationRequested = false
+    @State private var bulkWasCancelled = false
     @State private var bulkTotal = 0
     @State private var bulkCompleted = 0
     @State private var bulkFailed = 0
+    @State private var didStartDebugBulkOCR = false
 
     private let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -54,11 +58,31 @@ struct PhotoGridView: View {
             asset.mediaType == .image &&
             ocrService.status(for: asset) != .completed &&
             ocrService.status(for: asset) != .processing
-        }.prefix(20))
+        }.prefix(OCRConfiguration.batchLimit))
     }
 
     private var bulkProcessingCount: Int {
         isRunningBulkOCR ? max(bulkTotal - bulkCompleted - bulkFailed, 0) : 0
+    }
+
+    private var bulkStatusText: String {
+        if isRunningBulkOCR && bulkCancellationRequested {
+            return "キャンセル中です。処理中の写真が終わると停止します。"
+        }
+
+        if isRunningBulkOCR {
+            return "対象\(bulkTotal)件を読み取り中です。"
+        }
+
+        if bulkWasCancelled {
+            return "キャンセル済みです。完了分は保存済みです。"
+        }
+
+        if bulkTotal > 0 {
+            return "まとめてOCRが完了しました。"
+        }
+
+        return ""
     }
 
     var body: some View {
@@ -111,9 +135,11 @@ struct PhotoGridView: View {
                 }
 
                 presentDebugAssetIfNeeded()
+                startDebugBulkOCRIfNeeded()
             }
             .onChange(of: photoLibrary.assets) {
                 presentDebugAssetIfNeeded()
+                startDebugBulkOCRIfNeeded()
             }
         }
     }
@@ -132,6 +158,32 @@ struct PhotoGridView: View {
         #else
         false
         #endif
+    }
+
+    private var shouldRunBulkOCRForDebug: Bool {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains("-ShimaiBakoRunBulkOCR") || arguments.contains("-ShimaiBakoRunBatchOCR")
+        #else
+        false
+        #endif
+    }
+
+    private static var debugBulkOCRCancellationDelay: UInt64? {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+
+        if let argumentIndex = arguments.firstIndex(of: "-ShimaiBakoCancelBulkOCRAfterSeconds") {
+            let valueIndex = arguments.index(after: argumentIndex)
+            if valueIndex < arguments.endIndex,
+               let seconds = Double(arguments[valueIndex]),
+               seconds >= 0 {
+                return UInt64(seconds * 1_000_000_000)
+            }
+        }
+        #endif
+
+        return nil
     }
 
     private static var debugInitialSearchText: String {
@@ -158,6 +210,24 @@ struct PhotoGridView: View {
 
         didPresentDebugAsset = true
         debugPresentedAsset = asset
+    }
+
+    private func startDebugBulkOCRIfNeeded() {
+        guard shouldRunBulkOCRForDebug,
+              didStartDebugBulkOCR == false,
+              bulkCandidates.isEmpty == false else {
+            return
+        }
+
+        didStartDebugBulkOCR = true
+        startBulkOCR()
+
+        if let delay = Self.debugBulkOCRCancellationDelay {
+            Task {
+                try? await Task.sleep(nanoseconds: delay)
+                cancelBulkOCR()
+            }
+        }
     }
 
     private var statusHeader: some View {
@@ -226,7 +296,7 @@ struct PhotoGridView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
 
-                    Text(bulkCandidates.isEmpty ? "未処理の表示写真はありません" : "表示中の写真を最大20件まで読み取ります")
+                    Text(bulkCandidates.isEmpty ? "未処理の表示写真はありません" : "表示中の写真を最大\(OCRConfiguration.batchLimit)件まで読み取ります")
                         .font(.caption)
                         .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
                         .lineLimit(2)
@@ -234,55 +304,121 @@ struct PhotoGridView: View {
 
                 Spacer(minLength: 8)
 
-                Button {
-                    Task {
-                        await runBulkOCR()
+                if isRunningBulkOCR {
+                    Button(role: .cancel) {
+                        cancelBulkOCR()
+                    } label: {
+                        Label(bulkCancellationRequested ? "停止中" : "キャンセル", systemImage: "xmark.circle")
+                            .labelStyle(.titleAndIcon)
                     }
-                } label: {
-                    Label("まとめてOCR", systemImage: "text.viewfinder")
-                        .labelStyle(.titleAndIcon)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(bulkCancellationRequested)
+                } else {
+                    Button {
+                        startBulkOCR()
+                    } label: {
+                        Label("まとめてOCR", systemImage: "text.viewfinder")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(bulkCandidates.isEmpty)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .disabled(isRunningBulkOCR || bulkCandidates.isEmpty)
             }
 
             if isRunningBulkOCR || bulkTotal > 0 {
-                HStack(spacing: 10) {
-                    Label("処理中 \(bulkProcessingCount)", systemImage: "hourglass")
-                    Label("完了 \(bulkCompleted)", systemImage: "checkmark.circle")
-                    Label("失敗 \(bulkFailed)", systemImage: "exclamationmark.triangle")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(bulkStatusText)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8)
+                    ], alignment: .leading, spacing: 6) {
+                        BulkProgressLabel(title: "対象", value: bulkTotal, systemImage: "scope")
+                        BulkProgressLabel(title: "処理中", value: bulkProcessingCount, systemImage: "hourglass")
+                        BulkProgressLabel(title: "完了", value: bulkCompleted, systemImage: "checkmark.circle")
+                        BulkProgressLabel(title: "失敗", value: bulkFailed, systemImage: "exclamationmark.triangle")
+
+                        if bulkWasCancelled {
+                            Label("キャンセル済み", systemImage: "xmark.circle")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
+                    }
                 }
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
             }
         }
         .padding(12)
         .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private func runBulkOCR() async {
+    private func startBulkOCR() {
         let targets = bulkCandidates
-        guard targets.isEmpty == false else {
+        guard targets.isEmpty == false,
+              isRunningBulkOCR == false,
+              bulkOCRTask == nil else {
             return
         }
 
+        bulkOCRTask = Task {
+            await runBulkOCR(targets: targets)
+        }
+    }
+
+    private func cancelBulkOCR() {
+        guard isRunningBulkOCR else {
+            return
+        }
+
+        bulkCancellationRequested = true
+        bulkOCRTask?.cancel()
+    }
+
+    private func runBulkOCR(targets: [PhotoAsset]) async {
         isRunningBulkOCR = true
+        bulkCancellationRequested = false
+        bulkWasCancelled = false
         bulkTotal = targets.count
         bulkCompleted = 0
         bulkFailed = 0
 
+        defer {
+            if bulkCancellationRequested || Task.isCancelled {
+                bulkWasCancelled = true
+            }
+
+            bulkCancellationRequested = false
+            isRunningBulkOCR = false
+            bulkOCRTask = nil
+        }
+
         for asset in targets {
-            guard Task.isCancelled == false else {
+            guard Task.isCancelled == false,
+                  bulkCancellationRequested == false else {
+                bulkWasCancelled = true
                 break
             }
 
             guard let image = await photoLibrary.requestDisplayImage(for: asset) else {
+                if Task.isCancelled || bulkCancellationRequested {
+                    bulkWasCancelled = true
+                    break
+                }
+
                 await ocrService.markFailure(asset: asset, message: "画像を読み込めませんでした。")
                 bulkFailed += 1
                 continue
+            }
+
+            if Task.isCancelled || bulkCancellationRequested {
+                bulkWasCancelled = true
+                break
             }
 
             let result = await ocrService.recognize(asset: asset, image: image)
@@ -291,9 +427,26 @@ struct PhotoGridView: View {
             } else {
                 bulkFailed += 1
             }
-        }
 
-        isRunningBulkOCR = false
+            if Task.isCancelled || bulkCancellationRequested {
+                bulkWasCancelled = true
+                break
+            }
+        }
+    }
+}
+
+private struct BulkProgressLabel: View {
+    let title: String
+    let value: Int
+    let systemImage: String
+
+    var body: some View {
+        Label("\(title) \(value)", systemImage: systemImage)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
     }
 }
 
@@ -360,13 +513,20 @@ private struct PhotoThumbnailView: View {
     private var ocrBadge: some View {
         let status = ocrService.status(for: asset)
 
-        return Label(status.shortTitle, systemImage: status.systemImage)
-            .font(.caption2.weight(.semibold))
+        return HStack(spacing: 3) {
+            Image(systemName: status.systemImage)
+                .font(.caption2.weight(.semibold))
+
+            Text(status.shortTitle)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
             .foregroundStyle(.white)
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
+            .frame(maxWidth: 68)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 3)
             .background(statusColor(status).opacity(0.82), in: Capsule())
     }
 
