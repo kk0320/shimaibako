@@ -29,6 +29,7 @@ struct SettingsView: View {
                         header
                         summaryCard
                         loadingModeCard
+                        largeLibraryGuideCard
                         iCloudSettingsCard
                         categoryCountsCard
                         ocrSettingsCard
@@ -153,6 +154,23 @@ struct SettingsView: View {
                     .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var largeLibraryGuideCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("大量写真の進め方", systemImage: "list.bullet.clipboard")
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            SafetyBullet("3万枚など大量写真では、まず軽量/標準モードで確認してください")
+            SafetyBullet("全件モードは時間がかかる場合があります")
+            SafetyBullet("OCRは必要なカテゴリから段階的に実行してください")
+            SafetyBullet("iCloud写真の取得を許可すると通信が発生する場合があります")
+            SafetyBullet("写真本体は外部送信せず、変更もしません")
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
