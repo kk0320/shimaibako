@@ -20,7 +20,12 @@ struct DummyIndexRecord: Codable {
     let ocrErrorMessage: String?
     let inferredCategory: String
     let categoryConfidence: Double
+    let categoryReason: String
     let categoryUpdatedAt: Date
+    let screenshotSubcategory: String?
+    let screenshotSubcategoryConfidence: Double?
+    let screenshotSubcategoryReason: String?
+    let screenshotSubcategoryUpdatedAt: Date?
     let lastSeenAt: Date
 
     var searchableText: String {
@@ -29,6 +34,9 @@ struct DummyIndexRecord: Codable {
             mediaType,
             isScreenshot ? "スクショ スクリーンショット" : "",
             inferredCategory,
+            categoryReason,
+            screenshotSubcategory ?? "",
+            screenshotSubcategoryReason ?? "",
             "\(pixelWidth) x \(pixelHeight)",
             ocrText
         ]
@@ -53,26 +61,47 @@ let records = measure("ダミー索引生成 \(recordCount)件") {
     (0..<recordCount).map { index in
         let category: String
         let ocrText: String
+        let screenshotSubcategory: String?
+        let screenshotSubcategoryReason: String?
 
         switch index % 11 {
         case 0:
             category = "receiptCandidate"
             ocrText = "領収書 合計 税込 東京 \(index)"
+            screenshotSubcategory = nil
+            screenshotSubcategoryReason = nil
         case 1:
             category = "documentCandidate"
             ocrText = "工事 報告書 点検 配管 \(index)"
+            screenshotSubcategory = nil
+            screenshotSubcategoryReason = nil
         case 2:
             category = "businessCardCandidate"
             ocrText = "名刺 電話 email 会社 \(index)"
+            screenshotSubcategory = nil
+            screenshotSubcategoryReason = nil
         case 3:
             category = "whiteboardCandidate"
             ocrText = "ホワイトボード 会議 課題 \(index)"
+            screenshotSubcategory = nil
+            screenshotSubcategoryReason = nil
         case 4:
             category = "signboardCandidate"
             ocrText = "看板 入口 案内 \(index)"
+            screenshotSubcategory = nil
+            screenshotSubcategoryReason = nil
         default:
-            category = index.isMultiple(of: 7) ? "screenshots" : "other"
-            ocrText = index.isMultiple(of: 5) ? "メモ 東京 写真 \(index)" : ""
+            if index.isMultiple(of: 7) {
+                category = "screenshots"
+                ocrText = index.isMultiple(of: 2) ? "地図 駅 住所 東京 \(index)" : "メモ TODO アイデア \(index)"
+                screenshotSubcategory = index.isMultiple(of: 2) ? "mapLocationCandidate" : "memoIdeaCandidate"
+                screenshotSubcategoryReason = "OCRテキスト"
+            } else {
+                category = index.isMultiple(of: 5) ? "flowerPlantCandidate" : "uncategorized"
+                ocrText = index.isMultiple(of: 5) ? "花 公園 写真 \(index)" : ""
+                screenshotSubcategory = nil
+                screenshotSubcategoryReason = nil
+            }
         }
 
         return DummyIndexRecord(
@@ -90,7 +119,12 @@ let records = measure("ダミー索引生成 \(recordCount)件") {
             ocrErrorMessage: nil,
             inferredCategory: category,
             categoryConfidence: ocrText.isEmpty ? 0.25 : 0.82,
+            categoryReason: ocrText.isEmpty ? "未判定" : "OCRテキスト",
             categoryUpdatedAt: baseDate,
+            screenshotSubcategory: screenshotSubcategory,
+            screenshotSubcategoryConfidence: screenshotSubcategory == nil ? nil : 0.78,
+            screenshotSubcategoryReason: screenshotSubcategoryReason,
+            screenshotSubcategoryUpdatedAt: screenshotSubcategory == nil ? nil : baseDate,
             lastSeenAt: baseDate
         )
     }
@@ -117,6 +151,16 @@ let decodedPayload = try measure("JSON読み込みとデコード") {
 
 for query in ["領収書", "工事", "東京", "電話番号"] {
     let matches = measure("LIKE相当検索 \(query)") {
+        decodedPayload.records.filter {
+            $0.searchableText.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    print("  該当: \(matches.count)件")
+}
+
+for query in ["地図", "メモ", "flowerPlantCandidate"] {
+    let matches = measure("細分類検索 \(query)") {
         decodedPayload.records.filter {
             $0.searchableText.localizedCaseInsensitiveContains(query)
         }

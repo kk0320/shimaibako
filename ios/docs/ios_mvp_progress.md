@@ -40,19 +40,41 @@
 - 検索欄
 - 仮想フォルダによるカテゴリフィルタ
   - すべて
+  - 未分類
   - スクショ
-  - 領収書候補
   - 書類写真候補
+  - 領収書候補
   - 名刺候補
   - 看板候補
   - ホワイトボード候補
   - 工事写真候補
   - 旅行写真候補
+  - 花・植物候補
+  - 桜・紅葉候補
+  - 建物・街並み候補
+  - 神社・寺・史跡候補
+  - 芸術品・展示候補
+  - 食べ物候補
+  - ペット・動物候補
+  - 人物写真候補
   - 動画
   - その他
+- スクショを記録・メモ用途として扱うサブカテゴリフィルタ
+  - すべてのスクショ
+  - アイデア・メモ候補
+  - Web記事・調べ物候補
+  - 予約・チケット候補
+  - 地図・場所候補
+  - 買い物・領収候補
+  - アプリ設定・エラー候補
+  - チャット・SNS候補
+  - 仕事・資料候補
+  - その他スクショ
 - OCR前の軽量分類
 - OCR後のテキストを使った再分類
+- OCR後のスクショ細分類再判定
 - カテゴリ別件数表示
+- スクショ細分類別件数表示
 - 設定/ヘルプ画面
 - Vision frameworkによる端末内OCR
 - 詳細画面から1枚だけOCRを実行する導線
@@ -115,6 +137,8 @@
 - `ios/docs/index_store_design.md`
 - `ios/docs/large_library_performance_notes.md`
 - `ios/docs/cache_reset_design.md`
+- `ios/docs/screenshot_classification_design.md`
+- `ios/docs/future_image_classification_plan.md`
 
 ## ビルド方法
 
@@ -157,6 +181,11 @@ xcodebuild build \
 - アプリ再起動後のOCR結果読み込み: PASS
 - OCR結果検索: PASS
 - カテゴリ別件数表示: PASS
+- 追加カテゴリ表示: PASS
+- スクショカテゴリ表示: PASS
+- スクショ選択時のサブカテゴリチップ表示: PASS
+- OCR後のスクショ細分類再判定: PASS
+- 詳細画面のカテゴリ/サブカテゴリ/信頼度表示: PASS
 - 30,000件相当ダミーインデックス検索: PASS
 - まとめてOCR: PASS
 - まとめてOCRキャンセル: PASS
@@ -206,7 +235,7 @@ xcodebuild build \
 - Vision OCRに渡す画像は長辺1800px目安に縮小する
 - OCR結果は `Application Support/ShimaiBako/ocr_results.json` に保存
 - 検索インデックスは `Application Support/ShimaiBako/photo_index.json` に保存
-- 検索は撮影日、種別、サイズ、スクリーンショット判定、仮想フォルダ名、OCRテキストを対象にする
+- 検索は撮影日、種別、サイズ、スクリーンショット判定、仮想フォルダ名、スクショ細分類名、OCRテキストを対象にする
 - OCRテキストを使って仮想フォルダ分類を再判定する
 - 外部OCR APIは未使用
 
@@ -233,5 +262,4 @@ xcodebuild build \
 - SQLiteまたはSwiftDataへの検索インデックス移行
 - SQLite FTSによるOCRテキスト検索
 - 読み込み範囲のページング
-- OCR結果キャッシュ削除UI
 - UIテストターゲット

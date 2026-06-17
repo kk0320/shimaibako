@@ -36,7 +36,12 @@ SQLiteまたはSwiftDataへ移行する時は、`PhotoIndexStoring` の実装を
 - `ocrErrorMessage`
 - `inferredCategory`
 - `categoryConfidence`
+- `categoryReason`
 - `categoryUpdatedAt`
+- `screenshotSubcategory`
+- `screenshotSubcategoryConfidence`
+- `screenshotSubcategoryReason`
+- `screenshotSubcategoryUpdatedAt`
 - `lastSeenAt`
 - `updatedAt`
 
@@ -50,7 +55,9 @@ SQLiteまたはSwiftDataへ移行する時は、`PhotoIndexStoring` の実装を
 
 - OCRテキスト: 空文字
 - OCR状態: 未処理
-- 推定カテゴリ: その他
+- 推定カテゴリ: 未分類
+- 分類理由: なし
+- スクショ細分類: なし
 - カテゴリ更新日時: 既存の更新日時
 - 最終確認日時: 既存の更新日時
 
@@ -66,6 +73,9 @@ SQLiteまたはSwiftDataへ移行する時は、`PhotoIndexStoring` の実装を
 - 画像サイズ
 - スクリーンショット判定
 - 仮想フォルダ名
+- 分類理由
+- スクショ細分類名
+- スクショ細分類理由
 - OCRテキスト
 
 SettingsViewのOCR件数、分類済み件数、カテゴリ別件数は `PhotoIndexService` 経由で計算する。将来SQLiteへ移行した場合は、同じ集計をSQL側へ寄せられる。
@@ -97,7 +107,9 @@ OCR欄の操作:
 - OCR文字検索の対象から外れる
 - 再OCRすると新しい結果を保存できる
 
-分類の未分類戻しは `inferredCategory` を `other`、`categoryConfidence` を0に戻す。分類再構築は読み込み済みの `PhotoAsset` と保存済みOCRテキストから再推定する。
+分類の未分類戻しは `inferredCategory` を `uncategorized`、`categoryConfidence` を0に戻し、スクショ細分類も空にする。分類再構築は読み込み済みの `PhotoAsset` と保存済みOCRテキストから再推定する。
+
+スクショ細分類は通常カテゴリとは別に保存する。スクショではない写真では空のままにし、既存JSONにフィールドがなくても読み込み時に落ちない。
 
 ## SQLite移行方針
 
@@ -112,7 +124,8 @@ OCR欄の操作:
   - `media_type`
   - `inferred_category`
   - `ocr_status`
-  - `last_seen_at`
+- `last_seen_at`
+- `screenshot_subcategory`
 - OCR検索:
   - 初期は `LIKE`
   - 件数増加後はFTSへ移行

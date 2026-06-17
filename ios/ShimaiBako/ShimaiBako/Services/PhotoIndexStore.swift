@@ -12,6 +12,7 @@ nonisolated protocol PhotoIndexStoring: Sendable {
     func resetAllCategories() async throws
     func searchLocalIdentifiers(matching query: String) async throws -> Set<String>
     func categoryCounts() async throws -> [PhotoCategory: Int]
+    func screenshotSubcategoryCounts() async throws -> [ScreenshotSubcategory: Int]
     func summary() async throws -> PhotoIndexSummary
 }
 
@@ -140,6 +141,19 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
         return counts
     }
 
+    func screenshotSubcategoryCounts() async throws -> [ScreenshotSubcategory: Int] {
+        var counts = Dictionary(uniqueKeysWithValues: ScreenshotSubcategory.allCases.map { ($0, 0) })
+        let records = try await loadAll().filter(\.isScreenshot)
+        counts[.all] = records.count
+
+        for record in records {
+            let subcategory = record.screenshotSubcategory ?? .otherScreenshot
+            counts[subcategory, default: 0] += 1
+        }
+
+        return counts
+    }
+
     func summary() async throws -> PhotoIndexSummary {
         PhotoIndexSummary(records: try await loadAll())
     }
@@ -176,9 +190,14 @@ extension PhotoIndexRecord {
 
     nonisolated func resettingCategory(at date: Date = Date()) -> PhotoIndexRecord {
         var record = self
-        record.inferredCategory = .other
+        record.inferredCategory = .uncategorized
         record.categoryConfidence = 0
+        record.categoryReason = "未分類に戻しました"
         record.categoryUpdatedAt = date
+        record.screenshotSubcategory = nil
+        record.screenshotSubcategoryConfidence = nil
+        record.screenshotSubcategoryReason = nil
+        record.screenshotSubcategoryUpdatedAt = nil
         record.updatedAt = date
         return record
     }
@@ -192,6 +211,10 @@ extension PhotoIndexRecord {
             isScreenshot ? "スクリーンショット スクショ screenshot" : "",
             inferredCategory.title,
             inferredCategory.shortTitle,
+            categoryReason ?? "",
+            screenshotSubcategory?.title ?? "",
+            screenshotSubcategory?.shortTitle ?? "",
+            screenshotSubcategoryReason ?? "",
             ocrText
         ]
         .joined(separator: " ")
@@ -218,6 +241,6 @@ extension PhotoIndexSummary {
 
         let baseCount = loadedImageCount ?? records.filter { $0.mediaTypeRawValue == 1 }.count
         unprocessedOCRCount = max(baseCount - completedOCRCount - failedOCRCount - processingOCRCount, 0)
-        categorizedCount = records.filter { $0.inferredCategory != .other }.count
+        categorizedCount = records.filter { $0.inferredCategory != .uncategorized }.count
     }
 }

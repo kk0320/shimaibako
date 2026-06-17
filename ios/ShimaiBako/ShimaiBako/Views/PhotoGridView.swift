@@ -26,6 +26,7 @@ struct PhotoGridView: View {
 
     @State private var searchText: String
     @State private var selectedCategory: PhotoCategory = .all
+    @State private var selectedScreenshotSubcategory: ScreenshotSubcategory = .all
     @State private var selectedBulkTarget: OCRBatchTarget = .visible
     @State private var debugPresentedAsset: PhotoAsset?
     @State private var didPresentDebugAsset = false
@@ -65,12 +66,22 @@ struct PhotoGridView: View {
 
     private var filteredAssets: [PhotoAsset] {
         photoLibrary.assets.filter { asset in
-            categoryIncludes(asset) && indexService.matches(asset: asset, query: searchText, ocrService: ocrService)
+            categoryIncludes(asset) &&
+            screenshotSubcategoryIncludes(asset) &&
+            indexService.matches(asset: asset, query: searchText, ocrService: ocrService)
         }
     }
 
     private var categoryCounts: [PhotoCategory: Int] {
         indexService.counts(for: photoLibrary.assets, ocrService: ocrService)
+    }
+
+    private var screenshotSubcategoryCounts: [ScreenshotSubcategory: Int] {
+        let screenshotAssets = photoLibrary.assets.filter { asset in
+            indexService.category(for: asset, ocrService: ocrService) == .screenshots
+        }
+
+        return indexService.screenshotSubcategoryCounts(for: screenshotAssets, ocrService: ocrService)
     }
 
     private var bulkTargetAssets: [PhotoAsset] {
@@ -151,6 +162,9 @@ struct PhotoGridView: View {
                 VStack(spacing: 12) {
                     statusHeader
                     categoryChips
+                    if selectedCategory == .screenshots {
+                        screenshotSubcategoryChips
+                    }
                     bulkOCRControls
                     content
                 }
@@ -158,7 +172,7 @@ struct PhotoGridView: View {
                 .padding(.top, 8)
             }
             .navigationTitle(mode.title)
-            .searchable(text: $searchText, prompt: "日付・種類・OCRで検索")
+            .searchable(text: $searchText, prompt: "日付・種類・カテゴリ・OCRで検索")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -362,6 +376,9 @@ struct PhotoGridView: View {
                 ForEach(PhotoCategory.allCases) { category in
                     Button {
                         selectedCategory = category
+                        if category != .screenshots {
+                            selectedScreenshotSubcategory = .all
+                        }
                     } label: {
                         Label(
                             "\(category.shortTitle) \(categoryCounts[category, default: 0])",
@@ -370,10 +387,38 @@ struct PhotoGridView: View {
                         .labelStyle(.titleAndIcon)
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                     .buttonStyle(.bordered)
                     .buttonBorderShape(.capsule)
                     .tint(selectedCategory == category ? Color(red: 0.16, green: 0.42, blue: 0.75) : .secondary)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private var screenshotSubcategoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ScreenshotSubcategory.allCases) { subcategory in
+                    Button {
+                        selectedScreenshotSubcategory = subcategory
+                    } label: {
+                        Label(
+                            "\(subcategory.shortTitle) \(screenshotSubcategoryCounts[subcategory, default: 0])",
+                            systemImage: subcategory.systemImage
+                        )
+                        .labelStyle(.titleAndIcon)
+                        .font(.caption2.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .fixedSize(horizontal: true, vertical: false)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .tint(selectedScreenshotSubcategory == subcategory ? Color(red: 0.25, green: 0.43, blue: 0.57) : .secondary)
                 }
             }
             .padding(.vertical, 2)
@@ -386,6 +431,16 @@ struct PhotoGridView: View {
         }
 
         return indexService.category(for: asset, ocrService: ocrService) == selectedCategory
+    }
+
+    private func screenshotSubcategoryIncludes(_ asset: PhotoAsset) -> Bool {
+        guard selectedCategory == .screenshots,
+              selectedScreenshotSubcategory != .all else {
+            return true
+        }
+
+        let subcategory = indexService.screenshotSubcategory(for: asset, ocrService: ocrService) ?? .otherScreenshot
+        return subcategory == selectedScreenshotSubcategory
     }
 
     @ViewBuilder

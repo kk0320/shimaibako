@@ -20,6 +20,14 @@ struct SettingsView: View {
         indexService.counts(for: photoLibrary.assets, ocrService: ocrService)
     }
 
+    private var screenshotSubcategoryCounts: [ScreenshotSubcategory: Int] {
+        let screenshotAssets = photoLibrary.assets.filter { asset in
+            indexService.category(for: asset, ocrService: ocrService) == .screenshots
+        }
+
+        return indexService.screenshotSubcategoryCounts(for: screenshotAssets, ocrService: ocrService)
+    }
+
     private var ocrCacheCount: Int {
         indexService.indexSummary.completedOCRCount + indexService.indexSummary.failedOCRCount
     }
@@ -254,6 +262,30 @@ struct SettingsView: View {
                         .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
+                }
+            }
+
+            Divider()
+
+            Label("スクショ細分類", systemImage: "rectangle.stack.badge.person.crop")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("スクショは記録・メモ用途として別枠で候補分類します。写真本体は移動しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ], alignment: .leading, spacing: 8) {
+                ForEach(ScreenshotSubcategory.allCases) { subcategory in
+                    Label("\(subcategory.shortTitle) \(screenshotSubcategoryCounts[subcategory, default: 0])", systemImage: subcategory.systemImage)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                 }
             }
         }

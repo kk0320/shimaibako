@@ -51,6 +51,26 @@ final class PhotoIndexService: ObservableObject {
         return "\(Int((confidence * 100).rounded()))%"
     }
 
+    func categoryReason(for asset: PhotoAsset, ocrService: OCRService) -> String {
+        record(for: asset, ocrService: ocrService).categoryReason ?? "メタデータとOCR結果から候補分類しています"
+    }
+
+    func screenshotSubcategory(for asset: PhotoAsset, ocrService: OCRService) -> ScreenshotSubcategory? {
+        record(for: asset, ocrService: ocrService).screenshotSubcategory
+    }
+
+    func screenshotSubcategoryConfidenceLabel(for asset: PhotoAsset, ocrService: OCRService) -> String? {
+        guard let confidence = record(for: asset, ocrService: ocrService).screenshotSubcategoryConfidence else {
+            return nil
+        }
+
+        return "\(Int((confidence * 100).rounded()))%"
+    }
+
+    func screenshotSubcategoryReason(for asset: PhotoAsset, ocrService: OCRService) -> String? {
+        record(for: asset, ocrService: ocrService).screenshotSubcategoryReason
+    }
+
     func ocrText(for asset: PhotoAsset, ocrService: OCRService) -> String {
         let record = record(for: asset, ocrService: ocrService)
         guard record.ocrStatus == .completed else {
@@ -102,6 +122,19 @@ final class PhotoIndexService: ObservableObject {
         for asset in assets {
             let category = category(for: asset, ocrService: ocrService)
             counts[category, default: 0] += 1
+        }
+
+        return counts
+    }
+
+    func screenshotSubcategoryCounts(for assets: [PhotoAsset], ocrService: OCRService) -> [ScreenshotSubcategory: Int] {
+        var counts = Dictionary(uniqueKeysWithValues: ScreenshotSubcategory.allCases.map { ($0, 0) })
+        let screenshotAssets = assets.filter(\.isScreenshot)
+        counts[.all] = screenshotAssets.count
+
+        for asset in screenshotAssets {
+            let subcategory = screenshotSubcategory(for: asset, ocrService: ocrService) ?? .otherScreenshot
+            counts[subcategory, default: 0] += 1
         }
 
         return counts
@@ -300,10 +333,21 @@ final class PhotoIndexService: ObservableObject {
         let inference = CategoryInference.infer(asset: asset, ocrText: completedOCRText)
         let categoryUpdatedAt: Date
         if existingRecord?.inferredCategory == inference.category,
-           existingRecord?.categoryConfidence == inference.confidence {
+           existingRecord?.categoryConfidence == inference.confidence,
+           existingRecord?.categoryReason == inference.reason {
             categoryUpdatedAt = existingRecord?.categoryUpdatedAt ?? inference.updatedAt
         } else {
             categoryUpdatedAt = inference.updatedAt
+        }
+
+        let screenshotInference = CategoryInference.inferScreenshotSubcategory(asset: asset, ocrText: completedOCRText)
+        let screenshotSubcategoryUpdatedAt: Date?
+        if existingRecord?.screenshotSubcategory == screenshotInference?.subcategory,
+           existingRecord?.screenshotSubcategoryConfidence == screenshotInference?.confidence,
+           existingRecord?.screenshotSubcategoryReason == screenshotInference?.reason {
+            screenshotSubcategoryUpdatedAt = existingRecord?.screenshotSubcategoryUpdatedAt ?? screenshotInference?.updatedAt
+        } else {
+            screenshotSubcategoryUpdatedAt = screenshotInference?.updatedAt
         }
 
         let now = Date()
@@ -323,7 +367,12 @@ final class PhotoIndexService: ObservableObject {
             ocrErrorMessage: ocrResult?.errorMessage ?? existingRecord?.ocrErrorMessage,
             inferredCategory: inference.category,
             categoryConfidence: inference.confidence,
+            categoryReason: inference.reason,
             categoryUpdatedAt: categoryUpdatedAt,
+            screenshotSubcategory: screenshotInference?.subcategory,
+            screenshotSubcategoryConfidence: screenshotInference?.confidence,
+            screenshotSubcategoryReason: screenshotInference?.reason,
+            screenshotSubcategoryUpdatedAt: screenshotSubcategoryUpdatedAt,
             lastSeenAt: now,
             updatedAt: now
         )
@@ -331,6 +380,7 @@ final class PhotoIndexService: ObservableObject {
 
     private func makeClearedOCRRecord(for asset: PhotoAsset) -> PhotoIndexRecord {
         let inference = CategoryInference.infer(asset: asset, ocrText: nil)
+        let screenshotInference = CategoryInference.inferScreenshotSubcategory(asset: asset, ocrText: nil)
         let now = Date()
 
         return PhotoIndexRecord(
@@ -348,7 +398,12 @@ final class PhotoIndexService: ObservableObject {
             ocrErrorMessage: nil,
             inferredCategory: inference.category,
             categoryConfidence: inference.confidence,
+            categoryReason: inference.reason,
             categoryUpdatedAt: inference.updatedAt,
+            screenshotSubcategory: screenshotInference?.subcategory,
+            screenshotSubcategoryConfidence: screenshotInference?.confidence,
+            screenshotSubcategoryReason: screenshotInference?.reason,
+            screenshotSubcategoryUpdatedAt: screenshotInference?.updatedAt,
             lastSeenAt: now,
             updatedAt: now
         )

@@ -48,9 +48,21 @@ struct PhotoDetailView: View {
                         DetailRow(title: "サイズ", value: asset.sizeLabel)
                         DetailRow(title: "内部ID", value: asset.localIdentifier)
                         DetailRow(
-                            title: "仮想フォルダ",
+                            title: "推定カテゴリ",
                             value: "\(indexService.category(for: asset, ocrService: ocrService).title) / 信頼度 \(indexService.confidenceLabel(for: asset, ocrService: ocrService))"
                         )
+                        DetailRow(title: "分類理由", value: indexService.categoryReason(for: asset, ocrService: ocrService))
+
+                        if let screenshotSubcategory = indexService.screenshotSubcategory(for: asset, ocrService: ocrService) {
+                            DetailRow(
+                                title: "スクショ分類",
+                                value: "\(screenshotSubcategory.title) / 信頼度 \(indexService.screenshotSubcategoryConfidenceLabel(for: asset, ocrService: ocrService) ?? "-")"
+                            )
+
+                            if let reason = indexService.screenshotSubcategoryReason(for: asset, ocrService: ocrService) {
+                                DetailRow(title: "スクショ分類理由", value: reason)
+                            }
+                        }
 
                         Text("分類はしまい箱内の仮想フォルダです。写真アプリ側のアルバムや写真本体は変更しません。")
                             .font(.caption)

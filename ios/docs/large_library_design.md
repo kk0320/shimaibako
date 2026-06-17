@@ -56,7 +56,12 @@
 - `ocrErrorMessage`
 - `inferredCategory`
 - `categoryConfidence`
+- `categoryReason`
 - `categoryUpdatedAt`
+- `screenshotSubcategory`
+- `screenshotSubcategoryConfidence`
+- `screenshotSubcategoryReason`
+- `screenshotSubcategoryUpdatedAt`
 - `lastSeenAt`
 - `hasOCRText`
 
@@ -68,7 +73,21 @@
 
 検索は読み込み済み範囲を対象にし、OCRテキストとカテゴリ情報は `PhotoIndexService` 経由で参照する。全件検索を行うには、まず読み込みモードで対象範囲を広げる。
 
-分類はしまい箱内の仮想フォルダであり、写真アプリ側にアルバムやフォルダは作らない。
+分類はしまい箱内の仮想フォルダであり、写真アプリ側にアルバムやフォルダは作らない。一般写真カテゴリは候補として扱い、花・植物、建物、芸術品、食べ物、動物などはOCRだけでは精度に限界があるため低めの信頼度にする。
+
+スクショは通常写真とは別の記録・メモ用途として扱い、スクショ選択時だけサブカテゴリで絞り込む。
+
+- アイデア・メモ候補
+- Web記事・調べ物候補
+- 予約・チケット候補
+- 地図・場所候補
+- 買い物・領収候補
+- アプリ設定・エラー候補
+- チャット・SNS候補
+- 仕事・資料候補
+- その他スクショ
+
+スクショ細分類はOCRテキストから端末内で候補判定する。チャット/SNSなどプライバシー性の高い内容も外部送信しない。
 
 ## キャッシュ削除と再構築
 
@@ -113,3 +132,5 @@
 - SQLiteまたはSwiftDataへの移行
 - SQLite FTSによるOCRテキスト検索
 - カテゴリ推定の精度改善
+- スクショ細分類の辞書調整
+- 端末内の画像特徴量による一般写真カテゴリ推定
