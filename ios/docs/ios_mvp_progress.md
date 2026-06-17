@@ -2,7 +2,7 @@
 
 ## 概要
 
-しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応、大規模写真ライブラリ向けの読み込みモードと安全確認を実装した。
+しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応、大規模写真ライブラリ向けの読み込みモード、安全確認、検索インデックス保存を実装した。
 
 現時点の方針は完全ローカル処理。写真は外部送信せず、削除・移動・編集・共有は行わない。
 
@@ -66,6 +66,13 @@
   - 読み取り失敗
 - OCR結果のJSON保存
 - OCR結果を含む検索
+- OCR結果、分類結果、検索用メタデータを統合する検索インデックス
+- `PhotoIndexStoring` protocolによる保存層の抽象化
+- `JSONPhotoIndexStore` による `photo_index.json` version 2保存
+- 既存 `ocr_results.json` との互換読み込み
+- 設定画面でのインデックス件数、分類済み件数、OCR件数表示
+- 検索インデックス再構築ボタン
+- 30,000件相当のダミー検索インデックス性能確認スクリプト
 - 設定画面での写真アクセス状態、読み込み上限、OCR件数、安全方針の表示
 - 限定アクセス時の写真選択変更導線
 - まとめてOCR中のキャンセル
@@ -99,6 +106,9 @@
 - `ios/ShimaiBako/ShimaiBako/Views/PhotoDetailView.swift`
 - `ios/ShimaiBako/ShimaiBako/Views/SettingsView.swift`
 - `ios/ShimaiBako/ShimaiBako/Assets.xcassets/AppIcon.appiconset/Contents.json`
+- `ios/scripts/index_store_performance_check.swift`
+- `ios/docs/index_store_design.md`
+- `ios/docs/large_library_performance_notes.md`
 
 ## ビルド方法
 
@@ -133,8 +143,11 @@ xcodebuild build \
 - 詳細画面表示: PASS
 - Vision OCR処理: PASS
 - OCR結果のJSON保存: PASS
+- 検索インデックスJSON保存: PASS
 - アプリ再起動後のOCR結果読み込み: PASS
 - OCR結果検索: PASS
+- カテゴリ別件数表示: PASS
+- 30,000件相当ダミーインデックス検索: PASS
 - まとめてOCR: PASS
 - まとめてOCRキャンセル: PASS
 - まとめてOCR前の安全確認表示: PASS
@@ -182,7 +195,8 @@ xcodebuild build \
 - 端末温度や保存容量に問題がある場合、まとめてOCRを開始しない、または中断する
 - Vision OCRに渡す画像は長辺1800px目安に縮小する
 - OCR結果は `Application Support/ShimaiBako/ocr_results.json` に保存
-- 検索は撮影日、種別、サイズ、スクリーンショット判定、OCRテキストを対象にする
+- 検索インデックスは `Application Support/ShimaiBako/photo_index.json` に保存
+- 検索は撮影日、種別、サイズ、スクリーンショット判定、仮想フォルダ名、OCRテキストを対象にする
 - OCRテキストを使って仮想フォルダ分類を再判定する
 - 外部OCR APIは未使用
 
@@ -206,7 +220,8 @@ xcodebuild build \
 - 実機での再起動後OCR結果復元確認
 - バックグラウンド移行中のOCR中断確認
 - 3万枚規模の実機ライブラリでの負荷検証
-- SQLiteまたはSwiftDataへのインデックス移行
+- SQLiteまたはSwiftDataへの検索インデックス移行
+- SQLite FTSによるOCRテキスト検索
 - 読み込み範囲のページング
 - OCR結果キャッシュ削除UI
 - UIテストターゲット

@@ -32,9 +32,9 @@
 - 500件単位で `Task.yield()` し、UI更新の余地を作る
 - 大量モードではファイル名取得を省略し、PhotoKitメタデータ中心で扱う
 
-## 軽量インデックス
+## 検索インデックス
 
-`PhotoIndexStore` は `Application Support/ShimaiBako/photo_index.json` に軽量インデックスを保存する。
+`PhotoIndexStore` は `Application Support/ShimaiBako/photo_index.json` に検索インデックスを保存する。保存は `PhotoIndexStoring` protocol 越しに扱い、現在は `JSONPhotoIndexStore` を使う。
 
 主キー:
 
@@ -49,18 +49,38 @@
 - `pixelWidth`
 - `pixelHeight`
 - `isScreenshot`
+- `ocrStatus`
+- `ocrText`
+- `ocrLanguage`
+- `ocrProcessedAt`
+- `ocrErrorMessage`
 - `inferredCategory`
 - `categoryConfidence`
-- `ocrStatus`
+- `categoryUpdatedAt`
+- `lastSeenAt`
 - `hasOCRText`
 
-現段階ではJSON保存を維持する。3万件規模では全件の頻繁な読み書きが重くなるため、次段階では同じ境界を保ったままSQLiteまたはSwiftDataへ移行する。
+写真本体やサムネイル本体は保存しない。保存するのは検索と表示に必要なメタデータ、OCRテキスト、分類結果のみ。
+
+現段階ではJSON保存を維持する。3万件規模では全件の頻繁な読み書きが重くなるため、次段階では同じ `PhotoIndexStoring` 境界を保ったままSQLiteまたはSwiftDataへ移行する。
 
 ## 検索と分類
 
-検索は読み込み済み範囲を対象にする。全件検索を行うには、まず読み込みモードで対象範囲を広げる。
+検索は読み込み済み範囲を対象にし、OCRテキストとカテゴリ情報は `PhotoIndexService` 経由で参照する。全件検索を行うには、まず読み込みモードで対象範囲を広げる。
 
 分類はしまい箱内の仮想フォルダであり、写真アプリ側にアルバムやフォルダは作らない。
+
+## 3万件相当の性能確認
+
+`ios/scripts/index_store_performance_check.swift` で30,000件のダミー検索インデックスを生成し、JSON読み書きとLIKE相当検索を確認した。
+
+開発環境での結果:
+
+- JSON読み込みとデコード: 約0.5秒
+- OCRテキスト検索: 約0.25秒
+- カテゴリ集計: 約0.03秒
+
+詳細は `ios/docs/large_library_performance_notes.md` に記録する。この結果から、MVP互換としてJSONは維持できるが、実機でOCR済み件数が増えた段階ではSQLite/FTS移行を優先する。
 
 ## 大量ライブラリで避けること
 
@@ -75,5 +95,5 @@
 - 差分インデックス更新
 - 読み込み範囲のページング
 - SQLiteまたはSwiftDataへの移行
-- 検索インデックスの永続化
+- SQLite FTSによるOCRテキスト検索
 - カテゴリ推定の精度改善
