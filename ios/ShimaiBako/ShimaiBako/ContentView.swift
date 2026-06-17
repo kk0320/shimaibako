@@ -5,6 +5,7 @@ struct ContentView: View {
     @StateObject private var ocrService: OCRService
     @StateObject private var indexService: PhotoIndexService
     @StateObject private var learningService: ManualCategoryLearningService
+    @StateObject private var accuracyImprovementService: AccuracyImprovementService
     @StateObject private var deviceSafety: DeviceSafetyService
 
     init() {
@@ -13,6 +14,7 @@ struct ContentView: View {
         _ocrService = StateObject(wrappedValue: OCRService())
         _learningService = StateObject(wrappedValue: learningService)
         _indexService = StateObject(wrappedValue: PhotoIndexService(learningService: learningService))
+        _accuracyImprovementService = StateObject(wrappedValue: AccuracyImprovementService())
         _deviceSafety = StateObject(wrappedValue: DeviceSafetyService())
     }
 
@@ -22,6 +24,7 @@ struct ContentView: View {
             ocrService: ocrService,
             indexService: indexService,
             learningService: learningService,
+            accuracyImprovementService: accuracyImprovementService,
             deviceSafety: deviceSafety
         )
             .task {

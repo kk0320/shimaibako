@@ -136,3 +136,53 @@ enum OCRBatchTarget: String, CaseIterable, Identifiable, Codable {
         }
     }
 }
+
+enum AccuracyImprovementSchedule: String, CaseIterable, Identifiable, Codable {
+    case manualOnly
+    case nightAttempt
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .manualOnly:
+            "手動のみ"
+        case .nightAttempt:
+            "夜間に自動実行を試みる"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .manualOnly:
+            "ユーザーが押した時だけ少しずつ処理します。"
+        case .nightAttempt:
+            "iOSの判断に従って、夜間や充電中の実行を将来試みます。指定時刻に必ず動くものではありません。"
+        }
+    }
+}
+
+enum AccuracyImprovementRunState: Equatable {
+    case idle
+    case running
+    case completed
+    case interrupted
+    case failed
+
+    var title: String {
+        switch self {
+        case .idle:
+            "待機中"
+        case .running:
+            "処理中"
+        case .completed:
+            "完了"
+        case .interrupted:
+            "中断"
+        case .failed:
+            "失敗"
+        }
+    }
+}

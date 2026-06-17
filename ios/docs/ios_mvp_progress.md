@@ -2,7 +2,7 @@
 
 ## 概要
 
-しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応、大規模写真ライブラリ向けの読み込みモード、安全確認、検索インデックス保存、軽量な分類傾向学習を実装した。
+しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応、大規模写真ライブラリ向けの読み込みモード、安全確認、検索インデックス保存、軽量な分類傾向学習、精度向上モードの初期実装を追加した。
 
 現時点の方針は完全ローカル処理。写真は外部送信せず、削除・移動・編集・共有は行わない。
 
@@ -102,6 +102,12 @@
 - 手動分類から作る軽量な分類傾向学習
 - 分類傾向学習のオン/オフ
 - 分類傾向学習データの削除
+- 精度向上モードのオン/オフ
+- 精度向上モードの手動実行
+- 精度向上モードのキャンセル
+- 精度向上モードの処理履歴表示
+- 夜間に自動実行を試みる設定UI
+- 精度向上データ削除UI
 - 設定画面からの分類再構築
 - 設定画面でのインデックス件数、分類済み件数、OCR件数表示
 - 設定画面での分類傾向学習件数、上限、説明表示
@@ -133,6 +139,7 @@
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoLibraryService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoIndexService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoIndexStore.swift`
+- `ios/ShimaiBako/ShimaiBako/Services/AccuracyImprovementService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/ManualCategoryLearningService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRResultStore.swift`
@@ -149,6 +156,8 @@
 - `ios/docs/screenshot_classification_design.md`
 - `ios/docs/future_image_classification_plan.md`
 - `ios/docs/manual_classification_learning_design.md`
+- `ios/docs/accuracy_improvement_mode_design.md`
+- `ios/docs/background_processing_plan.md`
 
 ## ビルド方法
 
@@ -199,6 +208,10 @@ xcodebuild build \
 - 詳細画面の手動分類変更UI: PASS
 - 分類傾向学習ON/OFF表示: PASS
 - 分類傾向学習データ削除UI: PASS
+- 精度向上モードON/OFF表示: PASS
+- 精度向上モード手動実行UI: PASS
+- 精度向上モードキャンセルUI: PASS
+- 精度向上データ削除UI: PASS
 - 30,000件相当ダミーインデックス検索: PASS
 - まとめてOCR: PASS
 - まとめてOCRキャンセル: PASS
@@ -265,6 +278,21 @@ xcodebuild build \
 - 学習データは全体800件、1分類あたり80件、1例あたりキーワード20個まで
 - 設定画面でオン/オフと学習データ削除ができる
 - 学習データ削除後も写真本体、OCR結果、手動分類は残る
+
+## 精度向上モード
+
+- 設定画面でオン/オフできる
+- 実行タイミングは「手動のみ」と「夜間に自動実行を試みる」
+- 推奨時間帯は23:00〜6:00
+- 初期実装は手動実行中心
+- 「今すぐ少しだけ実行」で最大50件を再判定する
+- 対象は未分類写真、OCR済み写真、スクショ、その他画像の順に選ぶ
+- 処理内容は軽量分類再判定、OCR済み写真のカテゴリ再判定、スクショ細分類再判定、手動分類傾向反映、インデックス整理
+- キャンセル可能
+- 低電力モード、発熱、容量不足、バッテリー不足で中断する
+- 夜間自動実行はiOSの判断により、指定時刻に必ず実行されるものではない
+- BGTaskScheduler/BGProcessingTaskは将来設計としてdocsに記録し、初期実装では未導入
+- Vision Feature Printなど画像特徴量の本格処理は未実装
 
 ローカルのテスト画像では次の文字列を認識できた。
 

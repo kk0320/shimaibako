@@ -7,12 +7,14 @@ struct SettingsView: View {
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
+    @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var deviceSafety: DeviceSafetyService
     @Environment(\.openURL) private var openURL
     @State private var pendingReadMode: PhotoReadMode?
     @State private var showingLargeModeSafety = false
     @State private var showingClearAllOCRConfirmation = false
     @State private var showingClearLearningConfirmation = false
+    @State private var showingClearAccuracyDataConfirmation = false
 
     private var indexSummary: PhotoIndexSummary {
         indexService.summary(for: photoLibrary.assets, ocrService: ocrService)
@@ -48,6 +50,7 @@ struct SettingsView: View {
                         iCloudSettingsCard
                         categoryCountsCard
                         learningSettingsCard
+                        accuracyImprovementCard
                         ocrSettingsCard
                         cacheMaintenanceCard
                         deviceSafetyCard
@@ -106,6 +109,17 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("削除されるのは、手動で直した分類から作った軽量な分類傾向データだけです。写真本体、OCR結果、手動分類は削除されません。")
+            }
+            .alert("精度向上データを削除しますか？", isPresented: $showingClearAccuracyDataConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("精度向上データを削除", role: .destructive) {
+                    Task {
+                        await learningService.clearAll()
+                        await accuracyImprovementService.clearImprovementData()
+                    }
+                }
+            } message: {
+                Text("分類傾向学習データ、将来の画像特徴量データ、精度向上モードの処理履歴だけを削除します。写真本体、OCR結果、手動分類、写真アプリ側のデータは削除されません。")
             }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
@@ -377,6 +391,183 @@ struct SettingsView: View {
             }
             .buttonStyle(.bordered)
             .disabled(learningService.exampleCount == 0)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var accuracyImprovementCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("精度向上モード", systemImage: "sparkles")
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("夜間や充電中に、分類の精度を少しずつ高めます。写真本体は外部送信せず、端末内で処理します。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Toggle(isOn: Binding(
+                get: { accuracyImprovementService.isEnabled },
+                set: { accuracyImprovementService.updateIsEnabled($0) }
+            )) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("精度向上モード")
+                        .font(.subheadline.weight(.semibold))
+                    Text(accuracyImprovementService.isEnabled ? "オン" : "オフ")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("実行タイミング")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+
+                ForEach(AccuracyImprovementSchedule.allCases) { schedule in
+                    Button {
+                        accuracyImprovementService.updateSchedule(schedule)
+                    } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Image(systemName: accuracyImprovementService.schedule == schedule ? "checkmark.circle.fill" : "circle")
+                                .frame(width: 18)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(schedule.title)
+                                    .font(.subheadline.weight(.semibold))
+                                Text(schedule.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                }
+            }
+
+            DetailInfoRow(title: "推奨時間帯", value: accuracyImprovementService.recommendedTimeRangeTitle)
+            DetailInfoRow(title: "現在の状態", value: accuracyImprovementService.state.title)
+            DetailInfoRow(title: "最終実行", value: accuracyImprovementService.lastRunTitle)
+            DetailInfoRow(title: "次回試行", value: accuracyImprovementService.nextAttemptTitle)
+            DetailInfoRow(title: "1回の上限", value: "\(accuracyImprovementService.maxRunCount)件")
+            DetailInfoRow(title: "iCloud取得", value: photoLibrary.iCloudMode.title)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("実行条件")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+
+                SafetyBullet("充電中またはバッテリー50%以上")
+                SafetyBullet("低電力モードOFF")
+                SafetyBullet("発熱状態が通常またはやや高め")
+                SafetyBullet("空き容量2GB以上推奨")
+                SafetyBullet("Wi-Fi推奨")
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("iCloud取得")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+
+                ForEach(ICloudPhotoMode.allCases) { mode in
+                    Button {
+                        photoLibrary.updateICloudMode(mode)
+                    } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Image(systemName: photoLibrary.iCloudMode == mode ? "checkmark.circle.fill" : "circle")
+                                .frame(width: 18)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(mode.title)
+                                    .font(.subheadline.weight(.semibold))
+                                Text(mode.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                }
+            }
+
+            ForEach(deviceSafety.notices) { notice in
+                SafetyNoticeRow(notice: notice)
+            }
+
+            if accuracyImprovementService.state == .running || accuracyImprovementService.totalCount > 0 {
+                VStack(alignment: .leading, spacing: 6) {
+                    DetailInfoRow(title: "対象件数", value: "\(accuracyImprovementService.totalCount)件")
+                    DetailInfoRow(title: "完了件数", value: "\(accuracyImprovementService.completedCount)件")
+                    DetailInfoRow(title: "失敗件数", value: "\(accuracyImprovementService.failedCount)件")
+                    DetailInfoRow(title: "中断件数", value: "\(accuracyImprovementService.interruptedCount)件")
+
+                    ProgressView(
+                        value: Double(accuracyImprovementService.completedCount + accuracyImprovementService.failedCount),
+                        total: Double(max(accuracyImprovementService.totalCount, 1))
+                    )
+                    .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
+
+                    if let reason = accuracyImprovementService.interruptedReason {
+                        Text(reason)
+                            .font(.caption)
+                            .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(12)
+                .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8))
+            }
+
+            Text(accuracyImprovementService.lastSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if accuracyImprovementService.state == .running {
+                Button(role: .destructive) {
+                    accuracyImprovementService.cancel()
+                } label: {
+                    Label("キャンセル", systemImage: "xmark.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Button {
+                    deviceSafety.refresh()
+                    accuracyImprovementService.startSmallRun(
+                        assets: photoLibrary.assets,
+                        ocrService: ocrService,
+                        indexService: indexService,
+                        deviceSafety: deviceSafety
+                    )
+                } label: {
+                    Label("今すぐ少しだけ実行", systemImage: "play.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(accuracyImprovementService.canStartManualRun == false || photoLibrary.assets.isEmpty)
+            }
+
+            Button(role: .destructive) {
+                showingClearAccuracyDataConfirmation = true
+            } label: {
+                Label("精度向上データを削除", systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+
+            Text("夜間自動実行はiOSの判断により、必ず指定時刻に実行されるとは限りません。初期実装では手動実行を中心にしています。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

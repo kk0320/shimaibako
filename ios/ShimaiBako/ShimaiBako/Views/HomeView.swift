@@ -12,6 +12,7 @@ struct HomeView: View {
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
+    @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var deviceSafety: DeviceSafetyService
     @State private var selectedTab = HomeTab.initialSelection
 
@@ -47,6 +48,7 @@ struct HomeView: View {
                 ocrService: ocrService,
                 indexService: indexService,
                 learningService: learningService,
+                accuracyImprovementService: accuracyImprovementService,
                 deviceSafety: deviceSafety
             )
                 .tabItem {
