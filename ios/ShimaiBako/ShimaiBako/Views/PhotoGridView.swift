@@ -296,7 +296,7 @@ struct PhotoGridView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
 
-                    Text(bulkCandidates.isEmpty ? "未処理の表示写真はありません" : "表示中の写真を最大\(OCRConfiguration.batchLimit)件まで読み取ります")
+                    Text(bulkCandidates.isEmpty ? "未処理の表示写真はありません" : "最大\(OCRConfiguration.batchLimit)件までOCR")
                         .font(.caption)
                         .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
                         .lineLimit(2)
@@ -517,17 +517,18 @@ private struct PhotoThumbnailView: View {
             Image(systemName: status.systemImage)
                 .font(.caption2.weight(.semibold))
 
-            Text(status.shortTitle)
+            Text(status.badgeTitle)
                 .font(.caption2.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
             .foregroundStyle(.white)
             .lineLimit(1)
-            .frame(maxWidth: 68)
+            .frame(minWidth: 34, maxWidth: 44)
             .padding(.horizontal, 5)
             .padding(.vertical, 3)
             .background(statusColor(status).opacity(0.82), in: Capsule())
+            .accessibilityLabel(status.title)
     }
 
     private func statusColor(_ status: OCRStatus) -> Color {

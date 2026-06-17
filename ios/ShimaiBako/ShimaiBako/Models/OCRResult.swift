@@ -32,6 +32,19 @@ enum OCRStatus: String, Codable, CaseIterable {
         }
     }
 
+    var badgeTitle: String {
+        switch self {
+        case .unprocessed:
+            "未"
+        case .processing:
+            "中"
+        case .completed:
+            "済"
+        case .failed:
+            "失敗"
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .unprocessed:
