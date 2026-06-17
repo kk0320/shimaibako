@@ -41,6 +41,8 @@ struct SettingsView: View {
                         .padding(16)
                         .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
 
+                        ocrSettingsCard
+
                         permissionCard
 
                         VStack(alignment: .leading, spacing: 14) {
@@ -63,7 +65,35 @@ struct SettingsView: View {
             }
             .navigationTitle("設定")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
+                    await photoLibrary.loadRecentAssets()
+                }
+            }
         }
+    }
+
+    private var ocrSettingsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("OCR設定", systemImage: "text.viewfinder")
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            DetailInfoRow(title: "OCR言語", value: OCRConfiguration.recognitionLanguageTitle)
+            DetailInfoRow(title: "OCR精度", value: OCRConfiguration.recognitionQualityTitle)
+            DetailInfoRow(title: "まとめてOCR上限", value: "\(OCRConfiguration.batchLimit)件")
+            DetailInfoRow(title: "OCR画像サイズ", value: OCRConfiguration.maxRecognitionImageLongSideTitle)
+            DetailInfoRow(title: "OCR結果件数", value: "\(ocrService.resultsByAssetID.count)件")
+            DetailInfoRow(title: "OCR結果キャッシュ", value: "端末内JSON")
+
+            Text("OCR結果だけを端末内に保存します。写真本体は保存・削除しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var permissionCard: some View {
@@ -138,7 +168,7 @@ struct SettingsView: View {
         case .authorized:
             "写真を読み取り可能です"
         case .limited:
-            "選択中の写真のみ利用できます"
+            "選択した写真のみ利用中"
         case .denied:
             "写真アクセスが拒否されています"
         case .restricted:

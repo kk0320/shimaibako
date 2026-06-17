@@ -41,7 +41,7 @@ final class PhotoLibraryService: ObservableObject {
         case .authorized:
             "すべての写真を読み取り可能"
         case .limited:
-            "選択した写真のみ読み取り可能"
+            "選択した写真のみ利用中"
         case .denied:
             "アクセスが拒否されています"
         case .restricted:

@@ -10,7 +10,6 @@ final class OCRService: ObservableObject {
     @Published private(set) var processingAssetIDs: Set<String> = []
     @Published var errorMessage: String?
 
-    private nonisolated static let recognitionLanguages = ["ja-JP", "en-US"]
     private let resultStore: OCRResultStore
 
     init(resultStore: OCRResultStore = OCRResultStore()) {
@@ -77,7 +76,7 @@ final class OCRService: ObservableObject {
         processingAssetIDs.insert(asset.id)
         errorMessage = nil
 
-        let language = Self.recognitionLanguages.joined(separator: ",")
+        let language = OCRConfiguration.recognitionLanguages.joined(separator: ",")
         resultsByAssetID[asset.id] = OCRResultRecord(
             photoLocalIdentifier: asset.localIdentifier,
             ocrText: resultsByAssetID[asset.id]?.ocrText ?? "",
@@ -125,7 +124,7 @@ final class OCRService: ObservableObject {
             photoLocalIdentifier: asset.localIdentifier,
             ocrText: "",
             ocrStatus: .failed,
-            ocrLanguage: Self.recognitionLanguages.joined(separator: ","),
+            ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
             processedAt: Date(),
             errorMessage: message
         )
@@ -174,11 +173,13 @@ final class OCRService: ObservableObject {
     }
 
     private nonisolated static func recognizeText(in image: UIImage) async throws -> String {
-        guard let cgImage = image.cgImage else {
+        let preparedImage = try preparedImageForRecognition(image)
+
+        guard let cgImage = preparedImage.cgImage else {
             throw OCRError.imageConversionFailed
         }
 
-        let orientation = CGImagePropertyOrientation(image.imageOrientation)
+        let orientation = CGImagePropertyOrientation(preparedImage.imageOrientation)
 
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -214,7 +215,7 @@ final class OCRService: ObservableObject {
                 }
 
                 request.recognitionLevel = .accurate
-                request.recognitionLanguages = recognitionLanguages
+                request.recognitionLanguages = OCRConfiguration.recognitionLanguages
                 request.usesLanguageCorrection = true
 
                 let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
@@ -227,15 +228,65 @@ final class OCRService: ObservableObject {
             }
         }
     }
+
+    private nonisolated static func preparedImageForRecognition(_ image: UIImage) throws -> UIImage {
+        guard let cgImage = image.cgImage else {
+            throw OCRError.imageConversionFailed
+        }
+
+        let pixelWidth = CGFloat(cgImage.width)
+        let pixelHeight = CGFloat(cgImage.height)
+
+        guard pixelWidth > 0, pixelHeight > 0 else {
+            throw OCRError.invalidImageSize
+        }
+
+        let longSide = max(pixelWidth, pixelHeight)
+        let maxLongSide = OCRConfiguration.maxRecognitionImageLongSide
+
+        guard longSide > maxLongSide else {
+            return image
+        }
+
+        let resizeScale = maxLongSide / longSide
+        let targetWidth = max(1, Int((pixelWidth * resizeScale).rounded()))
+        let targetHeight = max(1, Int((pixelHeight * resizeScale).rounded()))
+        let colorSpace = cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)
+
+        guard let colorSpace,
+              let context = CGContext(
+                data: nil,
+                width: targetWidth,
+                height: targetHeight,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else {
+            throw OCRError.imageConversionFailed
+        }
+
+        context.interpolationQuality = .high
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight))
+
+        guard let resizedImage = context.makeImage() else {
+            throw OCRError.imageConversionFailed
+        }
+
+        return UIImage(cgImage: resizedImage, scale: 1, orientation: image.imageOrientation)
+    }
 }
 
 enum OCRError: LocalizedError {
     case imageConversionFailed
+    case invalidImageSize
 
     var errorDescription: String? {
         switch self {
         case .imageConversionFailed:
             "画像を読み込めませんでした。"
+        case .invalidImageSize:
+            "画像サイズを確認できませんでした。"
         }
     }
 }
