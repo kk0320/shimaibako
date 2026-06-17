@@ -3,6 +3,17 @@ import Foundation
 import Photos
 import UIKit
 
+private enum LocalDataDeletionTarget: CaseIterable {
+    case futureImageFeatureCache
+
+    var fileName: String {
+        switch self {
+        case .futureImageFeatureCache:
+            "future_image_feature_cache.json"
+        }
+    }
+}
+
 @MainActor
 final class AccuracyImprovementService: ObservableObject {
     @Published private(set) var state: AccuracyImprovementRunState = .idle
@@ -10,8 +21,13 @@ final class AccuracyImprovementService: ObservableObject {
     @Published private(set) var completedCount = 0
     @Published private(set) var failedCount = 0
     @Published private(set) var interruptedCount = 0
+    @Published private(set) var manualProtectedCount = 0
     @Published private(set) var interruptedReason: String?
     @Published private(set) var lastRunAt: Date?
+    @Published private(set) var runStartedAt: Date?
+    @Published private(set) var runEndedAt: Date?
+    @Published private(set) var lastResultTitle: String = "未実行"
+    @Published private(set) var lastExecutionModeTitle: String = "未実行"
     @Published private(set) var lastSummary: String = "まだ実行していません"
     @Published var isEnabled: Bool {
         didSet {
@@ -28,7 +44,17 @@ final class AccuracyImprovementService: ObservableObject {
     private static let isEnabledKey = "accuracyImprovement.isEnabled"
     private static let scheduleKey = "accuracyImprovement.schedule"
     private static let lastRunAtKey = "accuracyImprovement.lastRunAt"
+    private static let runStartedAtKey = "accuracyImprovement.runStartedAt"
+    private static let runEndedAtKey = "accuracyImprovement.runEndedAt"
+    private static let lastResultTitleKey = "accuracyImprovement.lastResultTitle"
+    private static let lastExecutionModeTitleKey = "accuracyImprovement.lastExecutionModeTitle"
     private static let lastSummaryKey = "accuracyImprovement.lastSummary"
+    private static let totalCountKey = "accuracyImprovement.totalCount"
+    private static let completedCountKey = "accuracyImprovement.completedCount"
+    private static let failedCountKey = "accuracyImprovement.failedCount"
+    private static let interruptedCountKey = "accuracyImprovement.interruptedCount"
+    private static let manualProtectedCountKey = "accuracyImprovement.manualProtectedCount"
+    private static let interruptedReasonKey = "accuracyImprovement.interruptedReason"
     private static let maxRunCount = 50
     private static let minimumCapacityBytes: Int64 = 1_000_000_000
 
@@ -44,7 +70,17 @@ final class AccuracyImprovementService: ObservableObject {
         let storedSchedule = userDefaults.string(forKey: Self.scheduleKey)
         schedule = storedSchedule.flatMap(AccuracyImprovementSchedule.init(rawValue:)) ?? .manualOnly
         lastRunAt = userDefaults.object(forKey: Self.lastRunAtKey) as? Date
+        runStartedAt = userDefaults.object(forKey: Self.runStartedAtKey) as? Date
+        runEndedAt = userDefaults.object(forKey: Self.runEndedAtKey) as? Date
+        lastResultTitle = userDefaults.string(forKey: Self.lastResultTitleKey) ?? "未実行"
+        lastExecutionModeTitle = userDefaults.string(forKey: Self.lastExecutionModeTitleKey) ?? "未実行"
         lastSummary = userDefaults.string(forKey: Self.lastSummaryKey) ?? "まだ実行していません"
+        totalCount = userDefaults.integer(forKey: Self.totalCountKey)
+        completedCount = userDefaults.integer(forKey: Self.completedCountKey)
+        failedCount = userDefaults.integer(forKey: Self.failedCountKey)
+        interruptedCount = userDefaults.integer(forKey: Self.interruptedCountKey)
+        manualProtectedCount = userDefaults.integer(forKey: Self.manualProtectedCountKey)
+        interruptedReason = userDefaults.string(forKey: Self.interruptedReasonKey)
     }
 
     var maxRunCount: Int {
@@ -72,6 +108,26 @@ final class AccuracyImprovementService: ObservableObject {
         return DateFormatter.shimaiBakoDateTime.string(from: lastRunAt)
     }
 
+    var runStartedTitle: String {
+        guard let runStartedAt else {
+            return "未記録"
+        }
+
+        return DateFormatter.shimaiBakoDateTime.string(from: runStartedAt)
+    }
+
+    var runEndedTitle: String {
+        guard let runEndedAt else {
+            return state == .running ? "処理中" : "未記録"
+        }
+
+        return DateFormatter.shimaiBakoDateTime.string(from: runEndedAt)
+    }
+
+    var progressCompletedCount: Int {
+        completedCount + failedCount + manualProtectedCount
+    }
+
     var canStartManualRun: Bool {
         isEnabled && state != .running
     }
@@ -94,6 +150,7 @@ final class AccuracyImprovementService: ObservableObject {
             return
         }
 
+        beginRun(modeTitle: "手動実行")
         guard isEnabled else {
             finishInterrupted(reason: "精度向上モードがオフです。")
             return
@@ -111,9 +168,10 @@ final class AccuracyImprovementService: ObservableObject {
             completedCount = 0
             failedCount = 0
             interruptedCount = 0
+            manualProtectedCount = 0
             interruptedReason = nil
             state = .completed
-            saveRunSummary("対象写真はありませんでした。")
+            finishCompleted(summary: "対象写真はありませんでした。")
             return
         }
 
@@ -141,21 +199,17 @@ final class AccuracyImprovementService: ObservableObject {
         completedCount = 0
         failedCount = 0
         interruptedCount = 0
+        manualProtectedCount = 0
         interruptedReason = nil
         lastRunAt = nil
+        runStartedAt = nil
+        runEndedAt = nil
+        lastResultTitle = "未実行"
+        lastExecutionModeTitle = "未実行"
         lastSummary = "処理履歴を削除しました"
-        userDefaults.removeObject(forKey: Self.lastRunAtKey)
-        userDefaults.set(lastSummary, forKey: Self.lastSummaryKey)
+        persistRunState()
 
-        let featureURL = applicationSupportDirectory()
-            .appendingPathComponent("future_image_feature_cache.json")
-        if fileManager.fileExists(atPath: featureURL.path) {
-            do {
-                try fileManager.removeItem(at: featureURL)
-            } catch {
-                errorMessage = "精度向上データを削除できませんでした: \(error.localizedDescription)"
-            }
-        }
+        removeLocalDataFile(.futureImageFeatureCache)
     }
 
     private func run(
@@ -169,6 +223,7 @@ final class AccuracyImprovementService: ObservableObject {
         completedCount = 0
         failedCount = 0
         interruptedCount = 0
+        manualProtectedCount = 0
         interruptedReason = nil
         cancellationRequested = false
 
@@ -182,28 +237,33 @@ final class AccuracyImprovementService: ObservableObject {
 
             if let reason = blockingReason(deviceSafety: deviceSafety) {
                 interruptedReason = reason
-                interruptedCount = totalCount - completedCount - failedCount
-                state = .interrupted
-                saveRunSummary("中断: \(reason)")
+                interruptedCount = remainingCount
+                finishInterrupted(reason: reason)
                 return
             }
 
             if cancellationRequested || Task.isCancelled {
                 let reason = interruptedReason ?? "ユーザー操作でキャンセルしました。"
                 interruptedReason = reason
-                interruptedCount = totalCount - completedCount - failedCount
-                state = .interrupted
-                saveRunSummary("中断: \(reason)")
+                interruptedCount = remainingCount
+                finishInterrupted(reason: reason)
                 return
+            }
+
+            if indexService.hasManualClassification(for: asset) {
+                manualProtectedCount += 1
+                persistRunState()
+                await Task.yield()
+                continue
             }
 
             await indexService.update(asset: asset, ocrService: ocrService)
             completedCount += 1
+            persistRunState()
             await Task.yield()
         }
 
-        state = .completed
-        saveRunSummary("完了: \(completedCount)件を再判定しました。")
+        finishCompleted(summary: "完了: \(completedCount)件を再判定しました。手動分類保護: \(manualProtectedCount)件。")
     }
 
     private func selectTargets(
@@ -263,28 +323,108 @@ final class AccuracyImprovementService: ObservableObject {
         return nil
     }
 
-    private func finishInterrupted(reason: String) {
+    private var remainingCount: Int {
+        max(totalCount - completedCount - failedCount - manualProtectedCount, 0)
+    }
+
+    private func beginRun(modeTitle: String) {
+        let now = Date()
+        state = .running
         totalCount = 0
         completedCount = 0
         failedCount = 0
         interruptedCount = 0
-        interruptedReason = reason
-        state = .interrupted
-        saveRunSummary("中断: \(reason)")
+        manualProtectedCount = 0
+        interruptedReason = nil
+        runStartedAt = now
+        runEndedAt = nil
+        lastResultTitle = AccuracyImprovementRunState.running.title
+        lastExecutionModeTitle = modeTitle
+        lastSummary = "処理中です。"
+        persistRunState()
     }
 
-    private func saveRunSummary(_ summary: String) {
+    private func finishInterrupted(reason: String) {
+        interruptedReason = reason
+        state = .interrupted
+        finishRun(summary: "中断: \(reason)")
+    }
+
+    private func finishCompleted(summary: String) {
+        state = .completed
+        finishRun(summary: summary)
+    }
+
+    private func finishRun(summary: String) {
         let now = Date()
         lastRunAt = now
+        runEndedAt = now
+        lastResultTitle = state.title
         lastSummary = summary
-        userDefaults.set(now, forKey: Self.lastRunAtKey)
-        userDefaults.set(summary, forKey: Self.lastSummaryKey)
+        persistRunState()
+    }
+
+    private func persistRunState() {
+        if let lastRunAt {
+            userDefaults.set(lastRunAt, forKey: Self.lastRunAtKey)
+        } else {
+            userDefaults.removeObject(forKey: Self.lastRunAtKey)
+        }
+
+        if let runStartedAt {
+            userDefaults.set(runStartedAt, forKey: Self.runStartedAtKey)
+        } else {
+            userDefaults.removeObject(forKey: Self.runStartedAtKey)
+        }
+
+        if let runEndedAt {
+            userDefaults.set(runEndedAt, forKey: Self.runEndedAtKey)
+        } else {
+            userDefaults.removeObject(forKey: Self.runEndedAtKey)
+        }
+
+        userDefaults.set(lastResultTitle, forKey: Self.lastResultTitleKey)
+        userDefaults.set(lastExecutionModeTitle, forKey: Self.lastExecutionModeTitleKey)
+        userDefaults.set(lastSummary, forKey: Self.lastSummaryKey)
+        userDefaults.set(totalCount, forKey: Self.totalCountKey)
+        userDefaults.set(completedCount, forKey: Self.completedCountKey)
+        userDefaults.set(failedCount, forKey: Self.failedCountKey)
+        userDefaults.set(interruptedCount, forKey: Self.interruptedCountKey)
+        userDefaults.set(manualProtectedCount, forKey: Self.manualProtectedCountKey)
+
+        if let interruptedReason {
+            userDefaults.set(interruptedReason, forKey: Self.interruptedReasonKey)
+        } else {
+            userDefaults.removeObject(forKey: Self.interruptedReasonKey)
+        }
     }
 
     private func applicationSupportDirectory() -> URL {
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first ?? fileManager.temporaryDirectory
         return baseURL.appendingPathComponent("ShimaiBako", isDirectory: true)
+    }
+
+    private func removeLocalDataFile(_ target: LocalDataDeletionTarget) {
+        let directoryURL = applicationSupportDirectory().standardizedFileURL
+        let fileURL = directoryURL
+            .appendingPathComponent(target.fileName)
+            .standardizedFileURL
+
+        guard fileURL.deletingLastPathComponent().path == directoryURL.path else {
+            errorMessage = "削除対象がアプリ内データ保存先の外にあるため中止しました。"
+            return
+        }
+
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            return
+        }
+
+        do {
+            try fileManager.removeItem(at: fileURL)
+        } catch {
+            errorMessage = "精度向上データを削除できませんでした: \(error.localizedDescription)"
+        }
     }
 }
 

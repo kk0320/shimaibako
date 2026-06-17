@@ -93,6 +93,14 @@ final class PhotoIndexService: ObservableObject {
         return record(for: asset, ocrService: ocrService).ocrStatus
     }
 
+    func hasManualClassification(for asset: PhotoAsset) -> Bool {
+        guard let record = recordsByAssetID[asset.id] else {
+            return false
+        }
+
+        return record.manualCategory != nil || record.manualScreenshotSubcategory != nil
+    }
+
     func matches(asset: PhotoAsset, query: String, ocrService: OCRService) -> Bool {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalizedQuery.isEmpty == false else {

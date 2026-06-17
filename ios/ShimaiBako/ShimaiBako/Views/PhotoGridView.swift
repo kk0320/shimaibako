@@ -240,7 +240,7 @@ struct PhotoGridView: View {
                     }
                 }
             } message: {
-                Text("表示中の写真について、しまい箱に保存されたOCR文字だけを削除します。写真本体は削除・変更されません。")
+                Text("表示中の写真について、しまい箱に保存されたOCR文字だけを削除します。元写真・元動画は削除・変更されません。")
             }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
@@ -578,7 +578,7 @@ struct PhotoGridView: View {
                 .controlSize(.small)
                 .disabled(isRunningBulkOCR)
 
-                Text("現在の検索・カテゴリで表示中の写真だけが対象です。写真本体は削除・変更されません。")
+                Text("現在の検索・カテゴリで表示中の写真だけが対象です。元写真・元動画は削除・変更されません。")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

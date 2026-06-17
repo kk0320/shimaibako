@@ -90,15 +90,15 @@ struct SettingsView: View {
                 )
                 .presentationDetents([.large])
             }
-            .alert("すべてのOCR結果を削除しますか？", isPresented: $showingClearAllOCRConfirmation) {
+            .alert("OCR結果キャッシュを削除しますか？", isPresented: $showingClearAllOCRConfirmation) {
                 Button("キャンセル", role: .cancel) {}
-                Button("すべてのOCR結果を削除", role: .destructive) {
+                Button("OCR結果キャッシュを削除", role: .destructive) {
                     Task {
                         await indexService.clearAllOCRResults(for: photoLibrary.assets, ocrService: ocrService)
                     }
                 }
             } message: {
-                Text("しまい箱に保存されたOCR文字をすべて削除します。写真本体は削除されません。削除後、OCR文字検索には出なくなります。必要な写真は再OCRできます。")
+                Text("しまい箱に保存されたOCR文字キャッシュを一括で削除します。元写真・元動画は削除・変更されません。削除後、OCR文字検索には出なくなります。必要な写真は再OCRできます。")
             }
             .alert("分類傾向学習データを削除しますか？", isPresented: $showingClearLearningConfirmation) {
                 Button("キャンセル", role: .cancel) {}
@@ -108,7 +108,7 @@ struct SettingsView: View {
                     }
                 }
             } message: {
-                Text("削除されるのは、手動で直した分類から作った軽量な分類傾向データだけです。写真本体、OCR結果、手動分類は削除されません。")
+                Text("削除されるのは、手動で直した分類から作った軽量な分類傾向データだけです。元写真・元動画、OCR結果、手動分類は削除されません。")
             }
             .alert("精度向上データを削除しますか？", isPresented: $showingClearAccuracyDataConfirmation) {
                 Button("キャンセル", role: .cancel) {}
@@ -119,7 +119,7 @@ struct SettingsView: View {
                     }
                 }
             } message: {
-                Text("分類傾向学習データ、将来の画像特徴量データ、精度向上モードの処理履歴だけを削除します。写真本体、OCR結果、手動分類、写真アプリ側のデータは削除されません。")
+                Text("分類傾向学習データ、将来の画像特徴量データ、精度向上モードの処理履歴だけを削除します。元写真・元動画、OCR結果、手動分類、写真アプリ側のデータは削除されません。")
             }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
@@ -170,7 +170,7 @@ struct SettingsView: View {
                 .font(.headline)
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            Text("3万枚など大量写真では、まず軽量/標準モードを推奨します。写真本体は表示時だけ取得します。")
+            Text("3万枚など大量写真では、まず軽量/標準モードを推奨します。元写真・元動画は表示時だけ読み取ります。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -221,7 +221,7 @@ struct SettingsView: View {
             SafetyBullet("全件モードは時間がかかる場合があります")
             SafetyBullet("OCRは必要なカテゴリから段階的に実行してください")
             SafetyBullet("iCloud写真の取得を許可すると通信が発生する場合があります")
-            SafetyBullet("写真本体は外部送信せず、変更もしません")
+            SafetyBullet("元写真・元動画は外部送信せず、変更もしません")
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -298,7 +298,7 @@ struct SettingsView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            Text("スクショは記録・メモ用途として別枠で候補分類します。写真本体は移動しません。")
+            Text("スクショは記録・メモ用途として別枠で候補分類します。元写真・元動画は移動しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -335,7 +335,7 @@ struct SettingsView: View {
             DetailInfoRow(title: "インデックス保存先", value: "端末内")
             DetailInfoRow(title: "保存内容", value: "検索インデックスのみ")
 
-            Text("OCR結果、分類結果、検索用メタデータだけを端末内に保存します。写真本体やサムネイル本体は保存しません。")
+            Text("OCR結果、分類結果、検索用メタデータだけを端末内に保存します。元写真・元動画やサムネイル本体は保存しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -373,7 +373,7 @@ struct SettingsView: View {
             DetailInfoRow(title: "全体上限", value: "\(learningService.totalLimit)件")
             DetailInfoRow(title: "1分類あたり", value: "\(learningService.perCategoryLimit)件")
 
-            Text("手動で直した分類を端末内で記録し、似たキーワードやスクショの分類候補に反映します。写真本体は保存・送信しません。")
+            Text("手動で直した分類を端末内で記録し、似たキーワードやスクショの分類候補に反映します。元写真・元動画は保存・送信しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -403,7 +403,7 @@ struct SettingsView: View {
                 .font(.headline)
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            Text("夜間や充電中に、分類の精度を少しずつ高めます。写真本体は外部送信せず、端末内で処理します。")
+            Text("夜間や充電中に、分類の精度を少しずつ高めます。元写真・元動画は外部送信せず、端末内で処理します。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -453,6 +453,10 @@ struct SettingsView: View {
             DetailInfoRow(title: "推奨時間帯", value: accuracyImprovementService.recommendedTimeRangeTitle)
             DetailInfoRow(title: "現在の状態", value: accuracyImprovementService.state.title)
             DetailInfoRow(title: "最終実行", value: accuracyImprovementService.lastRunTitle)
+            DetailInfoRow(title: "開始日時", value: accuracyImprovementService.runStartedTitle)
+            DetailInfoRow(title: "終了日時", value: accuracyImprovementService.runEndedTitle)
+            DetailInfoRow(title: "実行結果", value: accuracyImprovementService.lastResultTitle)
+            DetailInfoRow(title: "実行モード", value: accuracyImprovementService.lastExecutionModeTitle)
             DetailInfoRow(title: "次回試行", value: accuracyImprovementService.nextAttemptTitle)
             DetailInfoRow(title: "1回の上限", value: "\(accuracyImprovementService.maxRunCount)件")
             DetailInfoRow(title: "iCloud取得", value: photoLibrary.iCloudMode.title)
@@ -508,9 +512,10 @@ struct SettingsView: View {
                     DetailInfoRow(title: "完了件数", value: "\(accuracyImprovementService.completedCount)件")
                     DetailInfoRow(title: "失敗件数", value: "\(accuracyImprovementService.failedCount)件")
                     DetailInfoRow(title: "中断件数", value: "\(accuracyImprovementService.interruptedCount)件")
+                    DetailInfoRow(title: "手動分類保護", value: "\(accuracyImprovementService.manualProtectedCount)件")
 
                     ProgressView(
-                        value: Double(accuracyImprovementService.completedCount + accuracyImprovementService.failedCount),
+                        value: Double(accuracyImprovementService.progressCompletedCount),
                         total: Double(max(accuracyImprovementService.totalCount, 1))
                     )
                     .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
@@ -584,7 +589,7 @@ struct SettingsView: View {
             DetailInfoRow(title: "検索インデックス件数", value: "\(indexService.indexedRecordCount)件")
             DetailInfoRow(title: "保存先", value: "端末内")
 
-            Text("これらはしまい箱内のデータだけを整理します。写真本体は削除されません。写真アプリ側の写真、アルバム、iCloud写真も変更しません。")
+            Text("これらはしまい箱内のデータだけを整理します。元写真・元動画は削除されません。写真アプリ側の写真、動画、アルバム、iCloud写真も変更しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -620,7 +625,7 @@ struct SettingsView: View {
             .buttonStyle(.bordered)
             .disabled(ocrCacheCount == 0)
 
-            Text("OCR結果を削除しても、必要な写真は詳細画面や一覧から再OCRできます。分類は読み込み済み写真についてOCRなしの軽量分類へ戻ります。")
+            Text("OCR結果を削除しても、元写真・元動画は残ります。必要な写真は詳細画面や一覧から再OCRできます。分類は読み込み済み写真についてOCRなしの軽量分類へ戻ります。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -645,7 +650,7 @@ struct SettingsView: View {
                 SafetyNoticeRow(notice: notice)
             }
 
-            Text("OCRは端末内処理です。写真は外部送信せず、写真本体も変更しません。大量写真では軽量/標準モードから始めてください。")
+            Text("OCRは端末内処理です。元写真・元動画は外部送信せず、変更もしません。大量写真では軽量/標準モードから始めてください。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -834,7 +839,7 @@ private struct LargeModeSafetyView: View {
                         SafetyBullet("バッテリー残量が50%以上、または充電中に使用してください")
                         SafetyBullet("大量の写真を処理すると端末が発熱する場合があります")
                         SafetyBullet("iCloud写真を取得する場合は通信量が増える場合があります")
-                        SafetyBullet("写真本体は変更しませんが、大規模処理前は念のためバックアップを推奨します")
+                        SafetyBullet("元写真・元動画は変更しませんが、大規模処理前は念のためバックアップを推奨します")
                         SafetyBullet("処理中はメモリを使用するため、他のアプリの動作が重くなる場合があります")
                         SafetyBullet("保存容量が不足している場合、処理を中断します")
                         SafetyBullet("最初は軽量/標準モードで試すことを推奨します")

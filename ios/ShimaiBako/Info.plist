@@ -23,7 +23,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>しまい箱が写真を端末内で検索・表示するために使用します。写真は外部送信しません。</string>
+	<string>しまい箱が写真と動画を端末内で検索・表示するために使用します。元写真・元動画は削除・変更せず、外部送信しません。</string>
 	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

@@ -68,7 +68,7 @@ struct PhotoDetailView: View {
                             }
                         }
 
-                        Text("分類はしまい箱内の仮想フォルダです。写真アプリ側のアルバムや写真本体は変更しません。")
+                        Text("分類はしまい箱内の仮想フォルダです。写真アプリ側のアルバムや元写真・元動画は変更しません。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -101,7 +101,7 @@ struct PhotoDetailView: View {
                 }
             }
         } message: {
-            Text("写真本体は削除されません。しまい箱に保存されたOCR文字だけを削除し、この写真を未処理に戻します。")
+            Text("元写真・元動画は削除・変更されません。しまい箱に保存されたOCR文字だけを削除し、この写真を未処理に戻します。")
         }
         .alert("分類を未分類に戻しますか？", isPresented: $showingResetCategoryConfirmation) {
             Button("キャンセル", role: .cancel) {}
@@ -111,7 +111,7 @@ struct PhotoDetailView: View {
                 }
             }
         } message: {
-            Text("写真本体は変更されません。しまい箱内の仮想フォルダ分類だけを未分類に戻します。")
+            Text("元写真・元動画は変更されません。しまい箱内の仮想フォルダ分類だけを未分類に戻します。")
         }
         .task(id: asset.id) {
             isLoadingImage = true
@@ -298,7 +298,7 @@ struct PhotoDetailView: View {
                 .buttonStyle(.bordered)
                 .disabled(ocrService.isProcessing(asset))
 
-                Text("削除するのはしまい箱内のOCR文字だけです。写真本体は削除・変更されません。")
+                Text("削除するのはしまい箱内のOCR文字だけです。元写真・元動画は削除・変更されません。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
