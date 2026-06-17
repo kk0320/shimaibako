@@ -2,7 +2,7 @@
 
 ## 概要
 
-しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存を実装した。
+しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応を実装した。
 
 現時点の方針は完全ローカル処理。写真は外部送信せず、削除・移動・編集・共有は行わない。
 
@@ -42,6 +42,9 @@
 - OCR結果を含む検索
 - 設定画面での写真アクセス状態、読み込み上限、OCR件数、安全方針の表示
 - 限定アクセス時の写真選択変更導線
+- まとめてOCR中のキャンセル
+- OCR対象画像の長辺1800px目安への縮小
+- SettingsViewでのOCR言語、精度、一括OCR上限、キャッシュ説明の表示
 
 ## 主なファイル
 
@@ -49,6 +52,7 @@
 - `ios/ShimaiBako/ShimaiBako/ShimaiBakoApp.swift`
 - `ios/ShimaiBako/ShimaiBako/ContentView.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/PhotoAsset.swift`
+- `ios/ShimaiBako/ShimaiBako/Models/OCRConfiguration.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/OCRResult.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoLibraryService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRService.swift`
@@ -68,7 +72,7 @@ xcodebuild build \
   -project ios/ShimaiBako/ShimaiBako.xcodeproj \
   -scheme ShimaiBako \
   -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath /tmp/shimaibako-ocr-final-derived
+  -derivedDataPath /tmp/shimaibako-final-validate
 ```
 
 ## Simulator確認
@@ -95,6 +99,8 @@ xcodebuild build \
 - OCR結果のJSON保存: PASS
 - アプリ再起動後のOCR結果読み込み: PASS
 - OCR結果検索: PASS
+- まとめてOCR: PASS
+- まとめてOCRキャンセル: PASS
 - 設定画面の安全方針表示順維持: PASS
 
 補足:
@@ -103,6 +109,7 @@ xcodebuild build \
 - そのため、検証用SimulatorではTCCの写真アクセス状態を確認しながら検証した。
 - 通常のアプリ操作では、アプリ内の説明画面からシステムの写真アクセス許可へ進む。
 - 限定アクセスはコード上で扱っているが、今回の自動確認では実機操作に近い限定選択までは未確認。
+- 限定アクセスの選択変更は `PHPhotoLibrary.shared().presentLimitedLibraryPicker` で標準画面へ誘導する。
 
 ## PhotoKit権限
 
@@ -127,6 +134,8 @@ xcodebuild build \
 - OCR済みまたは失敗した写真は詳細画面で状態、処理日時、結果を表示
 - 写真グリッドではOCR状態バッジを表示
 - 写真一覧/検索画面では、表示中の未処理写真を最大20件まで順番にOCR可能
+- まとめてOCR中はキャンセル可能。完了済み結果は保存し、未処理分は未処理のまま残す
+- Vision OCRに渡す画像は長辺1800px目安に縮小する
 - OCR結果は `Application Support/ShimaiBako/ocr_results.json` に保存
 - 検索は撮影日、種別、サイズ、スクリーンショット判定、OCRテキストを対象にする
 - 外部OCR APIは未使用
@@ -146,6 +155,6 @@ xcodebuild build \
 - お気に入り管理
 - ファイル名や追加メタデータの安定取得
 - 実機での限定アクセス選択確認
-- まとめてOCRのキャンセル
-- OCR対象画像のサイズ最適化
+- バックグラウンド移行中のOCR中断確認
+- OCR結果キャッシュ削除UI
 - UIテストターゲット
