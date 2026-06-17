@@ -9,19 +9,33 @@ final class PhotoLibraryService: ObservableObject {
     @Published private(set) var authorizationStatus: PHAuthorizationStatus
     @Published private(set) var assets: [PhotoAsset] = []
     @Published private(set) var thumbnails: [String: UIImage] = [:]
+    @Published private(set) var readMode: PhotoReadMode
+    @Published private(set) var iCloudMode: ICloudPhotoMode
+    @Published private(set) var totalAssetCount = 0
+    @Published private(set) var loadedAssetCount = 0
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
     private let imageManager = PHCachingImageManager()
-    private let fetchLimit = 100
+    private let userDefaults: UserDefaults
     private let assumesAuthorizedForDebugRun: Bool
+    private let readModeKey = "shimaibako.photoReadMode"
+    private let iCloudModeKey = "shimaibako.iCloudPhotoMode"
 
-    init() {
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+
         #if DEBUG
         assumesAuthorizedForDebugRun = ProcessInfo.processInfo.arguments.contains("-ShimaiBakoAssumePhotosAuthorized")
         #else
         assumesAuthorizedForDebugRun = false
         #endif
+
+        let storedReadMode = userDefaults.string(forKey: readModeKey)
+        readMode = storedReadMode.flatMap(PhotoReadMode.init(rawValue:)) ?? .light
+
+        let storedICloudMode = userDefaults.string(forKey: iCloudModeKey)
+        iCloudMode = storedICloudMode.flatMap(ICloudPhotoMode.init(rawValue:)) ?? .offlinePreferred
 
         authorizationStatus = assumesAuthorizedForDebugRun ? .authorized : PHPhotoLibrary.authorizationStatus(for: .readWrite)
     }
@@ -31,7 +45,15 @@ final class PhotoLibraryService: ObservableObject {
     }
 
     var readLimitTitle: String {
-        "直近\(fetchLimit)件"
+        readMode.limitTitle
+    }
+
+    var loadingSummaryTitle: String {
+        if totalAssetCount > 0 {
+            return "\(loadedAssetCount) / \(totalAssetCount)件"
+        }
+
+        return "\(loadedAssetCount)件"
     }
 
     var statusTitle: String {
@@ -74,6 +96,17 @@ final class PhotoLibraryService: ObservableObject {
         authorizationStatus = status
     }
 
+    func updateReadMode(_ nextMode: PhotoReadMode) async {
+        readMode = nextMode
+        userDefaults.set(nextMode.rawValue, forKey: readModeKey)
+        await loadRecentAssets()
+    }
+
+    func updateICloudMode(_ nextMode: ICloudPhotoMode) {
+        iCloudMode = nextMode
+        userDefaults.set(nextMode.rawValue, forKey: iCloudModeKey)
+    }
+
     func presentLimitedLibraryPicker() {
         guard authorizationStatus == .limited,
               assumesAuthorizedForDebugRun == false else {
@@ -98,26 +131,49 @@ final class PhotoLibraryService: ObservableObject {
         guard canReadPhotos else {
             assets = []
             thumbnails = [:]
+            totalAssetCount = 0
+            loadedAssetCount = 0
             return
         }
 
         isLoading = true
         errorMessage = nil
+        loadedAssetCount = 0
 
         let options = PHFetchOptions()
-        options.fetchLimit = fetchLimit
+        if let limit = readMode.limit {
+            options.fetchLimit = limit
+        }
         options.includeHiddenAssets = false
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
 
+        let totalOptions = PHFetchOptions()
+        totalOptions.includeHiddenAssets = false
+        totalAssetCount = PHAsset.fetchAssets(with: totalOptions).count
+
         let result = PHAsset.fetchAssets(with: options)
         var nextAssets: [PhotoAsset] = []
-        nextAssets.reserveCapacity(min(result.count, fetchLimit))
+        let expectedCount = readMode.limit.map { min(result.count, $0) } ?? result.count
+        nextAssets.reserveCapacity(expectedCount)
+        let shouldIncludeFilename = readMode == .light || readMode == .standard
 
-        result.enumerateObjects { asset, _, _ in
-            nextAssets.append(PhotoAsset(asset: asset))
+        for index in 0..<result.count {
+            if Task.isCancelled {
+                break
+            }
+
+            let asset = result.object(at: index)
+            nextAssets.append(PhotoAsset(asset: asset, includeFilename: shouldIncludeFilename))
+
+            if index.isMultiple(of: 500) {
+                loadedAssetCount = nextAssets.count
+                await Task.yield()
+            }
         }
 
         assets = nextAssets
+        loadedAssetCount = nextAssets.count
+        thumbnails = [:]
         isLoading = false
     }
 
@@ -152,11 +208,13 @@ final class PhotoLibraryService: ObservableObject {
     }
 
     func requestDisplayImage(for asset: PhotoAsset) async -> UIImage? {
-        await withCheckedContinuation { continuation in
+        let allowsNetworkAccess = iCloudMode.allowsNetworkAccess
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.resizeMode = .fast
-            options.isNetworkAccessAllowed = false
+            options.isNetworkAccessAllowed = allowsNetworkAccess
 
             var didResume = false
 
@@ -169,6 +227,7 @@ final class PhotoLibraryService: ObservableObject {
                 let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
                 let isCancelled = (info?[PHImageCancelledKey] as? Bool) ?? false
                 let hasError = info?[PHImageErrorKey] != nil
+                let isInCloud = (info?[PHImageResultIsInCloudKey] as? Bool) ?? false
 
                 guard didResume == false else {
                     return
@@ -177,7 +236,13 @@ final class PhotoLibraryService: ObservableObject {
                 if let image, isDegraded == false {
                     didResume = true
                     continuation.resume(returning: image)
-                } else if isCancelled || hasError {
+                } else if isCancelled || hasError || (isInCloud && allowsNetworkAccess == false) {
+                    if isInCloud && allowsNetworkAccess == false {
+                        Task { @MainActor in
+                            self.errorMessage = "iCloud上の写真です。OCRするには設定でiCloud取得を許可してください。"
+                        }
+                    }
+
                     didResume = true
                     continuation.resume(returning: image)
                 }

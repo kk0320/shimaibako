@@ -5,6 +5,7 @@ import UIKit
 struct PhotoDetailView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
+    @ObservedObject var indexService: PhotoIndexService
     let asset: PhotoAsset
     let automaticallyRunOCR: Bool
 
@@ -15,11 +16,13 @@ struct PhotoDetailView: View {
     init(
         photoLibrary: PhotoLibraryService,
         ocrService: OCRService,
+        indexService: PhotoIndexService,
         asset: PhotoAsset,
         automaticallyRunOCR: Bool = false
     ) {
         self.photoLibrary = photoLibrary
         self.ocrService = ocrService
+        self.indexService = indexService
         self.asset = asset
         self.automaticallyRunOCR = automaticallyRunOCR
     }
@@ -42,6 +45,10 @@ struct PhotoDetailView: View {
                         DetailRow(title: "日付", value: asset.dateLabel)
                         DetailRow(title: "サイズ", value: asset.sizeLabel)
                         DetailRow(title: "内部ID", value: asset.localIdentifier)
+                        DetailRow(
+                            title: "仮想フォルダ",
+                            value: "\(indexService.category(for: asset, ocrService: ocrService).title) / 信頼度 \(indexService.confidenceLabel(for: asset, ocrService: ocrService))"
+                        )
                     }
                     .padding(16)
                     .background(.white.opacity(0.80), in: RoundedRectangle(cornerRadius: 8))
@@ -49,6 +56,7 @@ struct PhotoDetailView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         SafetyRow(title: "写真は外部送信しません", systemImage: "lock.shield.fill")
                         SafetyRow(title: "削除・移動・編集は行いません", systemImage: "hand.raised.fill")
+                        SafetyRow(title: "分類はしまい箱内の仮想フォルダです", systemImage: "folder.badge.gearshape")
                     }
                     .padding(16)
                     .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
@@ -87,6 +95,7 @@ struct PhotoDetailView: View {
         }
 
         await ocrService.recognize(asset: asset, image: displayImage)
+        await indexService.update(asset: asset, ocrService: ocrService)
     }
 
     private var ocrPanel: some View {

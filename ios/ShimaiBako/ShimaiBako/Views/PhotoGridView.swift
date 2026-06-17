@@ -19,20 +19,27 @@ enum PhotoGridMode {
 struct PhotoGridView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
+    @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var deviceSafety: DeviceSafetyService
     let mode: PhotoGridMode
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var searchText: String
-    @State private var selectedFilter: PhotoFilter = .all
+    @State private var selectedCategory: PhotoCategory = .all
+    @State private var selectedBulkTarget: OCRBatchTarget = .visible
     @State private var debugPresentedAsset: PhotoAsset?
     @State private var didPresentDebugAsset = false
     @State private var isRunningBulkOCR = false
     @State private var bulkOCRTask: Task<Void, Never>?
     @State private var bulkCancellationRequested = false
     @State private var bulkWasCancelled = false
+    @State private var bulkInterruptedReason: String?
     @State private var bulkTotal = 0
     @State private var bulkCompleted = 0
     @State private var bulkFailed = 0
     @State private var didStartDebugBulkOCR = false
+    @State private var pendingBulkTargets: [PhotoAsset] = []
+    @State private var showingBulkSafety = false
 
     private let columns = [
         GridItem(.flexible(), spacing: 8),
@@ -40,21 +47,61 @@ struct PhotoGridView: View {
         GridItem(.flexible(), spacing: 8)
     ]
 
-    init(photoLibrary: PhotoLibraryService, ocrService: OCRService, mode: PhotoGridMode) {
+    init(
+        photoLibrary: PhotoLibraryService,
+        ocrService: OCRService,
+        indexService: PhotoIndexService,
+        deviceSafety: DeviceSafetyService,
+        mode: PhotoGridMode
+    ) {
         self.photoLibrary = photoLibrary
         self.ocrService = ocrService
+        self.indexService = indexService
+        self.deviceSafety = deviceSafety
         self.mode = mode
         _searchText = State(initialValue: mode == .search ? Self.debugInitialSearchText : "")
     }
 
     private var filteredAssets: [PhotoAsset] {
         photoLibrary.assets.filter { asset in
-            selectedFilter.includes(asset) && asset.matches(searchText, ocrText: ocrService.searchText(for: asset))
+            categoryIncludes(asset) &&
+            asset.matches(
+                searchText,
+                ocrText: ocrService.searchText(for: asset),
+                categoryTitle: indexService.category(for: asset, ocrService: ocrService).title
+            )
         }
     }
 
+    private var categoryCounts: [PhotoCategory: Int] {
+        indexService.counts(for: photoLibrary.assets, ocrService: ocrService)
+    }
+
+    private var bulkTargetAssets: [PhotoAsset] {
+        switch selectedBulkTarget {
+        case .visible:
+            filteredAssets
+        case .screenshots:
+            photoLibrary.assets.filter { $0.isScreenshot }
+        case .documentCandidates:
+            photoLibrary.assets.filter {
+                indexService.category(for: $0, ocrService: ocrService) == .documentCandidate
+            }
+        case .unprocessed:
+            photoLibrary.assets
+        }
+    }
+
+    private var bulkTargetCandidateCount: Int {
+        bulkTargetAssets.filter { asset in
+            asset.mediaType == .image &&
+            ocrService.status(for: asset) != .completed &&
+            ocrService.status(for: asset) != .processing
+        }.count
+    }
+
     private var bulkCandidates: [PhotoAsset] {
-        Array(filteredAssets.filter { asset in
+        Array(bulkTargetAssets.filter { asset in
             asset.mediaType == .image &&
             ocrService.status(for: asset) != .completed &&
             ocrService.status(for: asset) != .processing
@@ -72,6 +119,10 @@ struct PhotoGridView: View {
 
         if isRunningBulkOCR {
             return "対象\(bulkTotal)件を読み取り中です。"
+        }
+
+        if let bulkInterruptedReason {
+            return "中断しました。\(bulkInterruptedReason)"
         }
 
         if bulkWasCancelled {
@@ -92,7 +143,7 @@ struct PhotoGridView: View {
 
                 VStack(spacing: 12) {
                     statusHeader
-                    filterPicker
+                    categoryChips
                     bulkOCRControls
                     content
                 }
@@ -117,29 +168,61 @@ struct PhotoGridView: View {
                 await photoLibrary.loadRecentAssets()
             }
             .navigationDestination(for: PhotoAsset.self) { asset in
-                PhotoDetailView(photoLibrary: photoLibrary, ocrService: ocrService, asset: asset)
+                PhotoDetailView(
+                    photoLibrary: photoLibrary,
+                    ocrService: ocrService,
+                    indexService: indexService,
+                    asset: asset
+                )
             }
             .sheet(item: $debugPresentedAsset) { asset in
                 NavigationStack {
                     PhotoDetailView(
                         photoLibrary: photoLibrary,
                         ocrService: ocrService,
+                        indexService: indexService,
                         asset: asset,
                         automaticallyRunOCR: shouldRunOCRForDebug
                     )
                 }
+            }
+            .sheet(isPresented: $showingBulkSafety) {
+                OCRBatchSafetyView(
+                    targetTitle: selectedBulkTarget.title,
+                    candidateCount: bulkTargetCandidateCount,
+                    runCount: pendingBulkTargets.count,
+                    iCloudMode: photoLibrary.iCloudMode,
+                    deviceSafety: deviceSafety,
+                    onCancel: {
+                        pendingBulkTargets = []
+                        showingBulkSafety = false
+                    },
+                    onStart: {
+                        let targets = pendingBulkTargets
+                        pendingBulkTargets = []
+                        showingBulkSafety = false
+                        startBulkOCR(with: targets)
+                    }
+                )
+                .presentationDetents([.medium, .large])
             }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
                     await photoLibrary.loadRecentAssets()
                 }
 
+                await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
             }
             .onChange(of: photoLibrary.assets) {
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase != .active, isRunningBulkOCR {
+                    cancelBulkOCR(reason: "アプリがバックグラウンドへ移行したため停止しました。")
+                }
             }
         }
     }
@@ -220,7 +303,7 @@ struct PhotoGridView: View {
         }
 
         didStartDebugBulkOCR = true
-        startBulkOCR()
+        startBulkOCR(with: bulkCandidates)
 
         if let delay = Self.debugBulkOCRCancellationDelay {
             Task {
@@ -240,7 +323,7 @@ struct PhotoGridView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-                Text("写真は外部送信しません。最大100件を読み取り専用で表示します。")
+                Text("写真は外部送信しません。\(photoLibrary.readLimitTitle)を読み取り専用で表示します。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -252,13 +335,36 @@ struct PhotoGridView: View {
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private var filterPicker: some View {
-        Picker("表示", selection: $selectedFilter) {
-            ForEach(PhotoFilter.allCases) { filter in
-                Text(filter.title).tag(filter)
+    private var categoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(PhotoCategory.allCases) { category in
+                    Button {
+                        selectedCategory = category
+                    } label: {
+                        Label(
+                            "\(category.shortTitle) \(categoryCounts[category, default: 0])",
+                            systemImage: category.systemImage
+                        )
+                        .labelStyle(.titleAndIcon)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .tint(selectedCategory == category ? Color(red: 0.16, green: 0.42, blue: 0.75) : .secondary)
+                }
             }
+            .padding(.vertical, 2)
         }
-        .pickerStyle(.segmented)
+    }
+
+    private func categoryIncludes(_ asset: PhotoAsset) -> Bool {
+        guard selectedCategory != .all else {
+            return true
+        }
+
+        return indexService.category(for: asset, ocrService: ocrService) == selectedCategory
     }
 
     @ViewBuilder
@@ -296,13 +402,29 @@ struct PhotoGridView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
 
-                    Text(bulkCandidates.isEmpty ? "未処理の表示写真はありません" : "最大\(OCRConfiguration.batchLimit)件までOCR")
+                    Text(bulkCandidates.isEmpty ? "未処理の対象写真はありません" : "\(selectedBulkTarget.title)から最大\(OCRConfiguration.batchLimit)件")
                         .font(.caption)
                         .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
                         .lineLimit(2)
                 }
 
                 Spacer(minLength: 8)
+
+                Menu {
+                    ForEach(OCRBatchTarget.allCases) { target in
+                        Button {
+                            selectedBulkTarget = target
+                        } label: {
+                            Label(target.title, systemImage: selectedBulkTarget == target ? "checkmark" : "circle")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isRunningBulkOCR)
+                .accessibilityLabel("OCR対象を選択")
 
                 if isRunningBulkOCR {
                     Button(role: .cancel) {
@@ -316,7 +438,7 @@ struct PhotoGridView: View {
                     .disabled(bulkCancellationRequested)
                 } else {
                     Button {
-                        startBulkOCR()
+                        presentBulkSafety()
                     } label: {
                         Label("まとめてOCR", systemImage: "text.viewfinder")
                             .labelStyle(.titleAndIcon)
@@ -350,6 +472,14 @@ struct PhotoGridView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.85)
                         }
+
+                        if bulkInterruptedReason != nil {
+                            Label("中断", systemImage: "pause.circle")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
                     }
                 }
             }
@@ -358,8 +488,20 @@ struct PhotoGridView: View {
         .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private func startBulkOCR() {
+    private func presentBulkSafety() {
         let targets = bulkCandidates
+        guard targets.isEmpty == false,
+              isRunningBulkOCR == false,
+              bulkOCRTask == nil else {
+            return
+        }
+
+        deviceSafety.refresh()
+        pendingBulkTargets = targets
+        showingBulkSafety = true
+    }
+
+    private func startBulkOCR(with targets: [PhotoAsset]) {
         guard targets.isEmpty == false,
               isRunningBulkOCR == false,
               bulkOCRTask == nil else {
@@ -371,9 +513,13 @@ struct PhotoGridView: View {
         }
     }
 
-    private func cancelBulkOCR() {
+    private func cancelBulkOCR(reason: String? = nil) {
         guard isRunningBulkOCR else {
             return
+        }
+
+        if let reason {
+            bulkInterruptedReason = reason
         }
 
         bulkCancellationRequested = true
@@ -384,6 +530,7 @@ struct PhotoGridView: View {
         isRunningBulkOCR = true
         bulkCancellationRequested = false
         bulkWasCancelled = false
+        bulkInterruptedReason = nil
         bulkTotal = targets.count
         bulkCompleted = 0
         bulkFailed = 0
@@ -399,6 +546,13 @@ struct PhotoGridView: View {
         }
 
         for asset in targets {
+            deviceSafety.refresh()
+
+            if let blockingReason = deviceSafety.blockingReasonForLargeWork {
+                bulkInterruptedReason = blockingReason
+                break
+            }
+
             guard Task.isCancelled == false,
                   bulkCancellationRequested == false else {
                 bulkWasCancelled = true
@@ -411,7 +565,8 @@ struct PhotoGridView: View {
                     break
                 }
 
-                await ocrService.markFailure(asset: asset, message: "画像を読み込めませんでした。")
+                await ocrService.markFailure(asset: asset, message: imageLoadFailureMessage)
+                await indexService.update(asset: asset, ocrService: ocrService)
                 bulkFailed += 1
                 continue
             }
@@ -428,10 +583,21 @@ struct PhotoGridView: View {
                 bulkFailed += 1
             }
 
+            await indexService.update(asset: asset, ocrService: ocrService)
+
             if Task.isCancelled || bulkCancellationRequested {
                 bulkWasCancelled = true
                 break
             }
+        }
+    }
+
+    private var imageLoadFailureMessage: String {
+        switch photoLibrary.iCloudMode {
+        case .offlinePreferred:
+            "画像を読み込めませんでした。iCloud上の写真は、設定でiCloud取得を許可するとOCRできます。"
+        case .allowDownload:
+            "画像を読み込めませんでした。iCloud取得、通信状態、端末状態を確認してください。"
         }
     }
 }
@@ -447,6 +613,148 @@ private struct BulkProgressLabel: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .minimumScaleFactor(0.85)
+    }
+}
+
+private struct OCRBatchSafetyView: View {
+    let targetTitle: String
+    let candidateCount: Int
+    let runCount: Int
+    let iCloudMode: ICloudPhotoMode
+    @ObservedObject var deviceSafety: DeviceSafetyService
+    let onCancel: () -> Void
+    let onStart: () -> Void
+
+    private var noticeTitle: String {
+        if candidateCount >= 100 {
+            return "段階実行を強く推奨"
+        }
+
+        if candidateCount >= 21 {
+            return "対象が多めです"
+        }
+
+        return "OCR開始前の確認"
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(noticeTitle, systemImage: "text.viewfinder")
+                            .font(.title3.bold())
+                            .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                        Text("\(targetTitle)の候補\(candidateCount)件から、今回は最大\(runCount)件だけ処理します。全件OCRは行いません。")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        SafetyBullet("OCRは端末内で実行されます")
+                        SafetyBullet("写真は外部送信しません")
+                        SafetyBullet("処理中は発熱やバッテリー消費が増える場合があります")
+                        SafetyBullet("iCloud上の写真は取得に時間がかかる場合があります")
+                        SafetyBullet("途中でキャンセルしても、完了済みのOCR結果は保存されます")
+
+                        if iCloudMode == .allowDownload {
+                            SafetyBullet("iCloud取得ONのため通信量が増える場合があります")
+                        }
+                    }
+                    .padding(14)
+                    .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("端末状態", systemImage: "iphone.gen3")
+                            .font(.headline)
+
+                        ForEach(deviceSafety.notices) { notice in
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: icon(for: notice.level))
+                                    .frame(width: 18)
+                                    .foregroundStyle(color(for: notice.level))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(notice.title)
+                                        .font(.caption.weight(.semibold))
+                                    Text(notice.message)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                    .padding(14)
+                    .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+                }
+                .padding(18)
+            }
+            .navigationTitle("OCR確認")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("戻る") {
+                        onCancel()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("開始") {
+                        onStart()
+                    }
+                    .disabled(runCount == 0 || deviceSafety.blockingReasonForLargeWork != nil)
+                }
+            }
+            .onAppear {
+                deviceSafety.refresh()
+            }
+        }
+    }
+
+    private func icon(for level: SafetyLevel) -> String {
+        switch level {
+        case .normal:
+            "checkmark.circle.fill"
+        case .warning:
+            "exclamationmark.triangle.fill"
+        case .blocking:
+            "xmark.octagon.fill"
+        }
+    }
+
+    private func color(for level: SafetyLevel) -> Color {
+        switch level {
+        case .normal:
+            Color(red: 0.14, green: 0.55, blue: 0.32)
+        case .warning:
+            Color(red: 0.75, green: 0.50, blue: 0.12)
+        case .blocking:
+            Color(red: 0.75, green: 0.24, blue: 0.18)
+        }
+    }
+}
+
+private struct SafetyBullet: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(Color(red: 0.16, green: 0.42, blue: 0.75))
+                .frame(width: 16)
+
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

@@ -3,9 +3,16 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var photoLibrary = PhotoLibraryService()
     @StateObject private var ocrService = OCRService()
+    @StateObject private var indexService = PhotoIndexService()
+    @StateObject private var deviceSafety = DeviceSafetyService()
 
     var body: some View {
-        HomeView(photoLibrary: photoLibrary, ocrService: ocrService)
+        HomeView(
+            photoLibrary: photoLibrary,
+            ocrService: ocrService,
+            indexService: indexService,
+            deviceSafety: deviceSafety
+        )
             .task {
                 await photoLibrary.prepare()
             }

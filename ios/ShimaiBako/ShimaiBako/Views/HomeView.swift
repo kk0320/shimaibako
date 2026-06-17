@@ -10,28 +10,48 @@ private enum HomeTab: Hashable {
 struct HomeView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
+    @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var deviceSafety: DeviceSafetyService
     @State private var selectedTab = HomeTab.initialSelection
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            PhotoAccessRootView(photoLibrary: photoLibrary, ocrService: ocrService)
+            PhotoAccessRootView(
+                photoLibrary: photoLibrary,
+                ocrService: ocrService,
+                indexService: indexService,
+                deviceSafety: deviceSafety
+            )
                 .tabItem {
                     Label("写真", systemImage: "photo.on.rectangle")
                 }
                 .tag(HomeTab.photos)
 
-            PhotoGridView(photoLibrary: photoLibrary, ocrService: ocrService, mode: .search)
+            PhotoGridView(
+                photoLibrary: photoLibrary,
+                ocrService: ocrService,
+                indexService: indexService,
+                deviceSafety: deviceSafety,
+                mode: .search
+            )
                 .tabItem {
                     Label("検索", systemImage: "magnifyingglass")
                 }
                 .tag(HomeTab.search)
 
-            SettingsView(photoLibrary: photoLibrary, ocrService: ocrService)
+            SettingsView(
+                photoLibrary: photoLibrary,
+                ocrService: ocrService,
+                indexService: indexService,
+                deviceSafety: deviceSafety
+            )
                 .tabItem {
                     Label("設定", systemImage: "gearshape")
                 }
                 .tag(HomeTab.settings)
         }
+        .toolbarBackground(.visible, for: .tabBar)
+        .toolbarBackground(Color(red: 0.93, green: 0.98, blue: 1.00), for: .tabBar)
     }
 }
 
@@ -56,11 +76,19 @@ private extension HomeTab {
 private struct PhotoAccessRootView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
+    @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var deviceSafety: DeviceSafetyService
 
     var body: some View {
         switch photoLibrary.authorizationStatus {
         case .authorized, .limited:
-            PhotoGridView(photoLibrary: photoLibrary, ocrService: ocrService, mode: .library)
+            PhotoGridView(
+                photoLibrary: photoLibrary,
+                ocrService: ocrService,
+                indexService: indexService,
+                deviceSafety: deviceSafety,
+                mode: .library
+            )
         case .notDetermined, .denied, .restricted:
             PermissionView(photoLibrary: photoLibrary)
         @unknown default:

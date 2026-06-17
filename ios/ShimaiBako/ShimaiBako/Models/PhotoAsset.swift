@@ -7,18 +7,20 @@ struct PhotoAsset: Identifiable, Hashable {
     let filename: String?
     let creationDate: Date?
     let mediaType: PHAssetMediaType
+    let mediaSubtypes: PHAssetMediaSubtype
     let pixelWidth: Int
     let pixelHeight: Int
     let isFavorite: Bool
     let isScreenshot: Bool
     let asset: PHAsset
 
-    init(asset: PHAsset) {
+    init(asset: PHAsset, includeFilename: Bool = false) {
         self.id = asset.localIdentifier
         self.localIdentifier = asset.localIdentifier
-        self.filename = PHAssetResource.assetResources(for: asset).first?.originalFilename
+        self.filename = includeFilename ? PHAssetResource.assetResources(for: asset).first?.originalFilename : nil
         self.creationDate = asset.creationDate
         self.mediaType = asset.mediaType
+        self.mediaSubtypes = asset.mediaSubtypes
         self.pixelWidth = asset.pixelWidth
         self.pixelHeight = asset.pixelHeight
         self.isFavorite = asset.isFavorite
@@ -53,7 +55,7 @@ struct PhotoAsset: Identifiable, Hashable {
         "\(pixelWidth) x \(pixelHeight)"
     }
 
-    func matches(_ query: String, ocrText: String = "") -> Bool {
+    func matches(_ query: String, ocrText: String = "", categoryTitle: String = "") -> Bool {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalizedQuery.isEmpty == false else {
             return true
@@ -66,6 +68,7 @@ struct PhotoAsset: Identifiable, Hashable {
             sizeLabel,
             localIdentifier,
             isFavorite ? "お気に入り" : "",
+            categoryTitle,
             ocrText
         ]
         .joined(separator: " ")

@@ -2,7 +2,7 @@
 
 ## 概要
 
-しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応を実装した。
+しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応、大規模写真ライブラリ向けの読み込みモードと安全確認を実装した。
 
 現時点の方針は完全ローカル処理。写真は外部送信せず、削除・移動・編集・共有は行わない。
 
@@ -19,20 +19,46 @@
   - 拒否
   - 制限
 - 許可または限定アクセス時の直近写真読み取り
-- 最大100件のサムネイルグリッド表示
+- 読み込みモード
+  - 軽量: 100件
+  - 標準: 500件
+  - 多め: 2,000件
+  - 大量: 10,000件
+  - フル: 全件
+- 読み込みモードの永続化
+- 大量/フルモード開始前の安全確認画面
+- 端末状態チェック
+  - バッテリー残量
+  - 低電力モード
+  - 発熱状態
+  - 保存容量
+- サムネイルの画面表示時取得
+- 大量モード時のメタデータ中心読み込み
+- サムネイルグリッド表示
 - 写真詳細画面
 - 日付順表示
 - 検索欄
-- 種類フィルタ
+- 仮想フォルダによるカテゴリフィルタ
   - すべて
-  - 写真
-  - スクリーンショット
+  - スクショ
+  - 領収書候補
+  - 書類写真候補
+  - 名刺候補
+  - 看板候補
+  - ホワイトボード候補
+  - 工事写真候補
+  - 旅行写真候補
   - 動画
+  - その他
+- OCR前の軽量分類
+- OCR後のテキストを使った再分類
+- カテゴリ別件数表示
 - 設定/ヘルプ画面
 - Vision frameworkによる端末内OCR
 - 詳細画面から1枚だけOCRを実行する導線
 - OCR済み写真の再OCR導線
-- 表示中の写真を最大20件までまとめてOCRする導線
+- 表示中、スクショのみ、書類写真候補のみ、未OCRのみを最大20件までまとめてOCRする導線
+- まとめてOCR開始前の安全確認画面
 - OCR状態表示
   - 未処理
   - 処理中
@@ -45,6 +71,10 @@
 - まとめてOCR中のキャンセル
 - OCR対象画像の長辺1800px目安への縮小
 - SettingsViewでのOCR言語、精度、一括OCR上限、キャッシュ説明の表示
+- iCloud写真取得モード
+  - オフライン優先
+  - iCloud取得を許可
+- iCloud取得時の通信量注意表示
 - 実機向けビルド、インストール、起動確認
 
 ## 主なファイル
@@ -53,9 +83,14 @@
 - `ios/ShimaiBako/ShimaiBako/ShimaiBakoApp.swift`
 - `ios/ShimaiBako/ShimaiBako/ContentView.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/PhotoAsset.swift`
+- `ios/ShimaiBako/ShimaiBako/Models/AppSettings.swift`
+- `ios/ShimaiBako/ShimaiBako/Models/DeviceSafety.swift`
+- `ios/ShimaiBako/ShimaiBako/Models/PhotoCategory.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/OCRConfiguration.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/OCRResult.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoLibraryService.swift`
+- `ios/ShimaiBako/ShimaiBako/Services/PhotoIndexService.swift`
+- `ios/ShimaiBako/ShimaiBako/Services/PhotoIndexStore.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRResultStore.swift`
 - `ios/ShimaiBako/ShimaiBako/Views/HomeView.swift`
@@ -102,6 +137,11 @@ xcodebuild build \
 - OCR結果検索: PASS
 - まとめてOCR: PASS
 - まとめてOCRキャンセル: PASS
+- まとめてOCR前の安全確認表示: PASS
+- 大量/フルモードの安全確認表示: PASS
+- 読み込みモードUI表示: PASS
+- iCloud取得モードUI表示: PASS
+- カテゴリチップ表示: PASS
 - 設定画面の安全方針表示順維持: PASS
 - 実機向けビルド: PASS
 - 実機インストール: PASS
@@ -125,7 +165,7 @@ xcodebuild build \
 権限ごとの挙動:
 
 - 未確認: 説明画面と許可ボタンを表示
-- 許可: 最大100件の写真を読み取り専用で表示
+- 許可: 設定した読み込みモードの範囲で写真を読み取り専用表示
 - 限定アクセス: 許可された範囲だけを表示し、設定画面で写真の選択変更導線を表示
 - 拒否: 設定画面への導線を表示
 - 制限: 端末や管理設定による制限として説明を表示
@@ -137,11 +177,13 @@ xcodebuild build \
 - 詳細画面の「この写真をOCR」ボタンで1枚だけ処理
 - OCR済みまたは失敗した写真は詳細画面で状態、処理日時、結果を表示
 - 写真グリッドではOCR状態バッジを表示
-- 写真一覧/検索画面では、表示中の未処理写真を最大20件まで順番にOCR可能
+- 写真一覧/検索画面では、対象を選んで未処理写真を最大20件まで順番にOCR可能
 - まとめてOCR中はキャンセル可能。完了済み結果は保存し、未処理分は未処理のまま残す
+- 端末温度や保存容量に問題がある場合、まとめてOCRを開始しない、または中断する
 - Vision OCRに渡す画像は長辺1800px目安に縮小する
 - OCR結果は `Application Support/ShimaiBako/ocr_results.json` に保存
 - 検索は撮影日、種別、サイズ、スクリーンショット判定、OCRテキストを対象にする
+- OCRテキストを使って仮想フォルダ分類を再判定する
 - 外部OCR APIは未使用
 
 ローカルのテスト画像では次の文字列を認識できた。
@@ -163,5 +205,8 @@ xcodebuild build \
 - 実機写真でのまとめてOCR確認
 - 実機での再起動後OCR結果復元確認
 - バックグラウンド移行中のOCR中断確認
+- 3万枚規模の実機ライブラリでの負荷検証
+- SQLiteまたはSwiftDataへのインデックス移行
+- 読み込み範囲のページング
 - OCR結果キャッシュ削除UI
 - UIテストターゲット
