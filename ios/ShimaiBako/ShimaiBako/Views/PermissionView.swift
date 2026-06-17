@@ -39,14 +39,7 @@ struct PermissionView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        VStack(alignment: .leading, spacing: 14) {
-                            SafetyRow(title: "写真は外部送信しません", systemImage: "lock.shield.fill")
-                            SafetyRow(title: "読み取り専用で扱います", systemImage: "eye.fill")
-                            SafetyRow(title: "端末内で検索します", systemImage: "magnifyingglass")
-                        }
-                        .padding(18)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
+                        SafetyPolicyCard()
 
                         VStack(spacing: 10) {
                             Text("現在の状態: \(photoLibrary.statusTitle)")
