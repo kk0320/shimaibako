@@ -9,9 +9,14 @@ final class PhotoIndexService: ObservableObject {
     @Published var errorMessage: String?
 
     private let store: any PhotoIndexStoring
+    private let learningService: ManualCategoryLearningService
 
-    init(store: any PhotoIndexStoring = JSONPhotoIndexStore()) {
+    init(
+        store: any PhotoIndexStoring = JSONPhotoIndexStore(),
+        learningService: ManualCategoryLearningService
+    ) {
         self.store = store
+        self.learningService = learningService
 
         Task {
             await loadPersistedRecords()
@@ -171,6 +176,94 @@ final class PhotoIndexService: ObservableObject {
         await persistRecords([record])
     }
 
+    func setManualCategory(for asset: PhotoAsset, category: PhotoCategory, ocrService: OCRService) async {
+        guard category != .all else {
+            return
+        }
+
+        let ocrText = ocrText(for: asset, ocrService: ocrService)
+        let automaticCategory = CategoryInference.infer(asset: asset, ocrText: ocrText).category
+        var record = makeRecord(for: asset, ocrService: ocrService, preservingManual: false, usingLearning: false)
+        let now = Date()
+
+        record.inferredCategory = category
+        record.categoryConfidence = 1.0
+        record.categoryReason = "手動分類"
+        record.categoryUpdatedAt = now
+        record.manualCategory = category
+        record.manualCategoryUpdatedAt = now
+
+        if category != .screenshots {
+            record.manualScreenshotSubcategory = nil
+            record.screenshotSubcategory = nil
+            record.screenshotSubcategoryConfidence = nil
+            record.screenshotSubcategoryReason = nil
+            record.screenshotSubcategoryUpdatedAt = nil
+        }
+
+        record.updatedAt = now
+        recordsByAssetID[asset.id] = record
+        refreshSummary()
+        await persistRecords([record])
+
+        await learningService.recordManualCorrection(
+            asset: asset,
+            ocrText: ocrText,
+            correctedCategory: category,
+            correctedScreenshotSubcategory: record.manualScreenshotSubcategory,
+            originalAutoCategory: automaticCategory
+        )
+    }
+
+    func setManualScreenshotSubcategory(
+        for asset: PhotoAsset,
+        subcategory: ScreenshotSubcategory,
+        ocrService: OCRService
+    ) async {
+        guard asset.isScreenshot, subcategory != .all else {
+            return
+        }
+
+        let ocrText = ocrText(for: asset, ocrService: ocrService)
+        let automaticCategory = CategoryInference.infer(asset: asset, ocrText: ocrText).category
+        var record = makeRecord(for: asset, ocrService: ocrService, preservingManual: true, usingLearning: false)
+        let now = Date()
+
+        record.inferredCategory = .screenshots
+        record.categoryConfidence = 1.0
+        record.categoryReason = "手動分類"
+        record.categoryUpdatedAt = now
+        record.manualCategory = .screenshots
+        record.manualScreenshotSubcategory = subcategory
+        record.manualCategoryUpdatedAt = now
+        record.screenshotSubcategory = subcategory
+        record.screenshotSubcategoryConfidence = 1.0
+        record.screenshotSubcategoryReason = "手動分類"
+        record.screenshotSubcategoryUpdatedAt = now
+        record.updatedAt = now
+
+        recordsByAssetID[asset.id] = record
+        refreshSummary()
+        await persistRecords([record])
+
+        await learningService.recordManualCorrection(
+            asset: asset,
+            ocrText: ocrText,
+            correctedCategory: .screenshots,
+            correctedScreenshotSubcategory: subcategory,
+            originalAutoCategory: automaticCategory
+        )
+    }
+
+    func restoreAutomaticCategory(for asset: PhotoAsset, ocrService: OCRService) async {
+        await learningService.removeExample(localIdentifier: asset.localIdentifier)
+
+        let record = makeRecord(for: asset, ocrService: ocrService, preservingManual: false, usingLearning: false)
+        recordsByAssetID[asset.id] = record
+        refreshSummary()
+        await persistRecords([record])
+    }
+
     func rebuildSearchIndex(for assets: [PhotoAsset], ocrService: OCRService) async {
         await rebuild(for: assets, ocrService: ocrService)
     }
@@ -257,6 +350,8 @@ final class PhotoIndexService: ObservableObject {
     }
 
     func resetCategory(localIdentifier: String) async {
+        await learningService.removeExample(localIdentifier: localIdentifier)
+
         let now = Date()
         if let record = recordsByAssetID[localIdentifier] {
             recordsByAssetID[localIdentifier] = record.resettingCategory(at: now)
@@ -271,6 +366,8 @@ final class PhotoIndexService: ObservableObject {
     }
 
     func resetCategory(for asset: PhotoAsset, ocrService: OCRService) async {
+        await learningService.removeExample(localIdentifier: asset.localIdentifier)
+
         let record = (recordsByAssetID[asset.id] ?? makeRecord(for: asset, ocrService: ocrService))
             .resettingCategory()
         recordsByAssetID[asset.id] = record
@@ -312,7 +409,12 @@ final class PhotoIndexService: ObservableObject {
         await rebuildCategories(for: assets, ocrService: ocrService)
     }
 
-    private func makeRecord(for asset: PhotoAsset, ocrService: OCRService) -> PhotoIndexRecord {
+    private func makeRecord(
+        for asset: PhotoAsset,
+        ocrService: OCRService,
+        preservingManual: Bool = true,
+        usingLearning: Bool = true
+    ) -> PhotoIndexRecord {
         let existingRecord = recordsByAssetID[asset.id]
         let ocrResult = ocrService.result(for: asset)
 
@@ -330,7 +432,63 @@ final class PhotoIndexService: ObservableObject {
             completedOCRText = ""
         }
 
-        let inference = CategoryInference.infer(asset: asset, ocrText: completedOCRText)
+        let automaticInference = CategoryInference.infer(asset: asset, ocrText: completedOCRText)
+        let automaticScreenshotInference = CategoryInference.inferScreenshotSubcategory(asset: asset, ocrText: completedOCRText)
+        var inference = automaticInference
+        var screenshotInference = automaticScreenshotInference
+        let manualCategory = preservingManual ? existingRecord?.manualCategory : nil
+        var manualScreenshotSubcategory = preservingManual ? existingRecord?.manualScreenshotSubcategory : nil
+
+        if let manualCategory {
+            inference = CategoryInferenceResult(
+                photoLocalIdentifier: asset.localIdentifier,
+                category: manualCategory,
+                confidence: 1.0,
+                reason: "手動分類",
+                updatedAt: existingRecord?.manualCategoryUpdatedAt ?? Date()
+            )
+
+            if asset.isScreenshot, let manualScreenshotSubcategory {
+                screenshotInference = ScreenshotSubcategoryInferenceResult(
+                    photoLocalIdentifier: asset.localIdentifier,
+                    subcategory: manualScreenshotSubcategory,
+                    confidence: 1.0,
+                    reason: "手動分類",
+                    updatedAt: existingRecord?.manualCategoryUpdatedAt ?? Date()
+                )
+            } else if manualCategory != .screenshots {
+                manualScreenshotSubcategory = nil
+                screenshotInference = nil
+            }
+        } else if usingLearning,
+                  let suggestion = learningService.suggestion(
+                    for: asset,
+                    ocrText: completedOCRText,
+                    automaticCategory: automaticInference.category,
+                    automaticConfidence: automaticInference.confidence,
+                    automaticScreenshotSubcategory: automaticScreenshotInference?.subcategory
+                  ) {
+            if let suggestedCategory = suggestion.category {
+                inference = CategoryInferenceResult(
+                    photoLocalIdentifier: asset.localIdentifier,
+                    category: suggestedCategory,
+                    confidence: suggestion.confidence,
+                    reason: suggestion.reason,
+                    updatedAt: Date()
+                )
+            }
+
+            if asset.isScreenshot, let suggestedSubcategory = suggestion.screenshotSubcategory {
+                screenshotInference = ScreenshotSubcategoryInferenceResult(
+                    photoLocalIdentifier: asset.localIdentifier,
+                    subcategory: suggestedSubcategory,
+                    confidence: suggestion.confidence,
+                    reason: suggestion.reason,
+                    updatedAt: Date()
+                )
+            }
+        }
+
         let categoryUpdatedAt: Date
         if existingRecord?.inferredCategory == inference.category,
            existingRecord?.categoryConfidence == inference.confidence,
@@ -340,7 +498,6 @@ final class PhotoIndexService: ObservableObject {
             categoryUpdatedAt = inference.updatedAt
         }
 
-        let screenshotInference = CategoryInference.inferScreenshotSubcategory(asset: asset, ocrText: completedOCRText)
         let screenshotSubcategoryUpdatedAt: Date?
         if existingRecord?.screenshotSubcategory == screenshotInference?.subcategory,
            existingRecord?.screenshotSubcategoryConfidence == screenshotInference?.confidence,
@@ -369,6 +526,9 @@ final class PhotoIndexService: ObservableObject {
             categoryConfidence: inference.confidence,
             categoryReason: inference.reason,
             categoryUpdatedAt: categoryUpdatedAt,
+            manualCategory: manualCategory,
+            manualScreenshotSubcategory: manualScreenshotSubcategory,
+            manualCategoryUpdatedAt: preservingManual ? existingRecord?.manualCategoryUpdatedAt : nil,
             screenshotSubcategory: screenshotInference?.subcategory,
             screenshotSubcategoryConfidence: screenshotInference?.confidence,
             screenshotSubcategoryReason: screenshotInference?.reason,
@@ -379,8 +539,37 @@ final class PhotoIndexService: ObservableObject {
     }
 
     private func makeClearedOCRRecord(for asset: PhotoAsset) -> PhotoIndexRecord {
-        let inference = CategoryInference.infer(asset: asset, ocrText: nil)
-        let screenshotInference = CategoryInference.inferScreenshotSubcategory(asset: asset, ocrText: nil)
+        let existingRecord = recordsByAssetID[asset.id]
+        let automaticInference = CategoryInference.infer(asset: asset, ocrText: nil)
+        let automaticScreenshotInference = CategoryInference.inferScreenshotSubcategory(asset: asset, ocrText: nil)
+        let inference: CategoryInferenceResult
+        let screenshotInference: ScreenshotSubcategoryInferenceResult?
+
+        if let manualCategory = existingRecord?.manualCategory {
+            inference = CategoryInferenceResult(
+                photoLocalIdentifier: asset.localIdentifier,
+                category: manualCategory,
+                confidence: 1.0,
+                reason: "手動分類",
+                updatedAt: existingRecord?.manualCategoryUpdatedAt ?? Date()
+            )
+
+            if asset.isScreenshot, let manualScreenshotSubcategory = existingRecord?.manualScreenshotSubcategory {
+                screenshotInference = ScreenshotSubcategoryInferenceResult(
+                    photoLocalIdentifier: asset.localIdentifier,
+                    subcategory: manualScreenshotSubcategory,
+                    confidence: 1.0,
+                    reason: "手動分類",
+                    updatedAt: existingRecord?.manualCategoryUpdatedAt ?? Date()
+                )
+            } else {
+                screenshotInference = automaticScreenshotInference
+            }
+        } else {
+            inference = automaticInference
+            screenshotInference = automaticScreenshotInference
+        }
+
         let now = Date()
 
         return PhotoIndexRecord(
@@ -400,6 +589,9 @@ final class PhotoIndexService: ObservableObject {
             categoryConfidence: inference.confidence,
             categoryReason: inference.reason,
             categoryUpdatedAt: inference.updatedAt,
+            manualCategory: existingRecord?.manualCategory,
+            manualScreenshotSubcategory: existingRecord?.manualScreenshotSubcategory,
+            manualCategoryUpdatedAt: existingRecord?.manualCategoryUpdatedAt,
             screenshotSubcategory: screenshotInference?.subcategory,
             screenshotSubcategoryConfidence: screenshotInference?.confidence,
             screenshotSubcategoryReason: screenshotInference?.reason,

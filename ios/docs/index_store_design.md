@@ -42,6 +42,9 @@ SQLiteまたはSwiftDataへ移行する時は、`PhotoIndexStoring` の実装を
 - `screenshotSubcategoryConfidence`
 - `screenshotSubcategoryReason`
 - `screenshotSubcategoryUpdatedAt`
+- `manualCategory`
+- `manualScreenshotSubcategory`
+- `manualCategoryUpdatedAt`
 - `lastSeenAt`
 - `updatedAt`
 
@@ -111,6 +114,38 @@ OCR欄の操作:
 
 スクショ細分類は通常カテゴリとは別に保存する。スクショではない写真では空のままにし、既存JSONにフィールドがなくても読み込み時に落ちない。
 
+手動分類は自動分類と別フィールドに保存する。手動分類がある場合、表示と検索用カテゴリでは手動分類を最優先する。自動判定に戻す操作では手動分類フィールドを空にし、写真本体を触らずにメタデータと保存済みOCRテキストから分類を再判定する。
+
+## 分類傾向学習データ
+
+分類傾向学習は検索インデックスとは別に、`Application Support/ShimaiBako/manual_category_learning.json` へ保存する。
+
+保存する情報:
+
+- `sourceLocalIdentifier`
+- `correctedCategory`
+- `correctedScreenshotSubcategory`
+- `normalizedKeywords`
+- `isScreenshot`
+- `mediaTypeRawValue`
+- `aspectRatioBucket`
+- `originalAutoCategory`
+- `createdAt`
+- `updatedAt`
+- `useCount`
+
+保存しない情報:
+
+- 写真本体
+- サムネイル本体
+- 画像特徴量ベクトル
+- 大量のOCR全文
+- 全写真同士の類似度行列
+
+学習データは全体800件、1分類あたり80件を上限にし、キーワードは1例あたり最大20個に制限する。分類時に見る候補も最大60件に絞る。上限を超えた場合は、古く使われていない例から整理する。
+
+分類傾向学習は `PhotoIndexStoring` とは分けている。将来SQLiteへ移行する場合は、検索インデックス本体と同じDBに別テーブルとして移せるが、現段階では既存JSON互換を保つため小さなJSONとして扱う。
+
 ## SQLite移行方針
 
 3万件規模で検索語が増え、JSON全体の読み書きが重くなった段階でSQLiteへ移行する。
@@ -144,5 +179,7 @@ SwiftDataを採用する場合も、`PhotoIndexStoring` の実装として追加
 - まずPhotoKitメタデータと軽量分類を索引化する
 - OCRは表示中、スクショ、書類候補などに絞って段階実行する
 - 完了したOCR結果だけを検索対象へ加える
+- 手動分類は自動分類と分類傾向学習より優先する
+- 分類傾向学習は端末内の軽量データだけを使い、重い画像比較は行わない
 - 写真本体は外部送信しない
 - 写真本体は変更しない

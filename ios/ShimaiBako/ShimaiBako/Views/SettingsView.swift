@@ -6,11 +6,13 @@ struct SettingsView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
     @Environment(\.openURL) private var openURL
     @State private var pendingReadMode: PhotoReadMode?
     @State private var showingLargeModeSafety = false
     @State private var showingClearAllOCRConfirmation = false
+    @State private var showingClearLearningConfirmation = false
 
     private var indexSummary: PhotoIndexSummary {
         indexService.summary(for: photoLibrary.assets, ocrService: ocrService)
@@ -45,6 +47,7 @@ struct SettingsView: View {
                         largeLibraryGuideCard
                         iCloudSettingsCard
                         categoryCountsCard
+                        learningSettingsCard
                         ocrSettingsCard
                         cacheMaintenanceCard
                         deviceSafetyCard
@@ -93,6 +96,16 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("しまい箱に保存されたOCR文字をすべて削除します。写真本体は削除されません。削除後、OCR文字検索には出なくなります。必要な写真は再OCRできます。")
+            }
+            .alert("分類傾向学習データを削除しますか？", isPresented: $showingClearLearningConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("学習データを削除", role: .destructive) {
+                    Task {
+                        await learningService.clearAll()
+                    }
+                }
+            } message: {
+                Text("削除されるのは、手動で直した分類から作った軽量な分類傾向データだけです。写真本体、OCR結果、手動分類は削除されません。")
             }
             .task {
                 if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
@@ -317,6 +330,53 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var learningSettingsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("分類傾向学習", systemImage: "slider.horizontal.3")
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Toggle(isOn: Binding(
+                get: { learningService.isEnabled },
+                set: { learningService.updateIsEnabled($0) }
+            )) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("分類傾向学習")
+                        .font(.subheadline.weight(.semibold))
+                    Text(learningService.isEnabled ? "オン" : "オフ")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            DetailInfoRow(title: "学習データ件数", value: "\(learningService.exampleCount)件")
+            DetailInfoRow(title: "全体上限", value: "\(learningService.totalLimit)件")
+            DetailInfoRow(title: "1分類あたり", value: "\(learningService.perCategoryLimit)件")
+
+            Text("手動で直した分類を端末内で記録し、似たキーワードやスクショの分類候補に反映します。写真本体は保存・送信しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("学習は候補分類の補助です。手動分類がある写真では、手動分類を自動判定より優先します。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(role: .destructive) {
+                showingClearLearningConfirmation = true
+            } label: {
+                Label("学習データを削除", systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(learningService.exampleCount == 0)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

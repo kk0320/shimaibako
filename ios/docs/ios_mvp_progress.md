@@ -2,7 +2,7 @@
 
 ## 概要
 
-しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応、大規模写真ライブラリ向けの読み込みモード、安全確認、検索インデックス保存を実装した。
+しまい箱のiOS版MVPとして、SwiftUIの基本画面、PhotoKitによる写真ライブラリ読み取り、検索/フィルタ、端末内OCR、OCR結果の端末内保存、一括OCRの中断対応、大規模写真ライブラリ向けの読み込みモード、安全確認、検索インデックス保存、軽量な分類傾向学習を実装した。
 
 現時点の方針は完全ローカル処理。写真は外部送信せず、削除・移動・編集・共有は行わない。
 
@@ -96,8 +96,15 @@
 - 表示中写真のOCR結果まとめて削除
 - 設定画面からの全OCR結果キャッシュ削除
 - 詳細画面での分類再判定と未分類戻し
+- 詳細画面での分類手動変更
+- 詳細画面でのスクショ細分類手動変更
+- 手動分類を自動分類より優先する表示
+- 手動分類から作る軽量な分類傾向学習
+- 分類傾向学習のオン/オフ
+- 分類傾向学習データの削除
 - 設定画面からの分類再構築
 - 設定画面でのインデックス件数、分類済み件数、OCR件数表示
+- 設定画面での分類傾向学習件数、上限、説明表示
 - 検索インデックス再構築ボタン
 - 30,000件相当のダミー検索インデックス性能確認スクリプト
 - 設定画面での写真アクセス状態、読み込み上限、OCR件数、安全方針の表示
@@ -120,11 +127,13 @@
 - `ios/ShimaiBako/ShimaiBako/Models/AppSettings.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/DeviceSafety.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/PhotoCategory.swift`
+- `ios/ShimaiBako/ShimaiBako/Models/ManualCategoryLearning.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/OCRConfiguration.swift`
 - `ios/ShimaiBako/ShimaiBako/Models/OCRResult.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoLibraryService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoIndexService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoIndexStore.swift`
+- `ios/ShimaiBako/ShimaiBako/Services/ManualCategoryLearningService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRResultStore.swift`
 - `ios/ShimaiBako/ShimaiBako/Views/HomeView.swift`
@@ -139,6 +148,7 @@
 - `ios/docs/cache_reset_design.md`
 - `ios/docs/screenshot_classification_design.md`
 - `ios/docs/future_image_classification_plan.md`
+- `ios/docs/manual_classification_learning_design.md`
 
 ## ビルド方法
 
@@ -186,6 +196,9 @@ xcodebuild build \
 - スクショ選択時のサブカテゴリチップ表示: PASS
 - OCR後のスクショ細分類再判定: PASS
 - 詳細画面のカテゴリ/サブカテゴリ/信頼度表示: PASS
+- 詳細画面の手動分類変更UI: PASS
+- 分類傾向学習ON/OFF表示: PASS
+- 分類傾向学習データ削除UI: PASS
 - 30,000件相当ダミーインデックス検索: PASS
 - まとめてOCR: PASS
 - まとめてOCRキャンセル: PASS
@@ -237,7 +250,21 @@ xcodebuild build \
 - 検索インデックスは `Application Support/ShimaiBako/photo_index.json` に保存
 - 検索は撮影日、種別、サイズ、スクリーンショット判定、仮想フォルダ名、スクショ細分類名、OCRテキストを対象にする
 - OCRテキストを使って仮想フォルダ分類を再判定する
+- 手動分類は自動分類より優先する
+- 分類傾向学習は端末内の軽量キーワードとメタデータだけを使う
 - 外部OCR APIは未使用
+
+## 分類傾向学習
+
+- 詳細画面で分類やスクショ細分類を手動変更できる
+- 手動分類がある写真は自動判定や学習由来候補より手動分類を優先する
+- 分類傾向学習がオンの場合、手動変更から軽量な学習例を作る
+- 保存先は `Application Support/ShimaiBako/manual_category_learning.json`
+- 保存するのは `localIdentifier`、修正カテゴリ、短い正規化キーワード、スクショ判定、メディア種別、縦横比バケット、日時、使用回数のみ
+- 写真本体、サムネイル本体、画像特徴量、大量のOCR全文は保存しない
+- 学習データは全体800件、1分類あたり80件、1例あたりキーワード20個まで
+- 設定画面でオン/オフと学習データ削除ができる
+- 学習データ削除後も写真本体、OCR結果、手動分類は残る
 
 ローカルのテスト画像では次の文字列を認識できた。
 

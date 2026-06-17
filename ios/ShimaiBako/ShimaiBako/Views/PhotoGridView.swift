@@ -20,6 +20,7 @@ struct PhotoGridView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
     let mode: PhotoGridMode
     @Environment(\.scenePhase) private var scenePhase
@@ -53,12 +54,14 @@ struct PhotoGridView: View {
         photoLibrary: PhotoLibraryService,
         ocrService: OCRService,
         indexService: PhotoIndexService,
+        learningService: ManualCategoryLearningService,
         deviceSafety: DeviceSafetyService,
         mode: PhotoGridMode
     ) {
         self.photoLibrary = photoLibrary
         self.ocrService = ocrService
         self.indexService = indexService
+        self.learningService = learningService
         self.deviceSafety = deviceSafety
         self.mode = mode
         _searchText = State(initialValue: mode == .search ? Self.debugInitialSearchText : "")
@@ -193,6 +196,7 @@ struct PhotoGridView: View {
                     photoLibrary: photoLibrary,
                     ocrService: ocrService,
                     indexService: indexService,
+                    learningService: learningService,
                     asset: asset
                 )
             }
@@ -202,6 +206,7 @@ struct PhotoGridView: View {
                         photoLibrary: photoLibrary,
                         ocrService: ocrService,
                         indexService: indexService,
+                        learningService: learningService,
                         asset: asset,
                         automaticallyRunOCR: shouldRunOCRForDebug
                     )

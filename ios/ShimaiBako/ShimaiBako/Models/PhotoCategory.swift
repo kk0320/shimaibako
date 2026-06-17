@@ -295,6 +295,9 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
     var categoryConfidence: Double
     var categoryReason: String?
     var categoryUpdatedAt: Date
+    var manualCategory: PhotoCategory?
+    var manualScreenshotSubcategory: ScreenshotSubcategory?
+    var manualCategoryUpdatedAt: Date?
     var screenshotSubcategory: ScreenshotSubcategory?
     var screenshotSubcategoryConfidence: Double?
     var screenshotSubcategoryReason: String?
@@ -323,6 +326,9 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         categoryConfidence: Double,
         categoryReason: String?,
         categoryUpdatedAt: Date,
+        manualCategory: PhotoCategory?,
+        manualScreenshotSubcategory: ScreenshotSubcategory?,
+        manualCategoryUpdatedAt: Date?,
         screenshotSubcategory: ScreenshotSubcategory?,
         screenshotSubcategoryConfidence: Double?,
         screenshotSubcategoryReason: String?,
@@ -346,6 +352,9 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         self.categoryConfidence = categoryConfidence
         self.categoryReason = categoryReason
         self.categoryUpdatedAt = categoryUpdatedAt
+        self.manualCategory = manualCategory
+        self.manualScreenshotSubcategory = manualScreenshotSubcategory
+        self.manualCategoryUpdatedAt = manualCategoryUpdatedAt
         self.screenshotSubcategory = screenshotSubcategory
         self.screenshotSubcategoryConfidence = screenshotSubcategoryConfidence
         self.screenshotSubcategoryReason = screenshotSubcategoryReason
@@ -372,6 +381,9 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         case categoryReason
         case hasOCRText
         case categoryUpdatedAt
+        case manualCategory
+        case manualScreenshotSubcategory
+        case manualCategoryUpdatedAt
         case screenshotSubcategory
         case screenshotSubcategoryConfidence
         case screenshotSubcategoryReason
@@ -401,6 +413,9 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         categoryReason = try container.decodeIfPresent(String.self, forKey: .categoryReason)
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? now
         categoryUpdatedAt = try container.decodeIfPresent(Date.self, forKey: .categoryUpdatedAt) ?? updatedAt
+        manualCategory = try container.decodeIfPresent(PhotoCategory.self, forKey: .manualCategory)
+        manualScreenshotSubcategory = try container.decodeIfPresent(ScreenshotSubcategory.self, forKey: .manualScreenshotSubcategory)
+        manualCategoryUpdatedAt = try container.decodeIfPresent(Date.self, forKey: .manualCategoryUpdatedAt)
         screenshotSubcategory = try container.decodeIfPresent(ScreenshotSubcategory.self, forKey: .screenshotSubcategory)
         screenshotSubcategoryConfidence = try container.decodeIfPresent(Double.self, forKey: .screenshotSubcategoryConfidence)
         screenshotSubcategoryReason = try container.decodeIfPresent(String.self, forKey: .screenshotSubcategoryReason)
@@ -427,6 +442,9 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         try container.encodeIfPresent(categoryReason, forKey: .categoryReason)
         try container.encode(hasOCRText, forKey: .hasOCRText)
         try container.encode(categoryUpdatedAt, forKey: .categoryUpdatedAt)
+        try container.encodeIfPresent(manualCategory, forKey: .manualCategory)
+        try container.encodeIfPresent(manualScreenshotSubcategory, forKey: .manualScreenshotSubcategory)
+        try container.encodeIfPresent(manualCategoryUpdatedAt, forKey: .manualCategoryUpdatedAt)
         try container.encodeIfPresent(screenshotSubcategory, forKey: .screenshotSubcategory)
         try container.encodeIfPresent(screenshotSubcategoryConfidence, forKey: .screenshotSubcategoryConfidence)
         try container.encodeIfPresent(screenshotSubcategoryReason, forKey: .screenshotSubcategoryReason)

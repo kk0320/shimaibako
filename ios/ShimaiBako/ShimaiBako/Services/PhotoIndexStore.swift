@@ -194,6 +194,9 @@ extension PhotoIndexRecord {
         record.categoryConfidence = 0
         record.categoryReason = "未分類に戻しました"
         record.categoryUpdatedAt = date
+        record.manualCategory = nil
+        record.manualScreenshotSubcategory = nil
+        record.manualCategoryUpdatedAt = nil
         record.screenshotSubcategory = nil
         record.screenshotSubcategoryConfidence = nil
         record.screenshotSubcategoryReason = nil
@@ -212,6 +215,7 @@ extension PhotoIndexRecord {
             inferredCategory.title,
             inferredCategory.shortTitle,
             categoryReason ?? "",
+            manualCategory == nil ? "" : "手動分類",
             screenshotSubcategory?.title ?? "",
             screenshotSubcategory?.shortTitle ?? "",
             screenshotSubcategoryReason ?? "",

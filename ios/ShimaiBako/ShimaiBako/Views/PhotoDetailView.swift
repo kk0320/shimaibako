@@ -6,6 +6,7 @@ struct PhotoDetailView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var learningService: ManualCategoryLearningService
     let asset: PhotoAsset
     let automaticallyRunOCR: Bool
 
@@ -19,12 +20,14 @@ struct PhotoDetailView: View {
         photoLibrary: PhotoLibraryService,
         ocrService: OCRService,
         indexService: PhotoIndexService,
+        learningService: ManualCategoryLearningService,
         asset: PhotoAsset,
         automaticallyRunOCR: Bool = false
     ) {
         self.photoLibrary = photoLibrary
         self.ocrService = ocrService
         self.indexService = indexService
+        self.learningService = learningService
         self.asset = asset
         self.automaticallyRunOCR = automaticallyRunOCR
     }
@@ -51,6 +54,7 @@ struct PhotoDetailView: View {
                             title: "推定カテゴリ",
                             value: "\(indexService.category(for: asset, ocrService: ocrService).title) / 信頼度 \(indexService.confidenceLabel(for: asset, ocrService: ocrService))"
                         )
+                        DetailRow(title: "分類種別", value: categorySourceTitle)
                         DetailRow(title: "分類理由", value: indexService.categoryReason(for: asset, ocrService: ocrService))
 
                         if let screenshotSubcategory = indexService.screenshotSubcategory(for: asset, ocrService: ocrService) {
@@ -69,27 +73,7 @@ struct PhotoDetailView: View {
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        HStack(spacing: 8) {
-                            Button {
-                                Task {
-                                    await indexService.rebuildCategory(for: asset, ocrService: ocrService)
-                                }
-                            } label: {
-                                Label("分類を再判定", systemImage: "arrow.triangle.2.circlepath")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-
-                            Button {
-                                showingResetCategoryConfirmation = true
-                            } label: {
-                                Label("未分類に戻す", systemImage: "folder")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        }
+                        manualCategoryControls
                     }
                     .padding(16)
                     .background(.white.opacity(0.80), in: RoundedRectangle(cornerRadius: 8))
@@ -165,6 +149,94 @@ struct PhotoDetailView: View {
         }
 
         await indexService.clearOCRResult(for: asset, ocrService: ocrService)
+    }
+
+    private var categorySourceTitle: String {
+        let record = indexService.record(for: asset, ocrService: ocrService)
+
+        if record.manualCategory != nil {
+            return "手動分類"
+        }
+
+        if record.categoryReason == "手動分類傾向を参考" ||
+            record.screenshotSubcategoryReason == "手動分類傾向を参考" {
+            return "手動分類傾向を参考"
+        }
+
+        return "自動判定"
+    }
+
+    private var manualCategoryChoices: [PhotoCategory] {
+        PhotoCategory.allCases.filter { category in
+            category != .all && (asset.isScreenshot || category != .screenshots)
+        }
+    }
+
+    private var manualCategoryControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Menu {
+                ForEach(manualCategoryChoices) { category in
+                    Button {
+                        Task {
+                            await indexService.setManualCategory(for: asset, category: category, ocrService: ocrService)
+                        }
+                    } label: {
+                        Label(category.title, systemImage: category.systemImage)
+                    }
+                }
+            } label: {
+                Label("分類を手動変更", systemImage: "slider.horizontal.3")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            if asset.isScreenshot {
+                Menu {
+                    ForEach(ScreenshotSubcategory.allCases.filter { $0 != .all }) { subcategory in
+                        Button {
+                            Task {
+                                await indexService.setManualScreenshotSubcategory(for: asset, subcategory: subcategory, ocrService: ocrService)
+                            }
+                        } label: {
+                            Label(subcategory.title, systemImage: subcategory.systemImage)
+                        }
+                    }
+                } label: {
+                    Label("スクショ分類を手動変更", systemImage: "rectangle.stack.badge.person.crop")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    Task {
+                        await indexService.restoreAutomaticCategory(for: asset, ocrService: ocrService)
+                    }
+                } label: {
+                    Label("自動判定に戻す", systemImage: "arrow.triangle.2.circlepath")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                Button {
+                    showingResetCategoryConfirmation = true
+                } label: {
+                    Label("未分類に戻す", systemImage: "folder")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+            Text(learningService.isEnabled ? "手動で直した分類は、端末内の軽量な分類傾向として保存されます。" : "分類傾向学習はオフです。手動分類そのものは保存されます。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var ocrPanel: some View {

@@ -11,6 +11,7 @@ struct HomeView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
     @State private var selectedTab = HomeTab.initialSelection
 
@@ -20,6 +21,7 @@ struct HomeView: View {
                 photoLibrary: photoLibrary,
                 ocrService: ocrService,
                 indexService: indexService,
+                learningService: learningService,
                 deviceSafety: deviceSafety
             )
                 .tabItem {
@@ -31,6 +33,7 @@ struct HomeView: View {
                 photoLibrary: photoLibrary,
                 ocrService: ocrService,
                 indexService: indexService,
+                learningService: learningService,
                 deviceSafety: deviceSafety,
                 mode: .search
             )
@@ -43,6 +46,7 @@ struct HomeView: View {
                 photoLibrary: photoLibrary,
                 ocrService: ocrService,
                 indexService: indexService,
+                learningService: learningService,
                 deviceSafety: deviceSafety
             )
                 .tabItem {
@@ -77,6 +81,7 @@ private struct PhotoAccessRootView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
 
     var body: some View {
@@ -86,6 +91,7 @@ private struct PhotoAccessRootView: View {
                 photoLibrary: photoLibrary,
                 ocrService: ocrService,
                 indexService: indexService,
+                learningService: learningService,
                 deviceSafety: deviceSafety,
                 mode: .library
             )
