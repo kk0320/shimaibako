@@ -34,7 +34,7 @@
 
 ## 検索インデックス
 
-`PhotoIndexStore` は `Application Support/ShimaiBako/photo_index.json` に検索インデックスを保存する。保存は `PhotoIndexStoring` protocol 越しに扱い、現在は `JSONPhotoIndexStore` を使う。
+`PhotoIndexStore` は `Application Support/ShimaiBako/photo_index.sqlite` に検索インデックスを保存する。保存は `PhotoIndexStoring` protocol 越しに扱い、現在は `SQLitePhotoIndexStore` を使う。旧 `photo_index.json` は移行元、互換バックアップ、障害解析用に残す。
 
 主キー:
 
@@ -67,7 +67,9 @@
 
 写真本体やサムネイル本体は保存しない。保存するのは検索と表示に必要なメタデータ、OCRテキスト、分類結果のみ。
 
-現段階ではJSON保存を維持する。3万件規模では全件の頻繁な読み書きが重くなるため、次段階では同じ `PhotoIndexStoring` 境界を保ったままSQLiteまたはSwiftDataへ移行する。
+SQLiteには `photo_records`、`photo_texts`、`photo_tags` を分けて保存する。OCR本文は一覧用レコードから分離し、一覧を開くだけで大量のOCR全文を読み込まない。
+
+旧JSONからSQLiteへの取り込みは500件単位で行う。旧JSONは削除しない。
 
 ## 検索と分類
 
@@ -144,8 +146,7 @@
 ## 今後の拡張
 
 - 差分インデックス更新
-- 読み込み範囲のページング
-- SQLiteまたはSwiftDataへの移行
+- DBカーソルによる読み込み範囲のページング
 - SQLite FTSによるOCRテキスト検索
 - カテゴリ推定の精度改善
 - スクショ細分類の辞書調整

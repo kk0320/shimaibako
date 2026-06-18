@@ -6,17 +6,16 @@
 
 ## 採用方式
 
-現段階では `PhotoIndexStoring` protocol と `JSONPhotoIndexStore` を採用する。
+現段階では `PhotoIndexStoring` protocol の実装として `SQLitePhotoIndexStore` を主に使う。旧 `JSONPhotoIndexStore` は移行元、互換バックアップ、障害解析用として残す。
 
-- 保存先: `Application Support/ShimaiBako/photo_index.json`
-- 形式: Codable JSON
-- バージョン: 2
+- 主保存先: `Application Support/ShimaiBako/photo_index.sqlite`
+- 旧JSON: `Application Support/ShimaiBako/photo_index.json`
 - 主キー: `localIdentifier`
 - 呼び出し元: `PhotoIndexService`
 - 写真本体: 保存しない
 - サムネイル本体: 保存しない
 
-SQLiteまたはSwiftDataへ移行する時は、`PhotoIndexStoring` の実装を差し替える。UIやPhotoKit読み込み側は、Store実装の詳細を直接持たない。
+SQLiteはiOS標準の `SQLite3` を使う。外部ライブラリは追加しない。Core Dataはモデル移行の設計余地があるため、今回は既存protocolへ差し込みやすいSQLiteを選んだ。
 
 ## 保存項目
 
@@ -146,26 +145,21 @@ OCR欄の操作:
 
 分類傾向学習は `PhotoIndexStoring` とは分けている。将来SQLiteへ移行する場合は、検索インデックス本体と同じDBに別テーブルとして移せるが、現段階では既存JSON互換を保つため小さなJSONとして扱う。
 
-## SQLite移行方針
+## SQLite構成
 
-3万件規模で検索語が増え、JSON全体の読み書きが重くなった段階でSQLiteへ移行する。
+SQLiteには次のテーブルを作る。
 
-初期のSQLite構成案:
+- `photo_records`
+- `photo_texts`
+- `photo_tags`
+- `processing_jobs`
+- `processing_job_items`
 
-- テーブル: `photo_index`
-- 主キー: `local_identifier`
-- インデックス:
-  - `creation_date`
-  - `media_type`
-  - `inferred_category`
-  - `ocr_status`
-- `last_seen_at`
-- `screenshot_subcategory`
-- OCR検索:
-  - 初期は `LIKE`
-  - 件数増加後はFTSへ移行
+`photo_records` は一覧や集計に必要な軽量カラムを持つ。OCR本文は `photo_texts` へ分離し、一覧を開くだけで大量のOCR全文を読み込まないようにする。タグは `photo_tags` に分離する。
 
-SQLiteでも写真本体やサムネイル本体は保存しない。
+初回移行時、SQLite側が空なら旧JSONから500件ずつ登録する。旧JSONは削除しない。
+
+OCR検索は初期段階では正規化済みテキストへの `LIKE` で実装する。実機データで不足した場合はFTSへ移行する。
 
 ## SwiftData移行方針
 
