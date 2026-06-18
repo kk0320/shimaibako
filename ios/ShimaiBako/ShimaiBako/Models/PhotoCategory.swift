@@ -1,6 +1,56 @@
 import Foundation
 import Photos
 
+enum PhotoDisplayState: String, CaseIterable, Identifiable, Codable {
+    case active
+    case unwanted
+    case hidden
+    case archived
+
+    var id: String {
+        rawValue
+    }
+
+    nonisolated var title: String {
+        switch self {
+        case .active:
+            "通常表示"
+        case .unwanted:
+            "不要候補"
+        case .hidden:
+            "非表示"
+        case .archived:
+            "整理済み"
+        }
+    }
+
+    nonisolated var chipTitle: String {
+        switch self {
+        case .active:
+            "通常"
+        case .unwanted:
+            "不要候補"
+        case .hidden:
+            "非表示"
+        case .archived:
+            "整理済み"
+        }
+    }
+
+    nonisolated var systemImage: String {
+        switch self {
+        case .active:
+            "photo.on.rectangle"
+        case .unwanted:
+            "tray.and.arrow.down"
+        case .hidden:
+            "eye.slash"
+        case .archived:
+            "archivebox"
+        }
+    }
+}
+
 enum PhotoCategory: String, CaseIterable, Identifiable, Codable {
     case all
     case uncategorized
@@ -258,6 +308,50 @@ enum ScreenshotSubcategory: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum PhotoSearchMatchedField: String, CaseIterable, Identifiable, Codable {
+    case ocrText
+    case category
+    case screenshotSubcategory
+    case manualCategory
+    case memo
+    case tags
+    case date
+    case metadata
+
+    var id: String {
+        rawValue
+    }
+
+    nonisolated var title: String {
+        switch self {
+        case .ocrText:
+            "OCR本文"
+        case .category:
+            "カテゴリ"
+        case .screenshotSubcategory:
+            "スクショ分類"
+        case .manualCategory:
+            "手動分類"
+        case .memo:
+            "メモ"
+        case .tags:
+            "タグ"
+        case .date:
+            "日付"
+        case .metadata:
+            "メタデータ"
+        }
+    }
+}
+
+struct PhotoSearchMatch: Equatable {
+    var isMatch: Bool
+    var matchedFields: [PhotoSearchMatchedField]
+    var ocrSnippet: String?
+
+    static let empty = PhotoSearchMatch(isMatch: true, matchedFields: [], ocrSnippet: nil)
+}
+
 struct CategoryInferenceResult: Codable, Equatable {
     let photoLocalIdentifier: String
     var category: PhotoCategory
@@ -302,6 +396,10 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
     var screenshotSubcategoryConfidence: Double?
     var screenshotSubcategoryReason: String?
     var screenshotSubcategoryUpdatedAt: Date?
+    var displayState: PhotoDisplayState
+    var displayStateUpdatedAt: Date?
+    var userMemo: String
+    var userTags: [String]
     var lastSeenAt: Date
     var updatedAt: Date
 
@@ -333,6 +431,10 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         screenshotSubcategoryConfidence: Double?,
         screenshotSubcategoryReason: String?,
         screenshotSubcategoryUpdatedAt: Date?,
+        displayState: PhotoDisplayState = .active,
+        displayStateUpdatedAt: Date? = nil,
+        userMemo: String = "",
+        userTags: [String] = [],
         lastSeenAt: Date,
         updatedAt: Date
     ) {
@@ -359,6 +461,10 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         self.screenshotSubcategoryConfidence = screenshotSubcategoryConfidence
         self.screenshotSubcategoryReason = screenshotSubcategoryReason
         self.screenshotSubcategoryUpdatedAt = screenshotSubcategoryUpdatedAt
+        self.displayState = displayState
+        self.displayStateUpdatedAt = displayStateUpdatedAt
+        self.userMemo = userMemo
+        self.userTags = userTags
         self.lastSeenAt = lastSeenAt
         self.updatedAt = updatedAt
     }
@@ -388,6 +494,10 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         case screenshotSubcategoryConfidence
         case screenshotSubcategoryReason
         case screenshotSubcategoryUpdatedAt
+        case displayState
+        case displayStateUpdatedAt
+        case userMemo
+        case userTags
         case lastSeenAt
         case updatedAt
     }
@@ -420,6 +530,10 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         screenshotSubcategoryConfidence = try container.decodeIfPresent(Double.self, forKey: .screenshotSubcategoryConfidence)
         screenshotSubcategoryReason = try container.decodeIfPresent(String.self, forKey: .screenshotSubcategoryReason)
         screenshotSubcategoryUpdatedAt = try container.decodeIfPresent(Date.self, forKey: .screenshotSubcategoryUpdatedAt)
+        displayState = try container.decodeIfPresent(PhotoDisplayState.self, forKey: .displayState) ?? .active
+        displayStateUpdatedAt = try container.decodeIfPresent(Date.self, forKey: .displayStateUpdatedAt)
+        userMemo = try container.decodeIfPresent(String.self, forKey: .userMemo) ?? ""
+        userTags = try container.decodeIfPresent([String].self, forKey: .userTags) ?? []
         lastSeenAt = try container.decodeIfPresent(Date.self, forKey: .lastSeenAt) ?? updatedAt
     }
 
@@ -449,6 +563,10 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
         try container.encodeIfPresent(screenshotSubcategoryConfidence, forKey: .screenshotSubcategoryConfidence)
         try container.encodeIfPresent(screenshotSubcategoryReason, forKey: .screenshotSubcategoryReason)
         try container.encodeIfPresent(screenshotSubcategoryUpdatedAt, forKey: .screenshotSubcategoryUpdatedAt)
+        try container.encode(displayState, forKey: .displayState)
+        try container.encodeIfPresent(displayStateUpdatedAt, forKey: .displayStateUpdatedAt)
+        try container.encode(userMemo, forKey: .userMemo)
+        try container.encode(userTags, forKey: .userTags)
         try container.encode(lastSeenAt, forKey: .lastSeenAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }

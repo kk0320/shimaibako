@@ -101,25 +101,122 @@ final class PhotoIndexService: ObservableObject {
         return record.manualCategory != nil || record.manualScreenshotSubcategory != nil
     }
 
+    func displayState(for asset: PhotoAsset, ocrService: OCRService) -> PhotoDisplayState {
+        record(for: asset, ocrService: ocrService).displayState
+    }
+
+    func displayStateCounts(for assets: [PhotoAsset], ocrService: OCRService) -> [PhotoDisplayState: Int] {
+        var counts = Dictionary(uniqueKeysWithValues: PhotoDisplayState.allCases.map { ($0, 0) })
+
+        for asset in assets {
+            let state = displayState(for: asset, ocrService: ocrService)
+            counts[state, default: 0] += 1
+        }
+
+        return counts
+    }
+
+    func setDisplayState(
+        _ state: PhotoDisplayState,
+        for asset: PhotoAsset,
+        ocrService: OCRService
+    ) async {
+        var record = makeRecord(for: asset, ocrService: ocrService)
+        let now = Date()
+        record.displayState = state
+        record.displayStateUpdatedAt = now
+        record.updatedAt = now
+        recordsByAssetID[asset.id] = record
+        refreshSummary()
+        await persistRecords([record])
+    }
+
+    func setMemoAndTags(
+        for asset: PhotoAsset,
+        memo: String,
+        tags: [String],
+        ocrService: OCRService
+    ) async {
+        var record = makeRecord(for: asset, ocrService: ocrService)
+        let cleanedTags = cleanedUserTags(tags)
+        let cleanedMemo = memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        let now = Date()
+
+        record.userMemo = cleanedMemo
+        record.userTags = cleanedTags
+        record.updatedAt = now
+        recordsByAssetID[asset.id] = record
+        refreshSummary()
+        await persistRecords([record])
+    }
+
     func matches(asset: PhotoAsset, query: String, ocrService: OCRService) -> Bool {
-        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard normalizedQuery.isEmpty == false else {
-            return true
+        searchMatch(asset: asset, query: query, ocrService: ocrService).isMatch
+    }
+
+    func searchMatch(asset: PhotoAsset, query: String, ocrService: OCRService) -> PhotoSearchMatch {
+        let tokens = normalizedSearchTokens(in: query)
+        guard tokens.isEmpty == false else {
+            return .empty
         }
 
         let record = record(for: asset, ocrService: ocrService)
-        let haystack = [
-            asset.filename ?? "",
-            asset.kindLabel,
-            asset.dateLabel,
-            asset.sizeLabel,
-            asset.localIdentifier,
-            asset.isFavorite ? "お気に入り" : "",
-            record.searchableIndexText
+        let fieldTexts: [(PhotoSearchMatchedField, String)] = [
+            (.ocrText, record.ocrStatus == .completed ? record.ocrText : ""),
+            (.category, [
+                record.inferredCategory.title,
+                record.inferredCategory.shortTitle,
+                record.categoryReason ?? ""
+            ].joined(separator: " ")),
+            (.screenshotSubcategory, [
+                record.screenshotSubcategory?.title ?? "",
+                record.screenshotSubcategory?.shortTitle ?? "",
+                record.screenshotSubcategoryReason ?? ""
+            ].joined(separator: " ")),
+            (.manualCategory, [
+                record.manualCategory?.title ?? "",
+                record.manualCategory?.shortTitle ?? "",
+                record.manualScreenshotSubcategory?.title ?? "",
+                record.manualCategory == nil && record.manualScreenshotSubcategory == nil ? "" : "手動分類"
+            ].joined(separator: " ")),
+            (.memo, record.userMemo),
+            (.tags, record.userTags.joined(separator: " ")),
+            (.date, [
+                asset.dateLabel,
+                record.creationDate.map { DateFormatter.localizedString(from: $0, dateStyle: .medium, timeStyle: .short) } ?? ""
+            ].joined(separator: " ")),
+            (.metadata, [
+                asset.filename ?? "",
+                asset.kindLabel,
+                asset.sizeLabel,
+                asset.localIdentifier,
+                asset.isFavorite ? "お気に入り" : "",
+                record.displayState.title
+            ].joined(separator: " "))
         ]
-        .joined(separator: " ")
 
-        return haystack.localizedCaseInsensitiveContains(normalizedQuery)
+        let normalizedFields = fieldTexts.map { field, text in
+            (field, text, normalizedSearchText(text))
+        }
+
+        var matchedFields: Set<PhotoSearchMatchedField> = []
+        for token in tokens {
+            let fieldsForToken = normalizedFields.filter { _, _, normalizedText in
+                normalizedText.contains(token)
+            }
+
+            guard fieldsForToken.isEmpty == false else {
+                return PhotoSearchMatch(isMatch: false, matchedFields: [], ocrSnippet: nil)
+            }
+
+            for fieldMatch in fieldsForToken {
+                matchedFields.insert(fieldMatch.0)
+            }
+        }
+
+        let orderedFields = PhotoSearchMatchedField.allCases.filter { matchedFields.contains($0) }
+        let snippet = matchedFields.contains(.ocrText) ? shortOCRSnippet(from: record.ocrText) : nil
+        return PhotoSearchMatch(isMatch: true, matchedFields: orderedFields, ocrSnippet: snippet)
     }
 
     func summary(for assets: [PhotoAsset], ocrService: OCRService) -> PhotoIndexSummary {
@@ -541,6 +638,10 @@ final class PhotoIndexService: ObservableObject {
             screenshotSubcategoryConfidence: screenshotInference?.confidence,
             screenshotSubcategoryReason: screenshotInference?.reason,
             screenshotSubcategoryUpdatedAt: screenshotSubcategoryUpdatedAt,
+            displayState: existingRecord?.displayState ?? .active,
+            displayStateUpdatedAt: existingRecord?.displayStateUpdatedAt,
+            userMemo: existingRecord?.userMemo ?? "",
+            userTags: existingRecord?.userTags ?? [],
             lastSeenAt: now,
             updatedAt: now
         )
@@ -604,9 +705,73 @@ final class PhotoIndexService: ObservableObject {
             screenshotSubcategoryConfidence: screenshotInference?.confidence,
             screenshotSubcategoryReason: screenshotInference?.reason,
             screenshotSubcategoryUpdatedAt: screenshotInference?.updatedAt,
+            displayState: existingRecord?.displayState ?? .active,
+            displayStateUpdatedAt: existingRecord?.displayStateUpdatedAt,
+            userMemo: existingRecord?.userMemo ?? "",
+            userTags: existingRecord?.userTags ?? [],
             lastSeenAt: now,
             updatedAt: now
         )
+    }
+
+    private func cleanedUserTags(_ tags: [String]) -> [String] {
+        var seen: Set<String> = []
+        var cleaned: [String] = []
+
+        for tag in tags {
+            let value = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard value.isEmpty == false else {
+                continue
+            }
+
+            let key = normalizedSearchText(value)
+            guard seen.contains(key) == false else {
+                continue
+            }
+
+            seen.insert(key)
+            cleaned.append(value)
+
+            if cleaned.count >= 30 {
+                break
+            }
+        }
+
+        return cleaned
+    }
+
+    private func normalizedSearchTokens(in query: String) -> [String] {
+        normalizedSearchText(query)
+            .split(whereSeparator: { $0.isWhitespace })
+            .map(String.init)
+            .filter { $0.isEmpty == false }
+    }
+
+    private func normalizedSearchText(_ text: String) -> String {
+        let widthAdjusted = text.applyingTransform(.fullwidthToHalfwidth, reverse: false) ?? text
+        let kanaAdjusted = widthAdjusted.applyingTransform(.hiraganaToKatakana, reverse: false) ?? widthAdjusted
+        return kanaAdjusted
+            .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "ja_JP"))
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func shortOCRSnippet(from text: String) -> String? {
+        let collapsed = text
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { $0.isEmpty == false }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard collapsed.isEmpty == false else {
+            return nil
+        }
+
+        if collapsed.count <= 84 {
+            return collapsed
+        }
+
+        return String(collapsed.prefix(84)) + "..."
     }
 
     private func loadPersistedRecords() async {

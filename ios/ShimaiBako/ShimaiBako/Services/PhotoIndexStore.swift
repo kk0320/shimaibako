@@ -119,13 +119,14 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
     }
 
     func searchLocalIdentifiers(matching query: String) async throws -> Set<String> {
-        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard normalizedQuery.isEmpty == false else {
+        let tokens = normalizedSearchTokens(in: query)
+        guard tokens.isEmpty == false else {
             return Set(try await loadAll().map(\.localIdentifier))
         }
 
         return Set(try await loadAll().compactMap { record in
-            record.searchableIndexText.localizedCaseInsensitiveContains(normalizedQuery) ? record.localIdentifier : nil
+            let haystack = normalizedSearchText(record.searchableIndexText)
+            return tokens.allSatisfy { haystack.contains($0) } ? record.localIdentifier : nil
         })
     }
 
@@ -174,6 +175,22 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
         let data = try encoder.encode(payload)
         try data.write(to: fileURL, options: [.atomic])
     }
+
+    private func normalizedSearchTokens(in query: String) -> [String] {
+        normalizedSearchText(query)
+            .split(whereSeparator: { $0.isWhitespace })
+            .map(String.init)
+            .filter { $0.isEmpty == false }
+    }
+
+    private func normalizedSearchText(_ text: String) -> String {
+        let widthAdjusted = text.applyingTransform(.fullwidthToHalfwidth, reverse: false) ?? text
+        let kanaAdjusted = widthAdjusted.applyingTransform(.hiraganaToKatakana, reverse: false) ?? widthAdjusted
+        return kanaAdjusted
+            .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "ja_JP"))
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
 
 extension PhotoIndexRecord {
@@ -219,6 +236,9 @@ extension PhotoIndexRecord {
             screenshotSubcategory?.title ?? "",
             screenshotSubcategory?.shortTitle ?? "",
             screenshotSubcategoryReason ?? "",
+            displayState.title,
+            userMemo,
+            userTags.joined(separator: " "),
             ocrText
         ]
         .joined(separator: " ")

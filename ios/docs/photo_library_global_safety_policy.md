@@ -35,9 +35,10 @@
 | --- | --- | --- | --- |
 | 写真アプリ本体の元写真・元動画 | PHAssetの実体 | 削除不可 | しまい箱は削除・変更機能を持たない |
 | PHAsset参照 | `localIdentifier`、日時、種別、サイズなど | アプリ内インデックスからは再構築可 | PhotoKit側のアセットは変更しない |
+| しまい箱内の表示状態 | `active`、`unwanted`、`hidden`、`archived` | 明示操作時のみ変更可 | 不要候補や非表示はアプリ内の分類であり、写真アプリ側は変更しない |
 | OCR結果 | `ocr_results.json` と `photo_index.json` のOCR欄 | 明示操作時のみ削除可 | 精度向上データ削除では削除しない |
 | 手動分類 | `manualCategory`、`manualScreenshotSubcategory` | 明示的に自動判定へ戻す場合のみ解除可 | 自動分類より優先する |
-| 検索インデックス | メタデータ、OCRテキスト参照、分類候補 | 再構築可 | 元写真・OCR原文・手動分類を巻き込まない |
+| 検索インデックス | メタデータ、OCRテキスト参照、分類候補、メモ、タグ | 再構築可 | 元写真・OCR原文・手動分類を巻き込まない |
 | 学習補助データ | 手動分類傾向の軽量データ | 削除可 | 元写真・OCR結果・手動分類は残す |
 | 精度向上履歴 | 実行日時、件数、中断理由 | 削除可 | 写真アプリ側には影響しない |
 | 将来特徴量キャッシュ枠 | 端末内の再生成可能キャッシュ | 削除可 | 写真本体やサムネイル本体は保存しない |
@@ -57,6 +58,8 @@
 | `PhotoIndexStore.swift` | `resetCategory(s)` | 97 | 仮想分類を未分類へ戻す | `photo_index.json` | 影響なし | 影響なし | 影響あり、分類リセット操作 | PASS | なし |
 | `PhotoIndexStore.swift` | `resetAllCategories` | 115 | 全仮想分類を未分類へ戻す | `photo_index.json` | 影響なし | 影響なし | 影響あり、今後UI化時は確認必須 | WARNING | UI化時は強い確認を追加 |
 | `PhotoIndexService.swift` | `rebuildSearchIndex` | 275 | 検索インデックス再構築 | `photo_index.json` | 影響なし | OCR結果を保持 | 手動分類を保持 | PASS | なし |
+| `PhotoIndexService.swift` | `setDisplayState` | - | しまい箱内の表示状態を変更 | `photo_index.json` の表示状態欄 | 影響なし | 影響なし | 影響なし | PASS | 元写真・元動画には触れない |
+| `PhotoIndexService.swift` | `setMemoAndTags` | - | 検索用メモ・タグを保存 | `photo_index.json` のメモ/タグ欄 | 影響なし | 影響なし | 影響なし | PASS | 写真アプリ側のメタデータではない |
 | `PhotoIndexService.swift` | `rebuildAllCategories` | 416 | 仮想分類再構築 | `photo_index.json` | 影響なし | 影響なし | 手動分類を優先 | PASS | なし |
 | `PhotoIndexService.swift` | `restoreAutomaticCategory` | 266 | 手動分類を解除して自動判定へ戻す | `photo_index.json`/学習例 | 影響なし | 影響なし | 影響あり、明示操作 | PASS | なし |
 | `ManualCategoryLearningService.swift` | `removeExample` | 88 | 1件の学習例を削除 | `manual_category_learning.json` | 影響なし | 影響なし | 手動分類自体は残る | PASS | なし |
@@ -77,6 +80,16 @@
 ## アプリ起動/終了/バックグラウンド
 
 アプリ起動時や設定画面表示時の処理は、権限状態確認、読み込み済み写真参照の更新、検索インデックス再構築、端末安全状態の取得に限定する。終了時やバックグラウンド復帰時に写真アプリ側のデータを削除・変更する処理はない。
+
+## 不要候補/非表示の扱い
+
+不要候補、非表示、整理済みは、しまい箱内の `photo_index.json` に保存する表示状態である。写真アプリ本体の元写真・元動画を削除、移動、編集、上書きする処理ではない。
+
+通常一覧では `active` を中心に表示し、不要候補は専用フィルターで見返せる。検索時は「不要候補も検索に含める」を選んだ場合だけ、不要候補の写真も検索対象に含める。どの場合もPhotoKitの書き込みAPIは使わない。
+
+## 文字検索の扱い
+
+文字検索は端末内の検索インデックスに対して行う。検索対象はOCR結果、写真カテゴリ、スクショ細分類、手動分類、しまい箱内メモ、しまい箱内タグ、日時/種別などのメタデータである。検索語やOCR結果を外部送信しない。
 
 ## 監査方法
 

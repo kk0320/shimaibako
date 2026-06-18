@@ -15,6 +15,9 @@ struct PhotoDetailView: View {
     @State private var didRunAutomaticOCR = false
     @State private var showingClearOCRConfirmation = false
     @State private var showingResetCategoryConfirmation = false
+    @State private var showingMoveToUnwantedConfirmation = false
+    @State private var memoDraft = ""
+    @State private var tagsDraft = ""
 
     init(
         photoLibrary: PhotoLibraryService,
@@ -50,6 +53,7 @@ struct PhotoDetailView: View {
                         DetailRow(title: "日付", value: asset.dateLabel)
                         DetailRow(title: "サイズ", value: asset.sizeLabel)
                         DetailRow(title: "内部ID", value: asset.localIdentifier)
+                        DetailRow(title: "表示状態", value: indexService.displayState(for: asset, ocrService: ocrService).title)
                         DetailRow(
                             title: "推定カテゴリ",
                             value: "\(indexService.category(for: asset, ocrService: ocrService).title) / 信頼度 \(indexService.confidenceLabel(for: asset, ocrService: ocrService))"
@@ -74,6 +78,8 @@ struct PhotoDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         manualCategoryControls
+                        displayStateControls
+                        memoAndTagControls
                     }
                     .padding(16)
                     .background(.white.opacity(0.80), in: RoundedRectangle(cornerRadius: 8))
@@ -113,7 +119,18 @@ struct PhotoDetailView: View {
         } message: {
             Text("元写真・元動画は変更されません。しまい箱内の仮想フォルダ分類だけを未分類に戻します。")
         }
+        .alert("不要候補へ移動しますか？", isPresented: $showingMoveToUnwantedConfirmation) {
+            Button("キャンセル", role: .cancel) {}
+            Button("不要候補へ移動") {
+                Task {
+                    await indexService.setDisplayState(.unwanted, for: asset, ocrService: ocrService)
+                }
+            }
+        } message: {
+            Text("しまい箱の通常表示から外します。元写真・元動画は削除されません。写真アプリ側のデータは変更しません。")
+        }
         .task(id: asset.id) {
+            loadMemoAndTags()
             isLoadingImage = true
             displayImage = await photoLibrary.requestDisplayImage(for: asset)
             isLoadingImage = false
@@ -237,6 +254,100 @@ struct PhotoDetailView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var displayStateControls: some View {
+        let state = indexService.displayState(for: asset, ocrService: ocrService)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            Label("しまい箱内の表示状態", systemImage: state.systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text("不要候補や非表示は、しまい箱内の表示状態です。元写真・元動画は削除されません。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if state != .active {
+                Button {
+                    Task {
+                        await indexService.setDisplayState(.active, for: asset, ocrService: ocrService)
+                    }
+                } label: {
+                    Label("通常表示に戻す", systemImage: "arrow.uturn.backward.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+
+            if state != .unwanted {
+                Button {
+                    showingMoveToUnwantedConfirmation = true
+                } label: {
+                    Label("不要候補へ移動", systemImage: "tray.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        }
+    }
+
+    private var memoAndTagControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            Label("しまい箱メモ・タグ", systemImage: "tag")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            TextField("メモを入力", text: $memoDraft, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...4)
+
+            TextField("タグをスペースまたはカンマで入力", text: $tagsDraft)
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.never)
+
+            Button {
+                Task {
+                    await indexService.setMemoAndTags(
+                        for: asset,
+                        memo: memoDraft,
+                        tags: parsedTags,
+                        ocrService: ocrService
+                    )
+                    loadMemoAndTags()
+                }
+            } label: {
+                Label("メモ・タグを保存", systemImage: "checkmark.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            Text("検索用のメモ・タグをしまい箱内に保存します。元写真・元動画は変更しません。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var parsedTags: [String] {
+        tagsDraft
+            .components(separatedBy: CharacterSet(charactersIn: " ,、\n\t"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.isEmpty == false }
+    }
+
+    private func loadMemoAndTags() {
+        let record = indexService.record(for: asset, ocrService: ocrService)
+        memoDraft = record.userMemo
+        tagsDraft = record.userTags.joined(separator: " ")
     }
 
     private var ocrPanel: some View {

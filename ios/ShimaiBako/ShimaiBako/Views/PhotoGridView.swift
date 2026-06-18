@@ -26,6 +26,8 @@ struct PhotoGridView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var searchText: String
+    @State private var selectedDisplayState: PhotoDisplayState = .active
+    @State private var includeUnwantedInSearch = false
     @State private var selectedCategory: PhotoCategory = .all
     @State private var selectedScreenshotSubcategory: ScreenshotSubcategory = .all
     @State private var selectedBulkTarget: OCRBatchTarget = .visible
@@ -69,22 +71,31 @@ struct PhotoGridView: View {
 
     private var filteredAssets: [PhotoAsset] {
         photoLibrary.assets.filter { asset in
+            displayStateIncludes(asset) &&
             categoryIncludes(asset) &&
             screenshotSubcategoryIncludes(asset) &&
             indexService.matches(asset: asset, query: searchText, ocrService: ocrService)
         }
     }
 
+    private var displayScopedAssets: [PhotoAsset] {
+        photoLibrary.assets.filter(displayStateIncludes)
+    }
+
     private var categoryCounts: [PhotoCategory: Int] {
-        indexService.counts(for: photoLibrary.assets, ocrService: ocrService)
+        indexService.counts(for: displayScopedAssets, ocrService: ocrService)
     }
 
     private var screenshotSubcategoryCounts: [ScreenshotSubcategory: Int] {
-        let screenshotAssets = photoLibrary.assets.filter { asset in
+        let screenshotAssets = displayScopedAssets.filter { asset in
             indexService.category(for: asset, ocrService: ocrService) == .screenshots
         }
 
         return indexService.screenshotSubcategoryCounts(for: screenshotAssets, ocrService: ocrService)
+    }
+
+    private var displayStateCounts: [PhotoDisplayState: Int] {
+        indexService.displayStateCounts(for: photoLibrary.assets, ocrService: ocrService)
     }
 
     private var bulkTargetAssets: [PhotoAsset] {
@@ -92,13 +103,13 @@ struct PhotoGridView: View {
         case .visible:
             filteredAssets
         case .screenshots:
-            photoLibrary.assets.filter { $0.isScreenshot }
+            displayScopedAssets.filter { $0.isScreenshot }
         case .documentCandidates:
-            photoLibrary.assets.filter {
+            displayScopedAssets.filter {
                 indexService.category(for: $0, ocrService: ocrService) == .documentCandidate
             }
         case .unprocessed:
-            photoLibrary.assets
+            displayScopedAssets
         }
     }
 
@@ -164,6 +175,8 @@ struct PhotoGridView: View {
 
                 VStack(spacing: 12) {
                     statusHeader
+                    displayStateChips
+                    searchOptions
                     categoryChips
                     if selectedCategory == .screenshots {
                         screenshotSubcategoryChips
@@ -367,12 +380,28 @@ struct PhotoGridView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
+
+                Text(statusDetailText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
             }
 
             Spacer()
         }
         .padding(12)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var statusDetailText: String {
+        let stateTitle = selectedDisplayState.title
+        let searchIsActive = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+
+        if searchIsActive {
+            return "\(stateTitle)から検索結果 \(filteredAssets.count)件。検索は端末内だけで実行します。"
+        }
+
+        return "\(stateTitle) \(filteredAssets.count)件。不要候補や非表示はしまい箱内の表示状態です。"
     }
 
     private var categoryChips: some View {
@@ -430,6 +459,64 @@ struct PhotoGridView: View {
         }
     }
 
+    private var displayStateChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(PhotoDisplayState.allCases) { state in
+                    Button {
+                        selectedDisplayState = state
+                    } label: {
+                        Label(
+                            "\(state.chipTitle) \(displayStateCounts[state, default: 0])",
+                            systemImage: state.systemImage
+                        )
+                        .labelStyle(.titleAndIcon)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .fixedSize(horizontal: true, vertical: false)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .tint(selectedDisplayState == state ? Color(red: 0.16, green: 0.42, blue: 0.75) : .secondary)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    @ViewBuilder
+    private var searchOptions: some View {
+        if mode == .search {
+            Toggle(isOn: $includeUnwantedInSearch) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("不要候補も検索に含める")
+                        .font(.caption.weight(.semibold))
+
+                    Text("元写真・元動画は削除されません。しまい箱内の表示状態だけを切り替えます。")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .toggleStyle(.switch)
+            .padding(10)
+            .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func displayStateIncludes(_ asset: PhotoAsset) -> Bool {
+        let state = indexService.displayState(for: asset, ocrService: ocrService)
+
+        if mode == .search,
+           selectedDisplayState == .active,
+           includeUnwantedInSearch {
+            return state == .active || state == .unwanted
+        }
+
+        return state == selectedDisplayState
+    }
+
     private func categoryIncludes(_ asset: PhotoAsset) -> Bool {
         guard selectedCategory != .all else {
             return true
@@ -465,7 +552,21 @@ struct PhotoGridView: View {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(filteredAssets) { asset in
                         NavigationLink(value: asset) {
-                            PhotoThumbnailView(photoLibrary: photoLibrary, ocrService: ocrService, asset: asset)
+                            VStack(alignment: .leading, spacing: 5) {
+                                PhotoThumbnailView(
+                                    photoLibrary: photoLibrary,
+                                    ocrService: ocrService,
+                                    asset: asset,
+                                    displayState: indexService.displayState(for: asset, ocrService: ocrService)
+                                )
+
+                                if shouldShowSearchMatch {
+                                    SearchMatchSummaryView(
+                                        match: indexService.searchMatch(asset: asset, query: searchText, ocrService: ocrService),
+                                        status: indexService.status(for: asset, ocrService: ocrService)
+                                    )
+                                }
+                            }
                         }
                         .buttonStyle(.plain)
                     }
@@ -473,6 +574,10 @@ struct PhotoGridView: View {
                 .padding(.bottom, 24)
             }
         }
+    }
+
+    private var shouldShowSearchMatch: Bool {
+        mode == .search && searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 
     private var bulkOCRControls: some View {
@@ -876,10 +981,43 @@ private struct SafetyBullet: View {
     }
 }
 
+private struct SearchMatchSummaryView: View {
+    let match: PhotoSearchMatch
+    let status: OCRStatus
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if match.matchedFields.isEmpty {
+                Text(status == .unprocessed ? "OCRすると文字検索しやすくなります" : "一致情報を確認中")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            } else {
+                Text(match.matchedFields.map(\.title).joined(separator: "・"))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            if let snippet = match.ocrSnippet {
+                Text(snippet)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 private struct PhotoThumbnailView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     let asset: PhotoAsset
+    let displayState: PhotoDisplayState
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -917,16 +1055,22 @@ private struct PhotoThumbnailView: View {
             .background(.black.opacity(0.48), in: Capsule())
             .padding(6)
 
-            if asset.mediaType == .image {
-                VStack {
-                    HStack {
-                        Spacer()
+            VStack {
+                HStack(alignment: .top) {
+                    if displayState != .active {
+                        displayStateBadge
+                    }
+
+                    Spacer()
+
+                    if asset.mediaType == .image {
                         ocrBadge
                     }
-                    Spacer()
                 }
-                .padding(6)
+
+                Spacer()
             }
+            .padding(6)
         }
         .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -934,6 +1078,23 @@ private struct PhotoThumbnailView: View {
         .onAppear {
             photoLibrary.requestThumbnail(for: asset, targetSize: CGSize(width: 360, height: 360))
         }
+    }
+
+    private var displayStateBadge: some View {
+        HStack(spacing: 3) {
+            Image(systemName: displayState.systemImage)
+                .font(.caption2.weight(.semibold))
+
+            Text(displayState.chipTitle)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 3)
+        .background(Color(red: 0.25, green: 0.33, blue: 0.42).opacity(0.82), in: Capsule())
+        .accessibilityLabel(displayState.title)
     }
 
     private var ocrBadge: some View {
