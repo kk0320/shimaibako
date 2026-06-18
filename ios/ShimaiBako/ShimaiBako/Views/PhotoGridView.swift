@@ -55,6 +55,7 @@ struct PhotoGridView: View {
     @State private var bulkFailed = 0
     @State private var didStartDebugBulkOCR = false
     @State private var pendingBulkTargets: [PhotoAsset] = []
+    @State private var pendingBulkCandidateCount = 0
     @State private var showingBulkSafety = false
     @State private var showingVisibleOCRClearConfirmation = false
 
@@ -133,18 +134,24 @@ struct PhotoGridView: View {
 
     private var bulkTargetCandidateCount: Int {
         bulkTargetAssets.filter { asset in
-            asset.mediaType == .image &&
-            indexService.status(for: asset, ocrService: ocrService) != .completed &&
-            indexService.status(for: asset, ocrService: ocrService) != .processing
+            asset.mediaType == .image
         }.count
     }
 
-    private var bulkCandidates: [PhotoAsset] {
-        Array(bulkTargetAssets.filter { asset in
+    private var bulkEligibleTargets: [PhotoAsset] {
+        bulkTargetAssets.filter { asset in
             asset.mediaType == .image &&
             indexService.status(for: asset, ocrService: ocrService) != .completed &&
             indexService.status(for: asset, ocrService: ocrService) != .processing
-        }.prefix(selectedBulkLimit))
+        }
+    }
+
+    private var bulkCandidates: [PhotoAsset] {
+        Array(bulkEligibleTargets.prefix(selectedBulkLimit))
+    }
+
+    private var isBulkOCRBusy: Bool {
+        isRunningBulkOCR || bulkOCRTask != nil
     }
 
     private var visibleOCRClearTargets: [PhotoAsset] {
@@ -249,17 +256,21 @@ struct PhotoGridView: View {
             .sheet(isPresented: $showingBulkSafety) {
                 OCRBatchSafetyView(
                     targetTitle: selectedBulkTarget.title,
-                    candidateCount: bulkTargetCandidateCount,
+                    candidateCount: pendingBulkCandidateCount,
+                    eligibleCount: pendingBulkTargets.count,
                     selectedLimit: $selectedBulkLimit,
                     iCloudMode: photoLibrary.iCloudMode,
                     deviceSafety: deviceSafety,
+                    isRunningOCR: isBulkOCRBusy,
                     onCancel: {
                         pendingBulkTargets = []
+                        pendingBulkCandidateCount = 0
                         showingBulkSafety = false
                     },
                     onStart: {
-                        let targets = bulkCandidates
+                        let targets = Array(pendingBulkTargets.prefix(selectedBulkLimit))
                         pendingBulkTargets = []
+                        pendingBulkCandidateCount = 0
                         showingBulkSafety = false
                         startBulkOCR(with: targets)
                     }
@@ -822,7 +833,7 @@ struct PhotoGridView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isRunningBulkOCR)
+                .disabled(isBulkOCRBusy)
                 .accessibilityLabel("OCR対象を選択")
 
                 Menu {
@@ -846,7 +857,7 @@ struct PhotoGridView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isRunningBulkOCR)
+                .disabled(isBulkOCRBusy)
                 .accessibilityLabel("OCR件数を選択")
 
                 if isRunningBulkOCR {
@@ -872,7 +883,7 @@ struct PhotoGridView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                    .disabled(bulkCandidates.isEmpty)
+                    .disabled(isBulkOCRBusy)
                 }
             }
             .frame(height: 36)
@@ -924,7 +935,7 @@ struct PhotoGridView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isRunningBulkOCR)
+                .disabled(isBulkOCRBusy)
 
                 Text("現在の検索・カテゴリで表示中の写真だけが対象です。元写真・元動画は削除・変更されません。")
                     .font(.caption2)
@@ -937,21 +948,22 @@ struct PhotoGridView: View {
     }
 
     private func presentBulkSafety() {
-        let targets = bulkCandidates
-        guard targets.isEmpty == false,
-              isRunningBulkOCR == false,
+        let candidateCount = bulkTargetCandidateCount
+        let targets = bulkEligibleTargets
+        guard isBulkOCRBusy == false,
               bulkOCRTask == nil else {
             return
         }
 
         deviceSafety.refresh()
         pendingBulkTargets = targets
+        pendingBulkCandidateCount = candidateCount
         showingBulkSafety = true
     }
 
     private func startBulkOCR(with targets: [PhotoAsset]) {
         guard targets.isEmpty == false,
-              isRunningBulkOCR == false,
+              isBulkOCRBusy == false,
               bulkOCRTask == nil else {
             return
         }
@@ -1278,26 +1290,56 @@ private struct BulkProgressLabel: View {
 private struct OCRBatchSafetyView: View {
     let targetTitle: String
     let candidateCount: Int
+    let eligibleCount: Int
     @Binding var selectedLimit: Int
     let iCloudMode: ICloudPhotoMode
     @ObservedObject var deviceSafety: DeviceSafetyService
+    let isRunningOCR: Bool
     let onCancel: () -> Void
     let onStart: () -> Void
 
     private var runCount: Int {
-        min(candidateCount, selectedLimit)
+        min(eligibleCount, selectedLimit)
     }
 
     private var noticeTitle: String {
-        if candidateCount >= 100 {
+        if runCount >= 100 {
             return "段階実行を強く推奨"
         }
 
-        if candidateCount >= 21 {
+        if runCount >= 21 {
             return "対象が多めです"
         }
 
         return "OCR開始前の確認"
+    }
+
+    private var startDisabledReason: String? {
+        if isRunningOCR {
+            return "OCRを実行中です"
+        }
+
+        if candidateCount == 0 {
+            return "OCR対象がありません"
+        }
+
+        if eligibleCount == 0 {
+            return "OCR済みまたは処理中の写真を除外したため、対象がありません"
+        }
+
+        if runCount == 0 {
+            return "OCR対象を確認しています"
+        }
+
+        if let blockingReason = deviceSafety.blockingReasonForLargeWork {
+            return blockingReason
+        }
+
+        return nil
+    }
+
+    private var canStart: Bool {
+        startDisabledReason == nil
     }
 
     var body: some View {
@@ -1309,7 +1351,7 @@ private struct OCRBatchSafetyView: View {
                             .font(.title3.bold())
                             .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-                        Text("\(targetTitle)の候補\(candidateCount)件から、今回は最大\(runCount)件だけ処理します。全件OCRは行いません。")
+                        Text("\(targetTitle)の候補から、今回は最大\(runCount)件だけ処理します。全件OCRは行いません。")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1342,6 +1384,24 @@ private struct OCRBatchSafetyView: View {
                         Label("OCR済みと処理中の写真は除外します", systemImage: "checkmark.circle")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            OCRBatchCountRow(title: "候補", value: "\(candidateCount)件")
+                            OCRBatchCountRow(title: "OCR済み/処理中を除外後", value: "\(eligibleCount)件")
+                            OCRBatchCountRow(title: "今回処理", value: "最大\(runCount)件")
+                        }
+                        .padding(10)
+                        .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8))
+
+                        if let startDisabledReason {
+                            Label(startDisabledReason, systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(red: 1.0, green: 0.94, blue: 0.90), in: RoundedRectangle(cornerRadius: 8))
+                        }
                     }
                     .padding(14)
                     .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
@@ -1398,7 +1458,7 @@ private struct OCRBatchSafetyView: View {
                     Button("開始") {
                         onStart()
                     }
-                    .disabled(runCount == 0 || deviceSafety.blockingReasonForLargeWork != nil)
+                    .disabled(canStart == false)
                 }
             }
             .onAppear {
@@ -1426,6 +1486,29 @@ private struct OCRBatchSafetyView: View {
             Color(red: 0.75, green: 0.50, blue: 0.12)
         case .blocking:
             Color(red: 0.75, green: 0.24, blue: 0.18)
+        }
+    }
+}
+
+private struct OCRBatchCountRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            Spacer(minLength: 8)
+
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
     }
 }
