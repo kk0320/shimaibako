@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>しまい箱</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f9fd;
+      --panel: #ffffff;
+      --text: #14233a;
+      --muted: #5d6b7d;
+      --line: #d8e4f0;
+      --accent: #2f6fab;
+      --accent-soft: #e8f2fb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.7;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--bg), #ffffff 60%);
+    }
+
+    .page {
+      width: min(920px, 100%);
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+
+    header {
+      padding: 32px 0 20px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 7vw, 3.8rem);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 680px;
+      color: var(--muted);
+      font-size: 1.08rem;
+      margin: 18px 0 0;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 24px 0;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 9px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 18px;
+      box-shadow: 0 10px 28px rgba(35, 72, 110, 0.06);
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      margin: 0 0 10px;
+    }
+
+    ul {
+      padding-left: 1.2rem;
+      margin: 10px 0 0;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .notice {
+      background: var(--accent-soft);
+      border-color: #cfe2f4;
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-top: 32px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <p class="eyebrow">iPhone向け写真整理アプリ</p>
+      <h1>しまい箱</h1>
+      <p class="lead">
+        しまい箱は、写真とスクリーンショットを端末内で整理し、OCRや分類を使って探しやすくする個人向けiPhoneアプリです。
+      </p>
+    </header>
+
+    <nav aria-label="主要ページ">
+      <a class="nav-link" href="support.html">サポート</a>
+      <a class="nav-link" href="privacy.html">プライバシーポリシー</a>
+      <a class="nav-link" href="faq.html">FAQ</a>
+    </nav>
+
+    <section class="card notice">
+      <h2>写真を安全に扱います</h2>
+      <p>
+        しまい箱は、写真アプリ本体にある元写真・元動画を削除・移動・変更しません。不要候補や分類は、しまい箱内だけの表示状態です。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>できること</h2>
+      <ul>
+        <li>写真やスクリーンショットを一覧で確認する</li>
+        <li>端末内OCRで文字を読み取り、文字検索しやすくする</li>
+        <li>スクリーンショット、書類候補、領収書候補などの仮想分類で探す</li>
+        <li>不要候補を通常表示から外し、あとで見返す</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>サポート</h2>
+      <p>
+        使い方や不具合については、<a href="support.html">サポートページ</a>をご確認ください。
+      </p>
+    </section>
+
+    <footer>
+      <p>&copy; 2026 しまい箱</p>
+    </footer>
+  </main>
+</body>
+</html>
