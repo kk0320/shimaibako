@@ -6,10 +6,18 @@ import Photos
 final class PhotoIndexService: ObservableObject {
     @Published private(set) var recordsByAssetID: [String: PhotoIndexRecord] = [:]
     @Published private(set) var indexSummary: PhotoIndexSummary = .empty
+    @Published private(set) var displayStateCountCache: [PhotoDisplayState: Int] = .emptyDisplayStateCounts
+    @Published private(set) var categoryCountCache: [PhotoCategory: Int] = .emptyCategoryCounts
+    @Published private(set) var screenshotSubcategoryCountCache: [ScreenshotSubcategory: Int] = .emptyScreenshotSubcategoryCounts
+    @Published private(set) var categoryCountCacheByDisplayState: [PhotoDisplayState: [PhotoCategory: Int]] = [:]
+    @Published private(set) var screenshotSubcategoryCountCacheByDisplayState: [PhotoDisplayState: [ScreenshotSubcategory: Int]] = [:]
+    @Published private(set) var indexStoreStatusText: String?
+    @Published private(set) var isIndexStorePreparing = false
     @Published var errorMessage: String?
 
     private let store: any PhotoIndexStoring
     private let learningService: ManualCategoryLearningService
+    private var migrationObserver: NSObjectProtocol?
 
     init(
         store: any PhotoIndexStoring = SQLitePhotoIndexStore(),
@@ -17,9 +25,31 @@ final class PhotoIndexService: ObservableObject {
     ) {
         self.store = store
         self.learningService = learningService
+        migrationObserver = NotificationCenter.default.addObserver(
+            forName: SQLitePhotoIndexStore.migrationProgressNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            let completed = notification.userInfo?["completed"] as? Int ?? 0
+            let total = notification.userInfo?["total"] as? Int ?? 0
+            Task { @MainActor [weak self] in
+                guard let self else {
+                    return
+                }
+
+                self.isIndexStorePreparing = true
+                self.indexStoreStatusText = "旧インデックスをSQLiteへ移行中 \(completed) / \(total)件"
+            }
+        }
 
         Task {
             await loadPersistedRecords()
+        }
+    }
+
+    deinit {
+        if let migrationObserver {
+            NotificationCenter.default.removeObserver(migrationObserver)
         }
     }
 
@@ -106,6 +136,10 @@ final class PhotoIndexService: ObservableObject {
     }
 
     func displayStateCounts(for assets: [PhotoAsset], ocrService: OCRService) -> [PhotoDisplayState: Int] {
+        if displayStateCountCache.values.reduce(0, +) > 0 {
+            return displayStateCountCache
+        }
+
         var counts = Dictionary(uniqueKeysWithValues: PhotoDisplayState.allCases.map { ($0, 0) })
 
         for asset in assets {
@@ -114,6 +148,22 @@ final class PhotoIndexService: ObservableObject {
         }
 
         return counts
+    }
+
+    func cachedCategoryCounts(displayState: PhotoDisplayState? = nil) -> [PhotoCategory: Int] {
+        guard let displayState else {
+            return categoryCountCache
+        }
+
+        return categoryCountCacheByDisplayState[displayState] ?? .emptyCategoryCounts
+    }
+
+    func cachedScreenshotSubcategoryCounts(displayState: PhotoDisplayState? = nil) -> [ScreenshotSubcategory: Int] {
+        guard let displayState else {
+            return screenshotSubcategoryCountCache
+        }
+
+        return screenshotSubcategoryCountCacheByDisplayState[displayState] ?? .emptyScreenshotSubcategoryCounts
     }
 
     func setDisplayState(
@@ -776,10 +826,15 @@ final class PhotoIndexService: ObservableObject {
 
     private func loadPersistedRecords() async {
         do {
+            isIndexStorePreparing = true
+            indexStoreStatusText = "検索インデックスを準備しています"
             let records = try await store.loadPage(limit: 500, offset: 0)
             recordsByAssetID = Dictionary(uniqueKeysWithValues: records.map { ($0.localIdentifier, $0) })
-            indexSummary = try await store.summary()
+            try await refreshStoreStats()
+            indexStoreStatusText = nil
+            isIndexStorePreparing = false
         } catch {
+            isIndexStorePreparing = false
             errorMessage = "インデックスを読み込めませんでした: \(error.localizedDescription)"
         }
     }
@@ -787,7 +842,7 @@ final class PhotoIndexService: ObservableObject {
     private func persistRecords(_ records: [PhotoIndexRecord]) async {
         do {
             try await store.upsert(records)
-            indexSummary = try await store.summary()
+            try await refreshStoreStats()
         } catch {
             errorMessage = "インデックスを保存できませんでした: \(error.localizedDescription)"
         }
@@ -796,13 +851,48 @@ final class PhotoIndexService: ObservableObject {
     private func persistAllRecords(_ records: [PhotoIndexRecord]) async {
         do {
             try await store.saveAll(records)
-            indexSummary = try await store.summary()
+            try await refreshStoreStats()
         } catch {
             errorMessage = "インデックスを保存できませんでした: \(error.localizedDescription)"
         }
     }
 
+    private func refreshStoreStats() async throws {
+        indexSummary = try await store.summary()
+        displayStateCountCache = try await store.displayStateCounts()
+        categoryCountCache = try await store.categoryCounts(displayState: nil)
+        screenshotSubcategoryCountCache = try await store.screenshotSubcategoryCounts(displayState: nil)
+
+        var nextCategoryCounts: [PhotoDisplayState: [PhotoCategory: Int]] = [:]
+        var nextScreenshotCounts: [PhotoDisplayState: [ScreenshotSubcategory: Int]] = [:]
+        for state in PhotoDisplayState.allCases {
+            nextCategoryCounts[state] = try await store.categoryCounts(displayState: state)
+            nextScreenshotCounts[state] = try await store.screenshotSubcategoryCounts(displayState: state)
+        }
+
+        categoryCountCacheByDisplayState = nextCategoryCounts
+        screenshotSubcategoryCountCacheByDisplayState = nextScreenshotCounts
+    }
+
     private func refreshSummary() {
         indexSummary = PhotoIndexSummary(records: Array(recordsByAssetID.values))
+    }
+}
+
+private extension Dictionary where Key == PhotoDisplayState, Value == Int {
+    static var emptyDisplayStateCounts: [PhotoDisplayState: Int] {
+        Dictionary(uniqueKeysWithValues: PhotoDisplayState.allCases.map { ($0, 0) })
+    }
+}
+
+private extension Dictionary where Key == PhotoCategory, Value == Int {
+    static var emptyCategoryCounts: [PhotoCategory: Int] {
+        Dictionary(uniqueKeysWithValues: PhotoCategory.allCases.map { ($0, 0) })
+    }
+}
+
+private extension Dictionary where Key == ScreenshotSubcategory, Value == Int {
+    static var emptyScreenshotSubcategoryCounts: [ScreenshotSubcategory: Int] {
+        Dictionary(uniqueKeysWithValues: ScreenshotSubcategory.allCases.map { ($0, 0) })
     }
 }

@@ -2,6 +2,9 @@ import SwiftUI
 
 struct PhotoImportProgressCard: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
+    @State private var showsRecoveryOptions = false
+    @State private var showingResetConfirmation = false
+    @State private var isResetting = false
 
     private var progress: PhotoImportProgress {
         photoLibrary.importProgress
@@ -72,14 +75,28 @@ struct PhotoImportProgressCard: View {
                     .controlSize(.small)
                 }
 
-                Button {
-                    photoLibrary.resetLoadingState()
+                DisclosureGroup(isExpanded: $showsRecoveryOptions) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("通常は使いません。読み込みが止まった時だけ、途中の読み込みジョブ状態を初期化します。")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Button {
+                            showingResetConfirmation = true
+                        } label: {
+                            Label(isResetting ? "リセット中" : "読み込み処理だけを初期化", systemImage: "arrow.counterclockwise")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isResetting)
+                    }
+                    .padding(.top, 6)
                 } label: {
-                    Label("読み込み状態をリセット", systemImage: "arrow.counterclockwise")
-                        .frame(maxWidth: .infinity)
+                    Label("復旧オプション", systemImage: "wrench.and.screwdriver")
+                        .font(.caption.weight(.semibold))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
 
                 Button {
                     Task {
@@ -95,6 +112,20 @@ struct PhotoImportProgressCard: View {
         }
         .padding(12)
         .background(.white.opacity(0.80), in: RoundedRectangle(cornerRadius: 8))
+        .alert("読み込み処理だけを初期化しますか？", isPresented: $showingResetConfirmation) {
+            Button("キャンセル", role: .cancel) {}
+            Button("読み込み処理を初期化", role: .destructive) {
+                Task {
+                    isResetting = true
+                    photoLibrary.resetLoadingState()
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    isResetting = false
+                }
+            }
+            .disabled(isResetting)
+        } message: {
+            Text("元写真・元動画は削除されません。OCR結果・手動分類・不要候補・メモ・タグは削除しません。読み込みジョブ状態だけをリセットします。")
+        }
     }
 
     private var iconName: String {
@@ -136,6 +167,8 @@ struct PhotoImportProgressCard: View {
 
 struct ImportRecoveryEmptyView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
+    @State private var showingResetConfirmation = false
+    @State private var isResetting = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -176,15 +209,30 @@ struct ImportRecoveryEmptyView: View {
                 .buttonStyle(.bordered)
 
                 Button {
-                    photoLibrary.resetLoadingState()
+                    showingResetConfirmation = true
                 } label: {
-                    Label("読み込み状態をリセット", systemImage: "arrow.counterclockwise")
+                    Label(isResetting ? "リセット中" : "読み込み処理だけを初期化", systemImage: "arrow.counterclockwise")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
+                .disabled(isResetting)
             }
         }
         .padding(24)
+        .alert("読み込み処理だけを初期化しますか？", isPresented: $showingResetConfirmation) {
+            Button("キャンセル", role: .cancel) {}
+            Button("読み込み処理を初期化", role: .destructive) {
+                Task {
+                    isResetting = true
+                    photoLibrary.resetLoadingState()
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    isResetting = false
+                }
+            }
+            .disabled(isResetting)
+        } message: {
+            Text("元写真・元動画は削除されません。OCR結果・手動分類・不要候補・メモ・タグは削除しません。読み込みジョブ状態だけをリセットします。")
+        }
     }
 }
 

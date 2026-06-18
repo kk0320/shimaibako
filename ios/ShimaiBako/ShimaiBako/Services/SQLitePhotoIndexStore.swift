@@ -2,6 +2,8 @@ import Foundation
 import SQLite3
 
 actor SQLitePhotoIndexStore: PhotoIndexStoring {
+    nonisolated static let migrationProgressNotification = Notification.Name("SQLitePhotoIndexStoreMigrationProgress")
+
     private enum StoreError: LocalizedError {
         case openFailed(String)
         case prepareFailed(String)
@@ -154,13 +156,44 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         return Set(try identifiers(whereClause: conditions, bindings: bindings))
     }
 
-    func categoryCounts() async throws -> [PhotoCategory: Int] {
+    func displayStateCounts() async throws -> [PhotoDisplayState: Int] {
+        try openIfNeeded()
+        try await migrateLegacyJSONIfNeeded()
+
+        var counts = Dictionary(uniqueKeysWithValues: PhotoDisplayState.allCases.map { ($0, 0) })
+        let grouped = try groupedStringCounts(sql: "SELECT display_state, COUNT(*) FROM photo_records GROUP BY display_state")
+        for (rawValue, count) in grouped {
+            if let state = PhotoDisplayState(rawValue: rawValue) {
+                counts[state] = count
+            }
+        }
+        return counts
+    }
+
+    func categoryCounts(displayState: PhotoDisplayState?) async throws -> [PhotoCategory: Int] {
         try openIfNeeded()
         try await migrateLegacyJSONIfNeeded()
 
         var counts = Dictionary(uniqueKeysWithValues: PhotoCategory.allCases.map { ($0, 0) })
-        counts[.all] = try scalarInt("SELECT COUNT(*) FROM photo_records")
+        if let displayState {
+            counts[.all] = try scalarInt(
+                "SELECT COUNT(*) FROM photo_records WHERE display_state = ?",
+                bindings: [displayState.rawValue]
+            )
 
+            let grouped = try groupedStringCounts(
+                sql: "SELECT category, COUNT(*) FROM photo_records WHERE display_state = ? GROUP BY category",
+                bindings: [displayState.rawValue]
+            )
+            for (rawValue, count) in grouped {
+                if let category = PhotoCategory(rawValue: rawValue) {
+                    counts[category] = count
+                }
+            }
+            return counts
+        }
+
+        counts[.all] = try scalarInt("SELECT COUNT(*) FROM photo_records")
         let grouped = try groupedStringCounts(sql: "SELECT category, COUNT(*) FROM photo_records GROUP BY category")
         for (rawValue, count) in grouped {
             if let category = PhotoCategory(rawValue: rawValue) {
@@ -170,15 +203,33 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         return counts
     }
 
-    func screenshotSubcategoryCounts() async throws -> [ScreenshotSubcategory: Int] {
+    func screenshotSubcategoryCounts(displayState: PhotoDisplayState?) async throws -> [ScreenshotSubcategory: Int] {
         try openIfNeeded()
         try await migrateLegacyJSONIfNeeded()
 
         var counts = Dictionary(uniqueKeysWithValues: ScreenshotSubcategory.allCases.map { ($0, 0) })
-        counts[.all] = try scalarInt("SELECT COUNT(*) FROM photo_records WHERE is_screenshot = 1")
+        if let displayState {
+            counts[.all] = try scalarInt(
+                "SELECT COUNT(*) FROM photo_records WHERE is_screenshot = 1 AND display_state = ?",
+                bindings: [displayState.rawValue]
+            )
 
+            let grouped = try groupedStringCounts(
+                sql: "SELECT COALESCE(screenshot_category, ?), COUNT(*) FROM photo_records WHERE is_screenshot = 1 AND display_state = ? GROUP BY COALESCE(screenshot_category, ?)",
+                bindings: [ScreenshotSubcategory.otherScreenshot.rawValue, displayState.rawValue, ScreenshotSubcategory.otherScreenshot.rawValue]
+            )
+            for (rawValue, count) in grouped {
+                if let subcategory = ScreenshotSubcategory(rawValue: rawValue) {
+                    counts[subcategory] = count
+                }
+            }
+            return counts
+        }
+
+        counts[.all] = try scalarInt("SELECT COUNT(*) FROM photo_records WHERE is_screenshot = 1")
         let grouped = try groupedStringCounts(
-            sql: "SELECT screenshot_category, COUNT(*) FROM photo_records WHERE is_screenshot = 1 GROUP BY screenshot_category"
+            sql: "SELECT COALESCE(screenshot_category, ?), COUNT(*) FROM photo_records WHERE is_screenshot = 1 GROUP BY COALESCE(screenshot_category, ?)",
+            bindings: [ScreenshotSubcategory.otherScreenshot.rawValue, ScreenshotSubcategory.otherScreenshot.rawValue]
         )
         for (rawValue, count) in grouped {
             if let subcategory = ScreenshotSubcategory(rawValue: rawValue) {
@@ -327,11 +378,24 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
 
         let batchSize = 500
         var index = 0
+        postMigrationProgress(completed: 0, total: legacyRecords.count)
         while index < legacyRecords.count {
             let upperBound = min(index + batchSize, legacyRecords.count)
             try await upsert(Array(legacyRecords[index..<upperBound]))
             index = upperBound
+            postMigrationProgress(completed: index, total: legacyRecords.count)
         }
+    }
+
+    private func postMigrationProgress(completed: Int, total: Int) {
+        NotificationCenter.default.post(
+            name: Self.migrationProgressNotification,
+            object: nil,
+            userInfo: [
+                "completed": completed,
+                "total": total
+            ]
+        )
     }
 
     private func upsertRecord(_ record: PhotoIndexRecord) throws {
@@ -520,9 +584,13 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         return value
     }
 
-    private func groupedStringCounts(sql: String) throws -> [(String, Int)] {
+    private func groupedStringCounts(sql: String, bindings: [String] = []) throws -> [(String, Int)] {
         var rows: [(String, Int)] = []
         try withStatement(sql) { statement in
+            for (index, binding) in bindings.enumerated() {
+                try bindText(statement, Int32(index + 1), binding)
+            }
+
             while sqlite3_step(statement) == SQLITE_ROW {
                 guard let rawPointer = sqlite3_column_text(statement, 0) else {
                     continue

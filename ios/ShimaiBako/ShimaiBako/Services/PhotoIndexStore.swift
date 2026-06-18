@@ -12,9 +12,20 @@ nonisolated protocol PhotoIndexStoring: Sendable {
     func resetCategories(localIdentifiers: [String]) async throws
     func resetAllCategories() async throws
     func searchLocalIdentifiers(matching query: String) async throws -> Set<String>
-    func categoryCounts() async throws -> [PhotoCategory: Int]
-    func screenshotSubcategoryCounts() async throws -> [ScreenshotSubcategory: Int]
+    func displayStateCounts() async throws -> [PhotoDisplayState: Int]
+    func categoryCounts(displayState: PhotoDisplayState?) async throws -> [PhotoCategory: Int]
+    func screenshotSubcategoryCounts(displayState: PhotoDisplayState?) async throws -> [ScreenshotSubcategory: Int]
     func summary() async throws -> PhotoIndexSummary
+}
+
+extension PhotoIndexStoring {
+    func categoryCounts() async throws -> [PhotoCategory: Int] {
+        try await categoryCounts(displayState: nil)
+    }
+
+    func screenshotSubcategoryCounts() async throws -> [ScreenshotSubcategory: Int] {
+        try await screenshotSubcategoryCounts(displayState: nil)
+    }
 }
 
 actor JSONPhotoIndexStore: PhotoIndexStoring {
@@ -157,9 +168,26 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
         })
     }
 
-    func categoryCounts() async throws -> [PhotoCategory: Int] {
-        var counts = Dictionary(uniqueKeysWithValues: PhotoCategory.allCases.map { ($0, 0) })
+    func displayStateCounts() async throws -> [PhotoDisplayState: Int] {
+        var counts = Dictionary(uniqueKeysWithValues: PhotoDisplayState.allCases.map { ($0, 0) })
         let records = try await loadAll()
+
+        for record in records {
+            counts[record.displayState, default: 0] += 1
+        }
+
+        return counts
+    }
+
+    func categoryCounts(displayState: PhotoDisplayState?) async throws -> [PhotoCategory: Int] {
+        var counts = Dictionary(uniqueKeysWithValues: PhotoCategory.allCases.map { ($0, 0) })
+        let records = try await loadAll().filter { record in
+            guard let displayState else {
+                return true
+            }
+
+            return record.displayState == displayState
+        }
         counts[.all] = records.count
 
         for record in records {
@@ -169,9 +197,19 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
         return counts
     }
 
-    func screenshotSubcategoryCounts() async throws -> [ScreenshotSubcategory: Int] {
+    func screenshotSubcategoryCounts(displayState: PhotoDisplayState?) async throws -> [ScreenshotSubcategory: Int] {
         var counts = Dictionary(uniqueKeysWithValues: ScreenshotSubcategory.allCases.map { ($0, 0) })
-        let records = try await loadAll().filter(\.isScreenshot)
+        let records = try await loadAll().filter { record in
+            guard record.isScreenshot else {
+                return false
+            }
+
+            guard let displayState else {
+                return true
+            }
+
+            return record.displayState == displayState
+        }
         counts[.all] = records.count
 
         for record in records {

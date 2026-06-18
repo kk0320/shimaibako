@@ -16,6 +16,7 @@ struct PhotoDetailView: View {
     @State private var showingClearOCRConfirmation = false
     @State private var showingResetCategoryConfirmation = false
     @State private var showingMoveToUnwantedConfirmation = false
+    @State private var undoDisplayStateChange: DisplayStateUndo?
     @State private var memoDraft = ""
     @State private var tagsDraft = ""
 
@@ -96,6 +97,14 @@ struct PhotoDetailView: View {
                 }
                 .padding(16)
             }
+
+            if let undoDisplayStateChange {
+                displayStateUndoToast(undoDisplayStateChange)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 18)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .navigationTitle("詳細")
         .navigationBarTitleDisplayMode(.inline)
@@ -123,7 +132,7 @@ struct PhotoDetailView: View {
             Button("キャンセル", role: .cancel) {}
             Button("不要候補へ移動") {
                 Task {
-                    await indexService.setDisplayState(.unwanted, for: asset, ocrService: ocrService)
+                    await setDisplayStateWithUndo(.unwanted)
                 }
             }
         } message: {
@@ -274,7 +283,7 @@ struct PhotoDetailView: View {
             if state != .active {
                 Button {
                     Task {
-                        await indexService.setDisplayState(.active, for: asset, ocrService: ocrService)
+                        await setDisplayStateWithUndo(.active)
                     }
                 } label: {
                     Label("通常表示に戻す", systemImage: "arrow.uturn.backward.circle")
@@ -294,6 +303,54 @@ struct PhotoDetailView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             }
+        }
+    }
+
+    private func displayStateUndoToast(_ change: DisplayStateUndo) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(Color(red: 0.14, green: 0.55, blue: 0.32))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(change.current.chipTitle)に変更しました")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                Text("写真アプリには影響しません。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            Button("元に戻す") {
+                Task {
+                    await undoDisplayState(change)
+                }
+            }
+            .font(.caption.weight(.semibold))
+        }
+        .padding(12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
+    }
+
+    private func setDisplayStateWithUndo(_ state: PhotoDisplayState) async {
+        let previous = indexService.displayState(for: asset, ocrService: ocrService)
+        guard previous != state else {
+            return
+        }
+
+        await indexService.setDisplayState(state, for: asset, ocrService: ocrService)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            undoDisplayStateChange = DisplayStateUndo(previous: previous, current: state)
+        }
+    }
+
+    private func undoDisplayState(_ change: DisplayStateUndo) async {
+        await indexService.setDisplayState(change.previous, for: asset, ocrService: ocrService)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            undoDisplayStateChange = nil
         }
     }
 
@@ -489,6 +546,11 @@ struct PhotoDetailView: View {
                 }
         }
     }
+}
+
+private struct DisplayStateUndo: Equatable {
+    let previous: PhotoDisplayState
+    let current: PhotoDisplayState
 }
 
 private struct DetailRow: View {

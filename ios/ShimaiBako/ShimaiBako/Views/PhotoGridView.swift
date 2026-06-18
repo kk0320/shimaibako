@@ -93,19 +93,15 @@ struct PhotoGridView: View {
     }
 
     private var categoryCounts: [PhotoCategory: Int] {
-        indexService.counts(for: displayScopedAssets, ocrService: ocrService)
+        indexService.cachedCategoryCounts(displayState: selectedDisplayState)
     }
 
     private var screenshotSubcategoryCounts: [ScreenshotSubcategory: Int] {
-        let screenshotAssets = displayScopedAssets.filter { asset in
-            indexService.category(for: asset, ocrService: ocrService) == .screenshots
-        }
-
-        return indexService.screenshotSubcategoryCounts(for: screenshotAssets, ocrService: ocrService)
+        indexService.cachedScreenshotSubcategoryCounts(displayState: selectedDisplayState)
     }
 
     private var displayStateCounts: [PhotoDisplayState: Int] {
-        indexService.displayStateCounts(for: photoLibrary.assets, ocrService: ocrService)
+        indexService.displayStateCountCache
     }
 
     private var bulkTargetAssets: [PhotoAsset] {
@@ -185,6 +181,9 @@ struct PhotoGridView: View {
 
                 VStack(spacing: 12) {
                     statusHeader
+                    if let statusText = indexService.indexStoreStatusText {
+                        IndexStoreStatusCard(statusText: statusText)
+                    }
                     if photoLibrary.shouldShowImportProgress {
                         PhotoImportProgressCard(photoLibrary: photoLibrary)
                     }
@@ -1111,6 +1110,32 @@ private struct SearchMatchSummaryView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct IndexStoreStatusCard: View {
+    let statusText: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(statusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                Text("元写真・元動画は削除・変更しません。旧JSONは移行元として残します。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
