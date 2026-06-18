@@ -33,6 +33,7 @@ struct PhotoGridView: View {
     @State private var selectedBulkTarget: OCRBatchTarget = .visible
     @State private var visibleAssetLimit = 200
     @AppStorage("shimaibako.ocrBatchLimit") private var selectedBulkLimit = 20
+    @AppStorage("shimaibako.photoGridShowsCategoryFilters") private var showsCategoryFilters = false
     @State private var effectiveSearchText: String
     @State private var searchDebounceTask: Task<Void, Never>?
     @State private var pageFetchTask: Task<Void, Never>?
@@ -197,10 +198,7 @@ struct PhotoGridView: View {
                     }
                     displayStateChips
                     searchOptions
-                    categoryChips
-                    if selectedCategory == .screenshots {
-                        screenshotSubcategoryChips
-                    }
+                    categoryFilterSection
                     bulkOCRControls
                     content
                 }
@@ -485,6 +483,52 @@ struct PhotoGridView: View {
         DisplayStateChipRow(indexService: indexService, selectedDisplayState: $selectedDisplayState)
     }
 
+    private var categoryFilterSection: some View {
+        VStack(spacing: showsCategoryFilters ? 6 : 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    showsCategoryFilters.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Label(showsCategoryFilters ? "カテゴリを隠す" : "カテゴリを表示", systemImage: "line.3.horizontal.decrease.circle")
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: 8)
+
+                    Text(selectedCategory.shortTitle)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+
+                    Image(systemName: showsCategoryFilters ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 14)
+                }
+                .frame(height: 32)
+                .padding(.horizontal, 10)
+                .foregroundStyle(Color(red: 0.13, green: 0.22, blue: 0.34))
+                .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(showsCategoryFilters ? "カテゴリを隠す" : "カテゴリを表示")
+
+            if showsCategoryFilters {
+                VStack(spacing: 4) {
+                    categoryChips
+                    if selectedCategory == .screenshots {
+                        screenshotSubcategoryChips
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
     @ViewBuilder
     private var searchOptions: some View {
         if mode == .search {
@@ -670,19 +714,12 @@ struct PhotoGridView: View {
 
     private var bulkOCRControls: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("OCR")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-
-                    Text(bulkCandidates.isEmpty ? "未処理の対象写真はありません" : "\(selectedBulkTarget.title)から最大\(selectedBulkLimit)件。件数は20/50/100から選べます。")
-                        .font(.caption)
-                        .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
-                        .lineLimit(2)
-                }
-
-                Spacer(minLength: 8)
+            HStack(spacing: 6) {
+                Text("OCR")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(width: 30, alignment: .leading)
 
                 Menu {
                     ForEach(OCRBatchTarget.allCases) { target in
@@ -694,6 +731,7 @@ struct PhotoGridView: View {
                     }
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
+                        .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -709,8 +747,15 @@ struct PhotoGridView: View {
                         }
                     }
                 } label: {
-                    Label("最大\(selectedBulkLimit)", systemImage: "number.circle")
-                        .labelStyle(.titleAndIcon)
+                    HStack(spacing: 3) {
+                        Image(systemName: "number.circle")
+                            .font(.caption.weight(.semibold))
+                        Text("\(selectedBulkLimit)件")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .frame(minWidth: 50)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -723,6 +768,8 @@ struct PhotoGridView: View {
                     } label: {
                         Label(bulkCancellationRequested ? "停止中" : "キャンセル", systemImage: "xmark.circle")
                             .labelStyle(.titleAndIcon)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -733,12 +780,16 @@ struct PhotoGridView: View {
                     } label: {
                         Label("まとめてOCR", systemImage: "text.viewfinder")
                             .labelStyle(.titleAndIcon)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .disabled(bulkCandidates.isEmpty)
                 }
             }
+            .frame(height: 36)
+            .padding(.horizontal, 2)
 
             if isRunningBulkOCR || bulkTotal > 0 {
                 VStack(alignment: .leading, spacing: 8) {
