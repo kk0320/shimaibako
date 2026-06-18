@@ -16,7 +16,7 @@ struct PhotoDetailView: View {
     @State private var showingClearOCRConfirmation = false
     @State private var showingResetCategoryConfirmation = false
     @State private var showingMoveToUnwantedConfirmation = false
-    @State private var undoDisplayStateChange: DisplayStateUndo?
+    @State private var undoDisplayStateChange: PhotoStateMutation?
     @State private var memoDraft = ""
     @State private var tagsDraft = ""
 
@@ -306,13 +306,13 @@ struct PhotoDetailView: View {
         }
     }
 
-    private func displayStateUndoToast(_ change: DisplayStateUndo) -> some View {
+    private func displayStateUndoToast(_ change: PhotoStateMutation) -> some View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(Color(red: 0.14, green: 0.55, blue: 0.32))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(change.current.chipTitle)に変更しました")
+                Text("\(change.after.chipTitle)に変更しました")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
@@ -343,12 +343,16 @@ struct PhotoDetailView: View {
 
         await indexService.setDisplayState(state, for: asset, ocrService: ocrService)
         withAnimation(.easeInOut(duration: 0.2)) {
-            undoDisplayStateChange = DisplayStateUndo(previous: previous, current: state)
+            undoDisplayStateChange = PhotoStateMutation(
+                assetIdentifiers: [asset.localIdentifier],
+                before: previous,
+                after: state
+            )
         }
     }
 
-    private func undoDisplayState(_ change: DisplayStateUndo) async {
-        await indexService.setDisplayState(change.previous, for: asset, ocrService: ocrService)
+    private func undoDisplayState(_ change: PhotoStateMutation) async {
+        await indexService.setDisplayState(change.before, for: asset, ocrService: ocrService)
         withAnimation(.easeInOut(duration: 0.2)) {
             undoDisplayStateChange = nil
         }
@@ -548,9 +552,10 @@ struct PhotoDetailView: View {
     }
 }
 
-private struct DisplayStateUndo: Equatable {
-    let previous: PhotoDisplayState
-    let current: PhotoDisplayState
+private struct PhotoStateMutation: Equatable, Sendable {
+    let assetIdentifiers: [String]
+    let before: PhotoDisplayState
+    let after: PhotoDisplayState
 }
 
 private struct DetailRow: View {

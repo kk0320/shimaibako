@@ -9,7 +9,6 @@ final class PhotoLibraryService: ObservableObject {
     @Published private(set) var authorizationStatus: PHAuthorizationStatus
     @Published private(set) var assets: [PhotoAsset] = []
     @Published private(set) var latestLoadedBatch: [PhotoAsset] = []
-    @Published private(set) var thumbnails: [String: UIImage] = [:]
     @Published private(set) var readMode: PhotoReadMode
     @Published private(set) var iCloudMode: ICloudPhotoMode
     @Published private(set) var totalAssetCount = 0
@@ -28,6 +27,8 @@ final class PhotoLibraryService: ObservableObject {
     private var cancellationRequested = false
     private var importTask: Task<Void, Never>?
     private var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+    private var thumbnails: [String: UIImage] = [:]
+    private var thumbnailRequests: [String: PHImageRequestID] = [:]
     private let batchSize = 100
     private let firstPaintLimit = 100
 
@@ -180,7 +181,7 @@ final class PhotoLibraryService: ObservableObject {
             cancelLoading()
             assets = []
             latestLoadedBatch = []
-            thumbnails = [:]
+            clearThumbnailPipeline()
             totalAssetCount = 0
             loadedAssetCount = 0
             importProgress = .idle
@@ -202,7 +203,7 @@ final class PhotoLibraryService: ObservableObject {
         if resume == false {
             loadedAssetCount = 0
             totalAssetCount = 0
-            thumbnails = [:]
+                clearThumbnailPipeline()
         }
 
         importTask = Task { [weak self] in
@@ -421,17 +422,26 @@ final class PhotoLibraryService: ObservableObject {
         thumbnails[asset.id]
     }
 
-    func requestThumbnail(for asset: PhotoAsset, targetSize: CGSize) {
-        guard thumbnails[asset.id] == nil else {
+    func requestThumbnail(for asset: PhotoAsset, targetSize: CGSize, completion: ((UIImage?) -> Void)? = nil) {
+        if let image = thumbnails[asset.id] {
+            PerformanceTelemetry.mark(.thumbnailRequest, "cache-hit")
+            completion?(image)
             return
         }
 
+        let requestKey = thumbnailRequestKey(for: asset, targetSize: targetSize)
+        guard thumbnailRequests[requestKey] == nil else {
+            PerformanceTelemetry.mark(.thumbnailRequest, "in-flight")
+            return
+        }
+
+        PerformanceTelemetry.mark(.thumbnailRequest, "start")
         let options = PHImageRequestOptions()
         options.deliveryMode = .opportunistic
         options.resizeMode = .fast
         options.isNetworkAccessAllowed = false
 
-        imageManager.requestImage(
+        let requestID = imageManager.requestImage(
             for: asset.asset,
             targetSize: targetSize,
             contentMode: .aspectFill,
@@ -442,9 +452,23 @@ final class PhotoLibraryService: ObservableObject {
             }
 
             Task { @MainActor in
+                self?.thumbnailRequests[requestKey] = nil
                 self?.thumbnails[asset.id] = image
+                PerformanceTelemetry.mark(.thumbnailResult, "completed")
+                completion?(image)
             }
         }
+        thumbnailRequests[requestKey] = requestID
+    }
+
+    func cancelThumbnailRequest(for asset: PhotoAsset, targetSize: CGSize) {
+        let requestKey = thumbnailRequestKey(for: asset, targetSize: targetSize)
+        guard let requestID = thumbnailRequests.removeValue(forKey: requestKey) else {
+            return
+        }
+
+        imageManager.cancelImageRequest(requestID)
+        PerformanceTelemetry.mark(.thumbnailResult, "cancelled")
     }
 
     func requestDisplayImage(for asset: PhotoAsset) async -> UIImage? {
@@ -518,6 +542,18 @@ final class PhotoLibraryService: ObservableObject {
             interruptionReason: nil,
             latestLoadedIdentifiers: batch.isEmpty ? importProgress.latestLoadedIdentifiers : batch.map(\.localIdentifier)
         )
+    }
+
+    private func clearThumbnailPipeline() {
+        for requestID in thumbnailRequests.values {
+            imageManager.cancelImageRequest(requestID)
+        }
+        thumbnailRequests = [:]
+        thumbnails = [:]
+    }
+
+    private func thumbnailRequestKey(for asset: PhotoAsset, targetSize: CGSize) -> String {
+        "\(asset.id)|\(Int(targetSize.width.rounded()))x\(Int(targetSize.height.rounded()))|aspectFill"
     }
 
     private func markImportCancelledIfCurrent(generation: Int, loadedCount: Int, totalCount: Int) {

@@ -43,9 +43,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         header
                         summaryCard
-                        if let statusText = indexService.indexStoreStatusText {
-                            IndexStoreStatusCard(statusText: statusText)
-                        }
+                        IndexStoreStatusContainer()
                         if photoLibrary.shouldShowImportProgress {
                             PhotoImportProgressCard(photoLibrary: photoLibrary)
                         }
