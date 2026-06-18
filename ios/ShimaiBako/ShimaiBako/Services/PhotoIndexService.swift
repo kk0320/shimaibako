@@ -12,7 +12,7 @@ final class PhotoIndexService: ObservableObject {
     private let learningService: ManualCategoryLearningService
 
     init(
-        store: any PhotoIndexStoring = JSONPhotoIndexStore(),
+        store: any PhotoIndexStoring = SQLitePhotoIndexStore(),
         learningService: ManualCategoryLearningService
     ) {
         self.store = store
@@ -776,9 +776,9 @@ final class PhotoIndexService: ObservableObject {
 
     private func loadPersistedRecords() async {
         do {
-            let records = try await store.loadAll()
+            let records = try await store.loadPage(limit: 500, offset: 0)
             recordsByAssetID = Dictionary(uniqueKeysWithValues: records.map { ($0.localIdentifier, $0) })
-            refreshSummary()
+            indexSummary = try await store.summary()
         } catch {
             errorMessage = "インデックスを読み込めませんでした: \(error.localizedDescription)"
         }
@@ -787,7 +787,7 @@ final class PhotoIndexService: ObservableObject {
     private func persistRecords(_ records: [PhotoIndexRecord]) async {
         do {
             try await store.upsert(records)
-            refreshSummary()
+            indexSummary = try await store.summary()
         } catch {
             errorMessage = "インデックスを保存できませんでした: \(error.localizedDescription)"
         }
@@ -796,7 +796,7 @@ final class PhotoIndexService: ObservableObject {
     private func persistAllRecords(_ records: [PhotoIndexRecord]) async {
         do {
             try await store.saveAll(records)
-            refreshSummary()
+            indexSummary = try await store.summary()
         } catch {
             errorMessage = "インデックスを保存できませんでした: \(error.localizedDescription)"
         }

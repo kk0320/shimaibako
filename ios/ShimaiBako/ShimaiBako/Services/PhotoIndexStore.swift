@@ -2,6 +2,7 @@ import Foundation
 
 nonisolated protocol PhotoIndexStoring: Sendable {
     func loadAll() async throws -> [PhotoIndexRecord]
+    func loadPage(limit: Int, offset: Int) async throws -> [PhotoIndexRecord]
     func saveAll(_ records: [PhotoIndexRecord]) async throws
     func upsert(_ records: [PhotoIndexRecord]) async throws
     func clearOCRResult(localIdentifier: String) async throws
@@ -58,6 +59,26 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
             cachedRecords = [:]
             return []
         }
+    }
+
+    func loadPage(limit: Int, offset: Int) async throws -> [PhotoIndexRecord] {
+        let records = try await loadAll()
+            .sorted { lhs, rhs in
+                switch (lhs.creationDate, rhs.creationDate) {
+                case let (lhsDate?, rhsDate?):
+                    if lhsDate == rhsDate {
+                        return lhs.localIdentifier > rhs.localIdentifier
+                    }
+                    return lhsDate > rhsDate
+                case (.some, .none):
+                    return true
+                case (.none, .some):
+                    return false
+                case (.none, .none):
+                    return lhs.localIdentifier > rhs.localIdentifier
+                }
+            }
+        return Array(records.dropFirst(max(offset, 0)).prefix(max(limit, 1)))
     }
 
     func saveAll(_ records: [PhotoIndexRecord]) async throws {
