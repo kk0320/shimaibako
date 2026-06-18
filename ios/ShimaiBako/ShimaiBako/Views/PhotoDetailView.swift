@@ -460,7 +460,7 @@ struct PhotoDetailView: View {
             .buttonStyle(.borderedProminent)
             .disabled(displayImage == nil || asset.mediaType != .image || ocrService.isProcessing(asset))
 
-            if status == .completed || status == .failed {
+            if status == .completed || status == .completedNoText || status == .cloudPending || status == .skipped || status == .failed {
                 Button(role: .destructive) {
                     showingClearOCRConfirmation = true
                 } label: {
@@ -487,6 +487,21 @@ struct PhotoDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
                     .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
+            } else if let result, result.ocrStatus == .completedNoText {
+                Text("文字は見つかりませんでした。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let result, result.ocrStatus == .cloudPending {
+                Text(result.errorMessage ?? "iCloud上の写真です。iCloud取得を許可すると再試行できます。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let result, result.ocrStatus == .skipped {
+                Text(result.errorMessage ?? "この写真はOCR対象から除外されました。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else if let result, result.ocrStatus == .failed {
                 Text(result.errorMessage ?? "読み取りに失敗しました。")
                     .font(.callout)
@@ -508,7 +523,7 @@ struct PhotoDetailView: View {
             "この写真をOCR"
         case .processing:
             "OCR中"
-        case .completed, .failed:
+        case .completed, .completedNoText, .cloudPending, .skipped, .failed:
             "再OCR"
         }
     }
@@ -521,6 +536,10 @@ struct PhotoDetailView: View {
             Color(red: 0.16, green: 0.42, blue: 0.75)
         case .completed:
             Color(red: 0.14, green: 0.55, blue: 0.32)
+        case .completedNoText, .skipped:
+            Color(red: 0.36, green: 0.42, blue: 0.48)
+        case .cloudPending:
+            Color(red: 0.16, green: 0.42, blue: 0.75)
         case .failed:
             Color(red: 0.75, green: 0.24, blue: 0.18)
         }

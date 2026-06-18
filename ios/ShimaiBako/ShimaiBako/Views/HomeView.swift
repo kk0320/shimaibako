@@ -14,6 +14,7 @@ struct HomeView: View {
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var ocrJobRunner: OCRJobRunner
     @State private var selectedTab = HomeTab.initialSelection
 
     var body: some View {
@@ -23,7 +24,8 @@ struct HomeView: View {
                 ocrService: ocrService,
                 indexService: indexService,
                 learningService: learningService,
-                deviceSafety: deviceSafety
+                deviceSafety: deviceSafety,
+                ocrJobRunner: ocrJobRunner
             )
                 .tabItem {
                     Label("写真", systemImage: "photo.on.rectangle")
@@ -36,6 +38,7 @@ struct HomeView: View {
                 indexService: indexService,
                 learningService: learningService,
                 deviceSafety: deviceSafety,
+                ocrJobRunner: ocrJobRunner,
                 mode: .search
             )
                 .tabItem {
@@ -85,6 +88,7 @@ private struct PhotoAccessRootView: View {
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var ocrJobRunner: OCRJobRunner
 
     var body: some View {
         switch photoLibrary.authorizationStatus {
@@ -95,6 +99,7 @@ private struct PhotoAccessRootView: View {
                 indexService: indexService,
                 learningService: learningService,
                 deviceSafety: deviceSafety,
+                ocrJobRunner: ocrJobRunner,
                 mode: .library
             )
         case .notDetermined, .denied, .restricted:

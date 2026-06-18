@@ -232,6 +232,36 @@ final class PhotoIndexService: ObservableObject {
         }
     }
 
+    func localIdentifiersForOCRJob(matching request: PhotoIndexPageRequest, limit: Int = 100_000) async -> [String] {
+        let jobRequest = PhotoIndexPageRequest(
+            query: request.query,
+            displayState: request.displayState,
+            includeUnwantedWhenActive: request.includeUnwantedWhenActive,
+            category: request.category,
+            screenshotSubcategory: request.screenshotSubcategory,
+            limit: limit,
+            offset: 0
+        )
+        return await page(matching: jobRequest).localIdentifiers
+    }
+
+    func recordsForOCRJob(localIdentifiers: [String]) async -> [PhotoIndexRecord] {
+        do {
+            return try await store.records(localIdentifiers: localIdentifiers)
+        } catch {
+            errorMessage = "OCR対象を読み込めませんでした: \(error.localizedDescription)"
+            return []
+        }
+    }
+
+    func persistOCRJobResult(for asset: PhotoAsset, ocrService: OCRService) async {
+        let record = makeRecord(for: asset, ocrService: ocrService)
+        if recordsByAssetID[asset.id] != nil {
+            recordsByAssetID[asset.id] = record
+        }
+        await persistRecords([record], refreshStats: false)
+    }
+
     func setDisplayState(
         _ state: PhotoDisplayState,
         for asset: PhotoAsset,

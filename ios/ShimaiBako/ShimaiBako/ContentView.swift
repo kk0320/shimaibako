@@ -8,15 +8,26 @@ struct ContentView: View {
     @StateObject private var learningService: ManualCategoryLearningService
     @StateObject private var accuracyImprovementService: AccuracyImprovementService
     @StateObject private var deviceSafety: DeviceSafetyService
+    @StateObject private var ocrJobRunner: OCRJobRunner
 
     init() {
         let learningService = ManualCategoryLearningService()
-        _photoLibrary = StateObject(wrappedValue: PhotoLibraryService())
-        _ocrService = StateObject(wrappedValue: OCRService())
+        let photoLibrary = PhotoLibraryService()
+        let ocrService = OCRService()
+        let indexService = PhotoIndexService(learningService: learningService)
+        let deviceSafety = DeviceSafetyService()
+        _photoLibrary = StateObject(wrappedValue: photoLibrary)
+        _ocrService = StateObject(wrappedValue: ocrService)
         _learningService = StateObject(wrappedValue: learningService)
-        _indexService = StateObject(wrappedValue: PhotoIndexService(learningService: learningService))
+        _indexService = StateObject(wrappedValue: indexService)
         _accuracyImprovementService = StateObject(wrappedValue: AccuracyImprovementService())
-        _deviceSafety = StateObject(wrappedValue: DeviceSafetyService())
+        _deviceSafety = StateObject(wrappedValue: deviceSafety)
+        _ocrJobRunner = StateObject(wrappedValue: OCRJobRunner(
+            photoLibrary: photoLibrary,
+            ocrService: ocrService,
+            indexService: indexService,
+            deviceSafety: deviceSafety
+        ))
     }
 
     var body: some View {
@@ -26,10 +37,12 @@ struct ContentView: View {
             indexService: indexService,
             learningService: learningService,
             accuracyImprovementService: accuracyImprovementService,
-            deviceSafety: deviceSafety
+            deviceSafety: deviceSafety,
+            ocrJobRunner: ocrJobRunner
         )
             .task {
                 await photoLibrary.prepare()
+                await ocrJobRunner.prepare()
             }
             .onChange(of: scenePhase) { _, newPhase in
                 switch newPhase {
@@ -37,6 +50,7 @@ struct ContentView: View {
                     photoLibrary.applicationDidBecomeActive()
                 case .background:
                     photoLibrary.applicationDidEnterBackground()
+                    ocrJobRunner.applicationDidEnterBackground()
                 case .inactive:
                     break
                 @unknown default:

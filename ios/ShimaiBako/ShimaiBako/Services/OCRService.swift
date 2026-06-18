@@ -93,8 +93,8 @@ final class OCRService: ObservableObject {
             let text = try await Self.recognizeText(in: image)
             finalResult = OCRResultRecord(
                 photoLocalIdentifier: asset.localIdentifier,
-                ocrText: text.isEmpty ? "テキストは見つかりませんでした。" : text,
-                ocrStatus: .completed,
+                ocrText: text,
+                ocrStatus: text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .completedNoText : .completed,
                 ocrLanguage: language,
                 processedAt: Date(),
                 errorMessage: nil
@@ -124,6 +124,42 @@ final class OCRService: ObservableObject {
             photoLocalIdentifier: asset.localIdentifier,
             ocrText: "",
             ocrStatus: .failed,
+            ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
+            processedAt: Date(),
+            errorMessage: message
+        )
+
+        resultsByAssetID[asset.id] = result
+        processingAssetIDs.remove(asset.id)
+        await persistResults()
+
+        return result
+    }
+
+    @discardableResult
+    func markCloudPending(asset: PhotoAsset, message: String) async -> OCRResultRecord {
+        let result = OCRResultRecord(
+            photoLocalIdentifier: asset.localIdentifier,
+            ocrText: "",
+            ocrStatus: .cloudPending,
+            ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
+            processedAt: Date(),
+            errorMessage: message
+        )
+
+        resultsByAssetID[asset.id] = result
+        processingAssetIDs.remove(asset.id)
+        await persistResults()
+
+        return result
+    }
+
+    @discardableResult
+    func markSkipped(asset: PhotoAsset, message: String) async -> OCRResultRecord {
+        let result = OCRResultRecord(
+            photoLocalIdentifier: asset.localIdentifier,
+            ocrText: "",
+            ocrStatus: .skipped,
             ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
             processedAt: Date(),
             errorMessage: message

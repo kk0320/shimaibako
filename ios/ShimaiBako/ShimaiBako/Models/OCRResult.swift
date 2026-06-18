@@ -4,6 +4,9 @@ enum OCRStatus: String, Codable, CaseIterable {
     case unprocessed
     case processing
     case completed
+    case completedNoText
+    case cloudPending
+    case skipped
     case failed
 
     var title: String {
@@ -14,6 +17,12 @@ enum OCRStatus: String, Codable, CaseIterable {
             "処理中"
         case .completed:
             "OCR済み"
+        case .completedNoText:
+            "文字なし"
+        case .cloudPending:
+            "iCloud待ち"
+        case .skipped:
+            "スキップ"
         case .failed:
             "読み取り失敗"
         }
@@ -27,6 +36,12 @@ enum OCRStatus: String, Codable, CaseIterable {
             "処理中"
         case .completed:
             "OCR済み"
+        case .completedNoText:
+            "文字なし"
+        case .cloudPending:
+            "iCloud待ち"
+        case .skipped:
+            "スキップ"
         case .failed:
             "失敗"
         }
@@ -39,6 +54,12 @@ enum OCRStatus: String, Codable, CaseIterable {
         case .processing:
             "中"
         case .completed:
+            "済"
+        case .completedNoText:
+            "空"
+        case .cloudPending:
+            "雲"
+        case .skipped:
             "済"
         case .failed:
             "失敗"
@@ -53,8 +74,23 @@ enum OCRStatus: String, Codable, CaseIterable {
             "hourglass"
         case .completed:
             "checkmark.circle.fill"
+        case .completedNoText:
+            "text.badge.checkmark"
+        case .cloudPending:
+            "icloud"
+        case .skipped:
+            "forward.end.circle"
         case .failed:
             "exclamationmark.triangle.fill"
+        }
+    }
+
+    var isOCRTerminal: Bool {
+        switch self {
+        case .completed, .completedNoText, .skipped:
+            true
+        case .unprocessed, .processing, .cloudPending, .failed:
+            false
         }
     }
 }

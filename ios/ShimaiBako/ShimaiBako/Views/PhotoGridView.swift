@@ -23,6 +23,7 @@ struct PhotoGridView: View {
     let indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var ocrJobRunner: OCRJobRunner
     let mode: PhotoGridMode
     @Environment(\.scenePhase) private var scenePhase
 
@@ -31,6 +32,7 @@ struct PhotoGridView: View {
     @State private var includeUnwantedInSearch = false
     @State private var selectedCategory: PhotoCategory = .all
     @State private var selectedScreenshotSubcategory: ScreenshotSubcategory = .all
+    @State private var selectedOCRScope: OCRJobScope = .visibleLimit20
     @State private var selectedBulkTarget: OCRBatchTarget = .visible
     @State private var visibleAssetLimit = 200
     @AppStorage("shimaibako.ocrBatchLimit") private var selectedBulkLimit = 20
@@ -58,6 +60,10 @@ struct PhotoGridView: View {
     @State private var pendingBulkTargets: [PhotoAsset] = []
     @State private var pendingBulkCandidateCount = 0
     @State private var showingBulkSafety = false
+    @State private var pendingPersistentOCRScope: OCRJobScope?
+    @State private var pendingPersistentOCRIdentifiers: [String] = []
+    @State private var pendingPersistentOCRRecords: [PhotoIndexRecord] = []
+    @State private var showingPersistentOCRSafety = false
     @State private var showingVisibleOCRClearConfirmation = false
 
     private let columns = [
@@ -72,6 +78,7 @@ struct PhotoGridView: View {
         indexService: PhotoIndexService,
         learningService: ManualCategoryLearningService,
         deviceSafety: DeviceSafetyService,
+        ocrJobRunner: OCRJobRunner,
         mode: PhotoGridMode
     ) {
         self.photoLibrary = photoLibrary
@@ -79,6 +86,7 @@ struct PhotoGridView: View {
         self.indexService = indexService
         self.learningService = learningService
         self.deviceSafety = deviceSafety
+        self.ocrJobRunner = ocrJobRunner
         self.mode = mode
         let initialSearchText = mode == .search ? Self.debugInitialSearchText : ""
         _searchText = State(initialValue: initialSearchText)
@@ -141,9 +149,12 @@ struct PhotoGridView: View {
 
     private var bulkEligibleTargets: [PhotoAsset] {
         bulkTargetAssets.filter { asset in
-            asset.mediaType == .image &&
-            indexService.status(for: asset, ocrService: ocrService) != .completed &&
-            indexService.status(for: asset, ocrService: ocrService) != .processing
+            let status = indexService.status(for: asset, ocrService: ocrService)
+            return asset.mediaType == .image &&
+            status != .completed &&
+            status != .completedNoText &&
+            status != .skipped &&
+            status != .processing
         }
     }
 
@@ -162,7 +173,7 @@ struct PhotoGridView: View {
             }
 
             let status = indexService.status(for: asset, ocrService: ocrService)
-            return status == .completed || status == .failed
+            return status == .completed || status == .completedNoText || status == .cloudPending || status == .skipped || status == .failed
         }
     }
 
@@ -238,6 +249,7 @@ struct PhotoGridView: View {
                     categoryFilterSection
                     if mode == .library {
                         bulkOCRControls
+                        persistentOCRProgressSection
                     }
                     content
                         .layoutPriority(1)
@@ -304,6 +316,33 @@ struct PhotoGridView: View {
                         pendingBulkCandidateCount = 0
                         showingBulkSafety = false
                         startBulkOCR(with: targets)
+                    }
+                )
+                .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showingPersistentOCRSafety) {
+                OCRPersistentJobSafetyView(
+                    scope: pendingPersistentOCRScope ?? .smartFull,
+                    candidateCount: pendingPersistentOCRIdentifiers.count,
+                    iCloudMode: photoLibrary.iCloudMode,
+                    deviceSafety: deviceSafety,
+                    isRunningOCR: ocrJobRunner.isRunning,
+                    onCancel: {
+                        clearPendingPersistentOCR()
+                    },
+                    onStart: {
+                        let scope = pendingPersistentOCRScope ?? .smartFull
+                        let identifiers = pendingPersistentOCRIdentifiers
+                        let records = pendingPersistentOCRRecords
+                        clearPendingPersistentOCR()
+                        Task {
+                            await ocrJobRunner.startJob(
+                                scope: scope,
+                                qualityMode: scope == .fullAccurate ? .accurate : .standard,
+                                identifiers: identifiers,
+                                records: records
+                            )
+                        }
                     }
                 )
                 .presentationDetents([.medium, .large])
@@ -868,27 +907,40 @@ struct PhotoGridView: View {
                 .accessibilityLabel("OCR対象を選択")
 
                 Menu {
-                    ForEach([20, 50, 100], id: \.self) { limit in
+                    ForEach([OCRJobScope.visibleLimit20, .visibleLimit50, .visibleLimit100]) { scope in
                         Button {
-                            selectedBulkLimit = limit
+                            selectedOCRScope = scope
+                            if let quickLimit = scope.quickLimit {
+                                selectedBulkLimit = quickLimit
+                            }
                         } label: {
-                            Label("最大\(limit)件", systemImage: selectedBulkLimit == limit ? "checkmark" : "circle")
+                            Label(scope.title, systemImage: selectedOCRScope == scope ? "checkmark" : "circle")
+                        }
+                    }
+
+                    Divider()
+
+                    ForEach([OCRJobScope.currentFilterAll, .smartFull, .fullAccurate]) { scope in
+                        Button {
+                            selectedOCRScope = scope
+                        } label: {
+                            Label(scope.title, systemImage: selectedOCRScope == scope ? "checkmark" : "circle")
                         }
                     }
                 } label: {
                     HStack(spacing: 3) {
                         Image(systemName: "number.circle")
                             .font(.caption.weight(.semibold))
-                        Text("\(selectedBulkLimit)件")
+                        Text(selectedOCRScope.compactTitle)
                             .font(.caption.weight(.semibold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
-                    .frame(minWidth: 50)
+                    .frame(minWidth: selectedOCRScope.isPersistentFullScope ? 78 : 50)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isBulkOCRBusy)
+                .disabled(isBulkOCRBusy || ocrJobRunner.isRunning)
                 .accessibilityLabel("OCR件数を選択")
 
                 if isRunningBulkOCR {
@@ -905,7 +957,7 @@ struct PhotoGridView: View {
                     .disabled(bulkCancellationRequested)
                 } else {
                     Button {
-                        presentBulkSafety()
+                        presentOCRStart()
                     } label: {
                         Label("まとめてOCR", systemImage: "text.viewfinder")
                             .labelStyle(.titleAndIcon)
@@ -914,7 +966,7 @@ struct PhotoGridView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                    .disabled(isBulkOCRBusy)
+                    .disabled(isBulkOCRBusy || ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob)
                 }
 
                 Button {
@@ -1057,6 +1109,91 @@ struct PhotoGridView: View {
         }
     }
 
+    @ViewBuilder
+    private var persistentOCRProgressSection: some View {
+        if let job = ocrJobRunner.snapshot.job {
+            OCRJobProgressCard(
+                job: job,
+                isRunning: ocrJobRunner.snapshot.isRunning,
+                onPause: {
+                    ocrJobRunner.pause()
+                },
+                onResume: {
+                    ocrJobRunner.resume()
+                },
+                onCancel: {
+                    ocrJobRunner.cancel()
+                },
+                onRetryFailures: {
+                    ocrJobRunner.retryFailures()
+                },
+                onResumeCloudPending: {
+                    ocrJobRunner.resumeCloudPendingWithNetworkAccess()
+                }
+            )
+        }
+    }
+
+    private func presentOCRStart() {
+        if let quickLimit = selectedOCRScope.quickLimit {
+            selectedBulkLimit = quickLimit
+            presentBulkSafety()
+            return
+        }
+
+        Task {
+            await preparePersistentOCRStart(scope: selectedOCRScope)
+        }
+    }
+
+    private func preparePersistentOCRStart(scope: OCRJobScope) async {
+        guard ocrJobRunner.isRunning == false,
+              ocrJobRunner.isPreparingJob == false else {
+            return
+        }
+
+        deviceSafety.refresh()
+        let request: PhotoIndexPageRequest
+        switch scope {
+        case .currentFilterAll:
+            request = PhotoIndexPageRequest(
+                query: effectiveSearchText,
+                displayState: selectedDisplayState,
+                includeUnwantedWhenActive: false,
+                category: selectedCategory,
+                screenshotSubcategory: selectedScreenshotSubcategory,
+                limit: 100_000,
+                offset: 0
+            )
+        case .smartFull, .fullAccurate:
+            request = PhotoIndexPageRequest(
+                query: "",
+                displayState: .active,
+                includeUnwantedWhenActive: false,
+                category: .all,
+                screenshotSubcategory: .all,
+                limit: 100_000,
+                offset: 0
+            )
+        case .visibleLimit20, .visibleLimit50, .visibleLimit100:
+            return
+        }
+
+        let identifiers = await indexService.localIdentifiersForOCRJob(matching: request)
+        let records = await indexService.recordsForOCRJob(localIdentifiers: identifiers)
+        pendingPersistentOCRScope = scope
+        pendingPersistentOCRIdentifiers = identifiers
+        pendingPersistentOCRRecords = records
+        showingPersistentOCRSafety = true
+    }
+
+    private func clearPendingPersistentOCR() {
+        pendingPersistentOCRScope = nil
+        pendingPersistentOCRIdentifiers = []
+        pendingPersistentOCRRecords = []
+        showingPersistentOCRSafety = false
+    }
+
     private func presentBulkSafety() {
         let candidateCount = bulkTargetCandidateCount
         let targets = bulkEligibleTargets
@@ -1147,7 +1284,7 @@ struct PhotoGridView: View {
             }
 
             let result = await ocrService.recognize(asset: asset, image: image)
-            if result?.ocrStatus == .completed {
+            if result?.ocrStatus == .completed || result?.ocrStatus == .completedNoText {
                 bulkCompleted += 1
             } else {
                 bulkFailed += 1
@@ -1394,6 +1531,98 @@ private struct BulkProgressLabel: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .minimumScaleFactor(0.85)
+    }
+}
+
+private struct OCRPersistentJobSafetyView: View {
+    let scope: OCRJobScope
+    let candidateCount: Int
+    let iCloudMode: ICloudPhotoMode
+    @ObservedObject var deviceSafety: DeviceSafetyService
+    let isRunningOCR: Bool
+    let onCancel: () -> Void
+    let onStart: () -> Void
+
+    private var blockingReason: String? {
+        if isRunningOCR {
+            return "OCRジョブを実行中です。"
+        }
+
+        if candidateCount == 0 {
+            return "OCR対象がありません。"
+        }
+
+        return deviceSafety.blockingReasonForLargeWork
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(scope.title, systemImage: "text.viewfinder")
+                            .font(.headline)
+                            .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                        Text("対象候補: \(candidateCount)件")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SafetyBullet("全数OCRは長時間実行され、端末が発熱する場合があります。")
+                        SafetyBullet("充電中かつ涼しく安定した場所での実行をおすすめします。")
+                        SafetyBullet("端末の温度が高い場合、処理は自動的に一時停止します。")
+                        SafetyBullet("OCR結果は端末内で扱います。")
+                        SafetyBullet("元写真・元動画は削除・変更されません。")
+                        SafetyBullet("最初は端末内にある画像を優先し、iCloud上の写真は待機扱いにします。")
+                    }
+
+                    Text("iCloud写真をご利用中で画像が端末上にない場合、iOSがAppleのiCloudから画像を取得することがあります。現在の設定: \(iCloudMode.title)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("端末状態")
+                            .font(.subheadline.weight(.semibold))
+
+                        ForEach(deviceSafety.notices) { notice in
+                            Label(notice.message, systemImage: notice.level == .blocking ? "exclamationmark.triangle.fill" : "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(notice.level == .blocking ? .red : .secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(12)
+                    .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
+
+                    if let blockingReason {
+                        Text(blockingReason)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(16)
+            }
+            .background(AppBackground())
+            .navigationTitle("全数OCR確認")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル", action: onCancel)
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("開始", action: onStart)
+                        .disabled(blockingReason != nil)
+                }
+            }
+            .onAppear {
+                deviceSafety.refresh()
+            }
+        }
     }
 }
 
@@ -1645,6 +1874,118 @@ private struct SafetyBullet: View {
     }
 }
 
+private struct OCRJobProgressCard: View {
+    let job: OCRJob
+    let isRunning: Bool
+    let onPause: () -> Void
+    let onResume: () -> Void
+    let onCancel: () -> Void
+    let onRetryFailures: () -> Void
+    let onResumeCloudPending: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 8) {
+                Label(isRunning ? "OCR実行中" : job.state.title, systemImage: isRunning ? "text.viewfinder" : "clock.arrow.circlepath")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+
+                Text(job.scope.compactTitle)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            ProgressView(value: job.progress)
+                .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
+
+            HStack(spacing: 8) {
+                OCRJobMetric(title: "対象", value: job.totalCount)
+                OCRJobMetric(title: "完了", value: job.completedCount)
+                OCRJobMetric(title: "文字", value: job.textFoundCount)
+                OCRJobMetric(title: "文字なし", value: job.noTextCount)
+            }
+
+            HStack(spacing: 8) {
+                OCRJobMetric(title: "iCloud待ち", value: job.cloudPendingCount)
+                OCRJobMetric(title: "失敗", value: job.failedCount)
+                OCRJobMetric(title: "スキップ", value: job.skippedCount)
+                OCRJobMetric(title: "進捗", value: Int((job.progress * 100).rounded()), suffix: "%")
+            }
+
+            if let pausedReason = job.pausedReason, pausedReason.isEmpty == false {
+                Text(pausedReason)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Color(red: 0.75, green: 0.37, blue: 0.08))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text("OCR結果は端末内で扱います。元写真・元動画は削除・変更しません。端末が熱くなった場合は自動的に一時停止します。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                if isRunning {
+                    Button("一時停止", role: .cancel, action: onPause)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                } else if job.state == .paused || job.state == .pending {
+                    Button("再開", action: onResume)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                }
+
+                Button("終了", role: .destructive, action: onCancel)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(job.state == .completed || job.state == .cancelled)
+
+                if job.failedCount > 0 && isRunning == false {
+                    Button("失敗分を再試行", action: onRetryFailures)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
+
+                if job.cloudPendingCount > 0 && isRunning == false {
+                    Button("iCloud取得を許可して再開", action: onResumeCloudPending)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(12)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+private struct OCRJobMetric: View {
+    let title: String
+    let value: Int
+    var suffix: String = "件"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text("\(value)\(suffix)")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 private struct SearchMatchSummaryView: View {
     let match: PhotoSearchMatch
     let status: OCRStatus
@@ -1838,6 +2179,10 @@ private struct PhotoThumbnailView: View {
             Color(red: 0.16, green: 0.42, blue: 0.75)
         case .completed:
             Color(red: 0.14, green: 0.55, blue: 0.32)
+        case .completedNoText, .skipped:
+            Color(red: 0.36, green: 0.42, blue: 0.48)
+        case .cloudPending:
+            Color(red: 0.16, green: 0.42, blue: 0.75)
         case .failed:
             Color(red: 0.75, green: 0.24, blue: 0.18)
         }

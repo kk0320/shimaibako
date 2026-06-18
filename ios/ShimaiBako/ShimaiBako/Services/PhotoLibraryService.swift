@@ -4,6 +4,12 @@ import Photos
 import PhotosUI
 import UIKit
 
+enum OCRImageRequestOutcome {
+    case image(UIImage)
+    case cloudPending
+    case failed(String)
+}
+
 @MainActor
 final class PhotoLibraryService: ObservableObject {
     @Published private(set) var authorizationStatus: PHAuthorizationStatus
@@ -188,6 +194,10 @@ final class PhotoLibraryService: ObservableObject {
         }
 
         return localIdentifiers.compactMap { resolvedByID[$0] }
+    }
+
+    func asset(for localIdentifier: String) -> PhotoAsset? {
+        assets(for: [localIdentifier]).first
     }
 
     func presentLimitedLibraryPicker() {
@@ -599,6 +609,47 @@ final class PhotoLibraryService: ObservableObject {
 
                     didResume = true
                     continuation.resume(returning: image)
+                }
+            }
+        }
+    }
+
+    func requestOCRImage(for asset: PhotoAsset, allowsNetworkAccess: Bool) async -> OCRImageRequestOutcome {
+        await withCheckedContinuation { (continuation: CheckedContinuation<OCRImageRequestOutcome, Never>) in
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .highQualityFormat
+            options.resizeMode = .fast
+            options.isNetworkAccessAllowed = allowsNetworkAccess
+
+            var didResume = false
+
+            imageManager.requestImage(
+                for: asset.asset,
+                targetSize: CGSize(width: 1800, height: 1800),
+                contentMode: .aspectFit,
+                options: options
+            ) { image, info in
+                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                let isCancelled = (info?[PHImageCancelledKey] as? Bool) ?? false
+                let error = info?[PHImageErrorKey] as? Error
+                let isInCloud = (info?[PHImageResultIsInCloudKey] as? Bool) ?? false
+
+                guard didResume == false else {
+                    return
+                }
+
+                if let image, isDegraded == false {
+                    didResume = true
+                    continuation.resume(returning: .image(image))
+                } else if isInCloud && allowsNetworkAccess == false {
+                    didResume = true
+                    continuation.resume(returning: .cloudPending)
+                } else if isCancelled {
+                    didResume = true
+                    continuation.resume(returning: .failed("画像取得がキャンセルされました。"))
+                } else if let error {
+                    didResume = true
+                    continuation.resume(returning: .failed(error.localizedDescription))
                 }
             }
         }
