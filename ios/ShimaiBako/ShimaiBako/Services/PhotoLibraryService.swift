@@ -8,12 +8,14 @@ import UIKit
 final class PhotoLibraryService: ObservableObject {
     @Published private(set) var authorizationStatus: PHAuthorizationStatus
     @Published private(set) var assets: [PhotoAsset] = []
+    @Published private(set) var latestLoadedBatch: [PhotoAsset] = []
     @Published private(set) var thumbnails: [String: UIImage] = [:]
     @Published private(set) var readMode: PhotoReadMode
     @Published private(set) var iCloudMode: ICloudPhotoMode
     @Published private(set) var totalAssetCount = 0
     @Published private(set) var loadedAssetCount = 0
     @Published private(set) var isLoading = false
+    @Published private(set) var importProgress: PhotoImportProgress
     @Published var errorMessage: String?
 
     private let imageManager = PHCachingImageManager()
@@ -21,6 +23,13 @@ final class PhotoLibraryService: ObservableObject {
     private let assumesAuthorizedForDebugRun: Bool
     private let readModeKey = "shimaibako.photoReadMode"
     private let iCloudModeKey = "shimaibako.iCloudPhotoMode"
+    private let importProgressKey = "shimaibako.photoImportProgress"
+    private var loadGeneration = 0
+    private var cancellationRequested = false
+    private var importTask: Task<Void, Never>?
+    private var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+    private let batchSize = 100
+    private let firstPaintLimit = 100
 
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
@@ -32,12 +41,17 @@ final class PhotoLibraryService: ObservableObject {
         #endif
 
         let storedReadMode = userDefaults.string(forKey: readModeKey)
-        readMode = storedReadMode.flatMap(PhotoReadMode.init(rawValue:)) ?? .light
+        let initialReadMode = storedReadMode.flatMap(PhotoReadMode.init(rawValue:)) ?? .light
+        readMode = initialReadMode
 
         let storedICloudMode = userDefaults.string(forKey: iCloudModeKey)
         iCloudMode = storedICloudMode.flatMap(ICloudPhotoMode.init(rawValue:)) ?? .offlinePreferred
 
+        importProgress = Self.loadImportProgress(from: userDefaults, key: importProgressKey, fallbackReadMode: initialReadMode)
+
         authorizationStatus = assumesAuthorizedForDebugRun ? .authorized : PHPhotoLibrary.authorizationStatus(for: .readWrite)
+
+        recoverStaleImportIfNeeded()
     }
 
     var canReadPhotos: Bool {
@@ -54,6 +68,22 @@ final class PhotoLibraryService: ObservableObject {
         }
 
         return "\(loadedAssetCount)件"
+    }
+
+    var hasRecoverableImportState: Bool {
+        importProgress.phase == .stale || importProgress.phase == .failed || importProgress.phase == .paused || importProgress.phase == .cancelled
+    }
+
+    var importAppearsStalled: Bool {
+        importProgress.isStale()
+    }
+
+    var shouldShowImportProgress: Bool {
+        if isLoading || hasRecoverableImportState {
+            return true
+        }
+
+        return importProgress.phase == .completed && importProgress.readMode.isLargeScale
     }
 
     var statusTitle: String {
@@ -75,6 +105,7 @@ final class PhotoLibraryService: ObservableObject {
 
     func prepare() async {
         refreshAuthorizationStatus()
+        recoverStaleImportIfNeeded()
     }
 
     func refreshAuthorizationStatus() {
@@ -99,6 +130,9 @@ final class PhotoLibraryService: ObservableObject {
     func updateReadMode(_ nextMode: PhotoReadMode) async {
         readMode = nextMode
         userDefaults.set(nextMode.rawValue, forKey: readModeKey)
+        if hasRecoverableImportState {
+            resetLoadingState()
+        }
         await loadRecentAssets()
     }
 
@@ -128,17 +162,157 @@ final class PhotoLibraryService: ObservableObject {
     }
 
     func loadRecentAssets() async {
-        guard canReadPhotos else {
-            assets = []
-            thumbnails = [:]
-            totalAssetCount = 0
-            loadedAssetCount = 0
+        startLoading(resume: false)
+    }
+
+    func resumeLoading() {
+        startLoading(resume: true)
+    }
+
+    private func startLoading(resume: Bool) {
+        recoverStaleImportIfNeeded()
+
+        guard resume || importProgress.phase != .stale else {
             return
         }
 
+        guard canReadPhotos else {
+            cancelLoading()
+            assets = []
+            latestLoadedBatch = []
+            thumbnails = [:]
+            totalAssetCount = 0
+            loadedAssetCount = 0
+            importProgress = .idle
+            persistImportProgress()
+            return
+        }
+
+        if isLoading, importProgress.readMode == readMode {
+            return
+        }
+
+        loadGeneration += 1
+        let generation = loadGeneration
+        cancellationRequested = false
+        importTask?.cancel()
         isLoading = true
         errorMessage = nil
-        loadedAssetCount = 0
+        latestLoadedBatch = []
+        if resume == false {
+            loadedAssetCount = 0
+            totalAssetCount = 0
+            thumbnails = [:]
+        }
+
+        importTask = Task { [weak self] in
+            await self?.runImport(generation: generation, resume: resume)
+        }
+    }
+
+    func cancelLoading() {
+        guard isLoading || importProgress.phase.isActive || hasRecoverableImportState else {
+            return
+        }
+
+        cancellationRequested = true
+        loadGeneration += 1
+        importTask?.cancel()
+        importTask = nil
+        isLoading = false
+        endBackgroundTaskIfNeeded()
+        updateImportProgress(
+            phase: .cancelled,
+            readMode: readMode,
+            loadedCount: loadedAssetCount,
+            totalCount: max(totalAssetCount, importProgress.totalCount),
+            startedAt: importProgress.startedAt,
+            finishedAt: Date(),
+            message: PhotoImportInterruptionReason.userCancelled.message,
+            interruptionReason: .userCancelled,
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+        )
+    }
+
+    func resetLoadingState() {
+        cancellationRequested = true
+        loadGeneration += 1
+        importTask?.cancel()
+        importTask = nil
+        isLoading = false
+        errorMessage = nil
+        latestLoadedBatch = []
+        endBackgroundTaskIfNeeded()
+        updateImportProgress(
+            phase: .idle,
+            readMode: readMode,
+            loadedCount: loadedAssetCount,
+            totalCount: totalAssetCount,
+            startedAt: nil,
+            finishedAt: nil,
+            message: nil,
+            interruptionReason: nil,
+            latestLoadedIdentifiers: []
+        )
+    }
+
+    func reloadLightMode() async {
+        resetLoadingState()
+        readMode = .light
+        userDefaults.set(PhotoReadMode.light.rawValue, forKey: readModeKey)
+        await loadRecentAssets()
+    }
+
+    func applicationDidEnterBackground() {
+        guard isLoading else {
+            return
+        }
+
+        beginBackgroundTaskIfNeeded()
+    }
+
+    func applicationDidBecomeActive() {
+        endBackgroundTaskIfNeeded()
+
+        if importProgress.phase == .paused,
+           importProgress.interruptionReason == .pausedByAppLifecycle,
+           canReadPhotos {
+            resumeLoading()
+        }
+    }
+
+    private func runImport(generation: Int, resume: Bool) async {
+        let now = Date()
+        let existingAssets = resume ? assets : []
+        var nextAssets = existingAssets
+        var seenIdentifiers = Set(existingAssets.map(\.localIdentifier))
+        let shouldIncludeFilename = readMode == .light || readMode == .standard
+
+        if resume == false {
+            updateImportProgress(
+                phase: .fetchingAssetList,
+                readMode: readMode,
+                loadedCount: 0,
+                totalCount: 0,
+                startedAt: now,
+                finishedAt: nil,
+                message: "画面切替では読み込みを継続しています",
+                interruptionReason: nil,
+                latestLoadedIdentifiers: []
+            )
+        } else {
+            updateImportProgress(
+                phase: .fetchingAssetList,
+                readMode: readMode,
+                loadedCount: nextAssets.count,
+                totalCount: max(totalAssetCount, importProgress.totalCount),
+                startedAt: importProgress.startedAt ?? now,
+                finishedAt: nil,
+                message: "続きから再開しています",
+                interruptionReason: nil,
+                latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+            )
+        }
 
         let options = PHFetchOptions()
         if let limit = readMode.limit {
@@ -152,29 +326,95 @@ final class PhotoLibraryService: ObservableObject {
         totalAssetCount = PHAsset.fetchAssets(with: totalOptions).count
 
         let result = PHAsset.fetchAssets(with: options)
-        var nextAssets: [PhotoAsset] = []
         let expectedCount = readMode.limit.map { min(result.count, $0) } ?? result.count
         nextAssets.reserveCapacity(expectedCount)
-        let shouldIncludeFilename = readMode == .light || readMode == .standard
+
+        updateImportProgress(
+            phase: .indexing,
+            readMode: readMode,
+            loadedCount: nextAssets.count,
+            totalCount: expectedCount,
+            startedAt: importProgress.startedAt ?? now,
+            finishedAt: nil,
+            message: "画面切替では読み込みを継続しています",
+            interruptionReason: nil,
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+        )
+
+        var currentBatch: [PhotoAsset] = []
+        currentBatch.reserveCapacity(batchSize)
 
         for index in 0..<result.count {
+            guard generation == loadGeneration else {
+                return
+            }
+
             if Task.isCancelled {
-                break
+                markImportPausedIfCurrent(
+                    generation: generation,
+                    loadedCount: nextAssets.count,
+                    totalCount: expectedCount,
+                    reason: .taskCancelled
+                )
+                return
+            }
+
+            if cancellationRequested {
+                markImportCancelledIfCurrent(
+                    generation: generation,
+                    loadedCount: nextAssets.count,
+                    totalCount: expectedCount
+                )
+                return
             }
 
             let asset = result.object(at: index)
-            nextAssets.append(PhotoAsset(asset: asset, includeFilename: shouldIncludeFilename))
+            guard seenIdentifiers.contains(asset.localIdentifier) == false else {
+                continue
+            }
 
-            if index.isMultiple(of: 500) {
-                loadedAssetCount = nextAssets.count
+            let photoAsset = PhotoAsset(asset: asset, includeFilename: shouldIncludeFilename)
+            nextAssets.append(photoAsset)
+            currentBatch.append(photoAsset)
+            seenIdentifiers.insert(photoAsset.localIdentifier)
+
+            if currentBatch.count >= batchSize || nextAssets.count == firstPaintLimit {
+                publishLoadedAssets(
+                    nextAssets,
+                    batch: currentBatch,
+                    expectedCount: expectedCount,
+                    generation: generation
+                )
+                currentBatch = []
                 await Task.yield()
             }
         }
 
-        assets = nextAssets
-        loadedAssetCount = nextAssets.count
-        thumbnails = [:]
+        guard generation == loadGeneration else {
+            return
+        }
+
+        publishLoadedAssets(
+            nextAssets,
+            batch: currentBatch,
+            expectedCount: expectedCount,
+            generation: generation
+        )
+
         isLoading = false
+        importTask = nil
+        endBackgroundTaskIfNeeded()
+        updateImportProgress(
+            phase: .completed,
+            readMode: readMode,
+            loadedCount: nextAssets.count,
+            totalCount: expectedCount,
+            startedAt: importProgress.startedAt ?? now,
+            finishedAt: Date(),
+            message: "読み込みが完了しました",
+            interruptionReason: nil,
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+        )
     }
 
     func cachedThumbnail(for asset: PhotoAsset) -> UIImage? {
@@ -248,6 +488,202 @@ final class PhotoLibraryService: ObservableObject {
                 }
             }
         }
+    }
+
+    private func publishLoadedAssets(
+        _ nextAssets: [PhotoAsset],
+        batch: [PhotoAsset],
+        expectedCount: Int,
+        generation: Int
+    ) {
+        guard generation == loadGeneration else {
+            return
+        }
+
+        assets = nextAssets
+        loadedAssetCount = nextAssets.count
+
+        if batch.isEmpty == false {
+            latestLoadedBatch = batch
+        }
+
+        updateImportProgress(
+            phase: .indexing,
+            readMode: readMode,
+            loadedCount: nextAssets.count,
+            totalCount: expectedCount,
+            startedAt: importProgress.startedAt,
+            finishedAt: nil,
+            message: "画面切替では読み込みを継続しています",
+            interruptionReason: nil,
+            latestLoadedIdentifiers: batch.isEmpty ? importProgress.latestLoadedIdentifiers : batch.map(\.localIdentifier)
+        )
+    }
+
+    private func markImportCancelledIfCurrent(generation: Int, loadedCount: Int, totalCount: Int) {
+        guard generation == loadGeneration else {
+            return
+        }
+
+        isLoading = false
+        importTask = nil
+        endBackgroundTaskIfNeeded()
+        updateImportProgress(
+            phase: .cancelled,
+            readMode: readMode,
+            loadedCount: loadedCount,
+            totalCount: totalCount,
+            startedAt: importProgress.startedAt,
+            finishedAt: Date(),
+            message: PhotoImportInterruptionReason.userCancelled.message,
+            interruptionReason: .userCancelled,
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+        )
+    }
+
+    private func markImportPausedIfCurrent(
+        generation: Int,
+        loadedCount: Int,
+        totalCount: Int,
+        reason: PhotoImportInterruptionReason
+    ) {
+        guard generation == loadGeneration else {
+            return
+        }
+
+        isLoading = false
+        importTask = nil
+        endBackgroundTaskIfNeeded()
+        updateImportProgress(
+            phase: .paused,
+            readMode: readMode,
+            loadedCount: loadedCount,
+            totalCount: totalCount,
+            startedAt: importProgress.startedAt,
+            finishedAt: Date(),
+            message: reason.message,
+            interruptionReason: reason,
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+        )
+    }
+
+    private func recoverStaleImportIfNeeded() {
+        guard importProgress.phase.isActive,
+              isLoading == false || importProgress.isStale() else {
+            return
+        }
+
+        isLoading = false
+        cancellationRequested = true
+        loadGeneration += 1
+        importTask?.cancel()
+        importTask = nil
+        endBackgroundTaskIfNeeded()
+        importProgress = importProgress.markedStale()
+        persistImportProgress()
+    }
+
+    private func beginBackgroundTaskIfNeeded() {
+        guard backgroundTaskIdentifier == .invalid else {
+            return
+        }
+
+        backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(withName: "ShimaiBakoPhotoImport") { [weak self] in
+            Task { @MainActor in
+                self?.pauseLoadingForAppLifecycle()
+            }
+        }
+    }
+
+    private func pauseLoadingForAppLifecycle() {
+        guard isLoading else {
+            endBackgroundTaskIfNeeded()
+            return
+        }
+
+        loadGeneration += 1
+        importTask?.cancel()
+        importTask = nil
+        isLoading = false
+        updateImportProgress(
+            phase: .paused,
+            readMode: readMode,
+            loadedCount: loadedAssetCount,
+            totalCount: max(totalAssetCount, importProgress.totalCount),
+            startedAt: importProgress.startedAt,
+            finishedAt: Date(),
+            message: PhotoImportInterruptionReason.pausedByAppLifecycle.message,
+            interruptionReason: .pausedByAppLifecycle,
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+        )
+        endBackgroundTaskIfNeeded()
+    }
+
+    private func endBackgroundTaskIfNeeded() {
+        guard backgroundTaskIdentifier != .invalid else {
+            return
+        }
+
+        UIApplication.shared.endBackgroundTask(backgroundTaskIdentifier)
+        backgroundTaskIdentifier = .invalid
+    }
+
+    private func updateImportProgress(
+        phase: PhotoImportPhase,
+        readMode: PhotoReadMode,
+        loadedCount: Int,
+        totalCount: Int,
+        startedAt: Date?,
+        finishedAt: Date?,
+        message: String?,
+        interruptionReason: PhotoImportInterruptionReason?,
+        latestLoadedIdentifiers: [String]?
+    ) {
+        importProgress = PhotoImportProgress(
+            phase: phase,
+            readMode: readMode,
+            loadedCount: loadedCount,
+            totalCount: totalCount,
+            startedAt: startedAt,
+            updatedAt: Date(),
+            finishedAt: finishedAt,
+            message: message,
+            interruptionReason: interruptionReason,
+            latestLoadedIdentifiers: latestLoadedIdentifiers ?? importProgress.latestLoadedIdentifiers
+        )
+        persistImportProgress()
+    }
+
+    private func persistImportProgress() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        if let data = try? encoder.encode(importProgress) {
+            userDefaults.set(data, forKey: importProgressKey)
+        }
+    }
+
+    private static func loadImportProgress(
+        from userDefaults: UserDefaults,
+        key: String,
+        fallbackReadMode: PhotoReadMode
+    ) -> PhotoImportProgress {
+        guard let data = userDefaults.data(forKey: key) else {
+            var progress = PhotoImportProgress.idle
+            progress.readMode = fallbackReadMode
+            return progress
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        guard let progress = try? decoder.decode(PhotoImportProgress.self, from: data) else {
+            var fallback = PhotoImportProgress.idle
+            fallback.readMode = fallbackReadMode
+            return fallback
+        }
+
+        return progress
     }
 
     private static func activeViewController() -> UIViewController? {

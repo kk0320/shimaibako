@@ -69,6 +69,156 @@ enum PhotoReadMode: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum PhotoImportPhase: String, Codable, Equatable {
+    case idle
+    case fetchingAssetList
+    case indexing
+    case preparingThumbnails
+    case completed
+    case cancelled
+    case failed
+    case stale
+    case paused
+
+    var title: String {
+        switch self {
+        case .idle:
+            "待機中"
+        case .fetchingAssetList:
+            "写真一覧を取得中"
+        case .indexing:
+            "インデックス作成中"
+        case .preparingThumbnails:
+            "サムネイル準備中"
+        case .completed:
+            "完了"
+        case .cancelled:
+            "キャンセル"
+        case .failed:
+            "失敗"
+        case .stale:
+            "前回の読み込みが途中で停止"
+        case .paused:
+            "一時停止"
+        }
+    }
+
+    var isActive: Bool {
+        switch self {
+        case .fetchingAssetList, .indexing, .preparingThumbnails:
+            true
+        case .idle, .completed, .cancelled, .failed, .stale, .paused:
+            false
+        }
+    }
+}
+
+enum PhotoImportInterruptionReason: String, Codable, Equatable {
+    case userCancelled
+    case taskCancelled
+    case pausedByViewLifecycle
+    case pausedByAppLifecycle
+    case staleJob
+
+    var message: String {
+        switch self {
+        case .userCancelled:
+            "ユーザー操作で中止しました"
+        case .taskCancelled:
+            "読み込みタスクが中断されました。続きから再開できます"
+        case .pausedByViewLifecycle:
+            "画面切替では読み込みを継続しています"
+        case .pausedByAppLifecycle:
+            "アプリの状態変化により一時停止しました"
+        case .staleJob:
+            "前回の読み込みが途中で止まりました"
+        }
+    }
+}
+
+struct PhotoImportProgress: Codable, Equatable {
+    var phase: PhotoImportPhase
+    var readMode: PhotoReadMode
+    var loadedCount: Int
+    var totalCount: Int
+    var startedAt: Date?
+    var updatedAt: Date?
+    var finishedAt: Date?
+    var message: String?
+    var interruptionReason: PhotoImportInterruptionReason?
+    var latestLoadedIdentifiers: [String]?
+
+    static let idle = PhotoImportProgress(
+        phase: .idle,
+        readMode: .light,
+        loadedCount: 0,
+        totalCount: 0,
+        startedAt: nil,
+        updatedAt: nil,
+        finishedAt: nil,
+        message: nil,
+        interruptionReason: nil,
+        latestLoadedIdentifiers: []
+    )
+
+    var progressFraction: Double {
+        guard totalCount > 0 else {
+            return 0
+        }
+
+        return min(max(Double(loadedCount) / Double(totalCount), 0), 1)
+    }
+
+    var countTitle: String {
+        if totalCount > 0 {
+            return "\(loadedCount) / \(totalCount)件"
+        }
+
+        return "\(loadedCount)件"
+    }
+
+    var updatedAtTitle: String {
+        guard let updatedAt else {
+            return "-"
+        }
+
+        return DateFormatter.localizedString(from: updatedAt, dateStyle: .none, timeStyle: .medium)
+    }
+
+    var elapsedTitle: String {
+        guard let startedAt else {
+            return "-"
+        }
+
+        let end = finishedAt ?? Date()
+        let seconds = max(Int(end.timeIntervalSince(startedAt)), 0)
+        if seconds < 60 {
+            return "\(seconds)秒"
+        }
+
+        return "\(seconds / 60)分\(seconds % 60)秒"
+    }
+
+    func isStale(referenceDate: Date = Date(), threshold: TimeInterval = 180) -> Bool {
+        guard phase.isActive else {
+            return false
+        }
+
+        let lastUpdate = updatedAt ?? startedAt ?? .distantPast
+        return referenceDate.timeIntervalSince(lastUpdate) >= threshold
+    }
+
+    func markedStale(at date: Date = Date()) -> PhotoImportProgress {
+        var progress = self
+        progress.phase = .stale
+        progress.finishedAt = date
+        progress.updatedAt = date
+        progress.message = PhotoImportInterruptionReason.staleJob.message
+        progress.interruptionReason = .staleJob
+        return progress
+    }
+}
+
 enum ICloudPhotoMode: String, CaseIterable, Identifiable, Codable {
     case offlinePreferred
     case allowDownload

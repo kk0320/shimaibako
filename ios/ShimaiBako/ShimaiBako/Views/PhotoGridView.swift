@@ -175,6 +175,9 @@ struct PhotoGridView: View {
 
                 VStack(spacing: 12) {
                     statusHeader
+                    if photoLibrary.shouldShowImportProgress {
+                        PhotoImportProgressCard(photoLibrary: photoLibrary)
+                    }
                     displayStateChips
                     searchOptions
                     categoryChips
@@ -256,21 +259,33 @@ struct PhotoGridView: View {
                 Text("表示中の写真について、しまい箱に保存されたOCR文字だけを削除します。元写真・元動画は削除・変更されません。")
             }
             .task {
-                if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
+                if photoLibrary.canReadPhotos &&
+                    photoLibrary.assets.isEmpty &&
+                    photoLibrary.hasRecoverableImportState == false {
                     await photoLibrary.loadRecentAssets()
                 }
 
-                await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
+                if photoLibrary.latestLoadedBatch.isEmpty == false {
+                    await indexService.rebuild(for: photoLibrary.latestLoadedBatch, ocrService: ocrService)
+                } else if photoLibrary.assets.isEmpty == false {
+                    await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
+                }
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
             }
             .onChange(of: photoLibrary.assets) {
-                Task {
-                    await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
-                }
-
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
+            }
+            .onChange(of: photoLibrary.latestLoadedBatch) {
+                let batch = photoLibrary.latestLoadedBatch
+                guard batch.isEmpty == false else {
+                    return
+                }
+
+                Task {
+                    await indexService.rebuild(for: batch, ocrService: ocrService)
+                }
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase != .active, isRunningBulkOCR {
@@ -537,9 +552,19 @@ struct PhotoGridView: View {
 
     @ViewBuilder
     private var content: some View {
-        if photoLibrary.isLoading {
-            ProgressView("読み込み中")
+        if photoLibrary.hasRecoverableImportState && filteredAssets.isEmpty {
+            ImportRecoveryEmptyView(photoLibrary: photoLibrary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if photoLibrary.isLoading && filteredAssets.isEmpty {
+            VStack(spacing: 14) {
+                ProgressView("読み込み中")
+                Text("元写真・元動画は削除・変更しません。進まない場合は中止して軽量モードで再読み込みできます。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if filteredAssets.isEmpty {
             ContentUnavailableView(
                 searchText.isEmpty ? "写真がありません" : "見つかりません",

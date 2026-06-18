@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var photoLibrary: PhotoLibraryService
     @StateObject private var ocrService: OCRService
     @StateObject private var indexService: PhotoIndexService
@@ -29,6 +30,18 @@ struct ContentView: View {
         )
             .task {
                 await photoLibrary.prepare()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                switch newPhase {
+                case .active:
+                    photoLibrary.applicationDidBecomeActive()
+                case .background:
+                    photoLibrary.applicationDidEnterBackground()
+                case .inactive:
+                    break
+                @unknown default:
+                    break
+                }
             }
             .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
     }

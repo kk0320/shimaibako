@@ -45,13 +45,19 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
             return []
         }
 
-        let data = try Data(contentsOf: fileURL)
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        do {
+            let data = try Data(contentsOf: fileURL)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
 
-        let records = try decoder.decode(StoredIndex.self, from: data).records
-        cachedRecords = Dictionary(uniqueKeysWithValues: records.map { ($0.localIdentifier, $0) })
-        return records
+            let records = try decoder.decode(StoredIndex.self, from: data).records
+            cachedRecords = Dictionary(uniqueKeysWithValues: records.map { ($0.localIdentifier, $0) })
+            return records
+        } catch {
+            try? backupCorruptIndexFile()
+            cachedRecords = [:]
+            return []
+        }
     }
 
     func saveAll(_ records: [PhotoIndexRecord]) async throws {
@@ -173,7 +179,37 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
         let data = try encoder.encode(payload)
-        try data.write(to: fileURL, options: [.atomic])
+        let temporaryURL = directoryURL.appendingPathComponent("photo_index.tmp-\(UUID().uuidString).json")
+
+        do {
+            try data.write(to: temporaryURL, options: [.atomic])
+
+            if fileManager.fileExists(atPath: fileURL.path) {
+                _ = try fileManager.replaceItemAt(
+                    fileURL,
+                    withItemAt: temporaryURL,
+                    backupItemName: nil,
+                    options: [.usingNewMetadataOnly]
+                )
+            } else {
+                try fileManager.moveItem(at: temporaryURL, to: fileURL)
+            }
+        } catch {
+            throw error
+        }
+    }
+
+    private func backupCorruptIndexFile() throws {
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            return
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let backupName = "photo_index.json.corrupt-\(formatter.string(from: Date()))-\(UUID().uuidString)"
+        let backupURL = fileURL.deletingLastPathComponent().appendingPathComponent(backupName)
+
+        try fileManager.moveItem(at: fileURL, to: backupURL)
     }
 
     private func normalizedSearchTokens(in query: String) -> [String] {

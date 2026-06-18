@@ -45,6 +45,9 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         header
                         summaryCard
+                        if photoLibrary.shouldShowImportProgress {
+                            PhotoImportProgressCard(photoLibrary: photoLibrary)
+                        }
                         loadingModeCard
                         largeLibraryGuideCard
                         iCloudSettingsCard
@@ -122,12 +125,28 @@ struct SettingsView: View {
                 Text("分類傾向学習データ、将来の画像特徴量データ、精度向上モードの処理履歴だけを削除します。元写真・元動画、OCR結果、手動分類、写真アプリ側のデータは削除されません。")
             }
             .task {
-                if photoLibrary.canReadPhotos && photoLibrary.assets.isEmpty {
+                if photoLibrary.canReadPhotos &&
+                    photoLibrary.assets.isEmpty &&
+                    photoLibrary.hasRecoverableImportState == false {
                     await photoLibrary.loadRecentAssets()
                 }
 
-                await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
+                if photoLibrary.latestLoadedBatch.isEmpty == false {
+                    await indexService.rebuild(for: photoLibrary.latestLoadedBatch, ocrService: ocrService)
+                } else if photoLibrary.assets.isEmpty == false {
+                    await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
+                }
                 deviceSafety.refresh()
+            }
+            .onChange(of: photoLibrary.latestLoadedBatch) {
+                let batch = photoLibrary.latestLoadedBatch
+                guard batch.isEmpty == false else {
+                    return
+                }
+
+                Task {
+                    await indexService.rebuild(for: batch, ocrService: ocrService)
+                }
             }
         }
     }
@@ -204,6 +223,28 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(spacing: 8) {
+                if photoLibrary.isLoading {
+                    Button(role: .destructive) {
+                        photoLibrary.cancelLoading()
+                    } label: {
+                        Label("読み込みを中止", systemImage: "xmark.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+
+                Button {
+                    photoLibrary.resetLoadingState()
+                } label: {
+                    Label("読み込み状態をリセット", systemImage: "arrow.counterclockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
         }
         .padding(16)
@@ -746,7 +787,9 @@ struct SettingsView: View {
     private func applyReadMode(_ mode: PhotoReadMode) {
         Task {
             await photoLibrary.updateReadMode(mode)
-            await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
+            if photoLibrary.latestLoadedBatch.isEmpty == false {
+                await indexService.rebuild(for: photoLibrary.latestLoadedBatch, ocrService: ocrService)
+            }
         }
     }
 
