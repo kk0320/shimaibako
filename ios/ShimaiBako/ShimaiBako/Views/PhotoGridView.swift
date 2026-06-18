@@ -35,6 +35,7 @@ struct PhotoGridView: View {
     @State private var visibleAssetLimit = 200
     @AppStorage("shimaibako.ocrBatchLimit") private var selectedBulkLimit = 20
     @AppStorage("shimaibako.photoGridShowsCategoryFilters") private var showsCategoryFilters = false
+    @AppStorage("shimaibako.photoGridShowsOCRDetails") private var showsOCRDetails = false
     @State private var effectiveSearchText: String
     @State private var searchDebounceTask: Task<Void, Never>?
     @State private var pageFetchTask: Task<Void, Never>?
@@ -193,6 +194,36 @@ struct PhotoGridView: View {
         return ""
     }
 
+    private var shouldShowCompactBulkStatus: Bool {
+        isRunningBulkOCR || bulkTotal > 0 || bulkInterruptedReason != nil || bulkWasCancelled
+    }
+
+    private var compactBulkStatusText: String {
+        let processedCount = min(bulkCompleted + bulkFailed, bulkTotal)
+
+        if isRunningBulkOCR && bulkCancellationRequested {
+            return "停止中 \(processedCount)/\(bulkTotal)"
+        }
+
+        if isRunningBulkOCR {
+            return "処理中 \(processedCount)/\(bulkTotal)"
+        }
+
+        if bulkInterruptedReason != nil {
+            return "中断 \(processedCount)/\(bulkTotal)"
+        }
+
+        if bulkWasCancelled {
+            return "中止 \(processedCount)/\(bulkTotal)"
+        }
+
+        if bulkTotal > 0 {
+            return "完了 \(bulkCompleted)/\(bulkTotal)"
+        }
+
+        return ""
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -285,7 +316,7 @@ struct PhotoGridView: View {
                     }
                 }
             } message: {
-                Text("表示中の写真について、しまい箱に保存されたOCR文字だけを削除します。元写真・元動画は削除・変更されません。")
+                Text("写真アプリの元写真・元動画は削除されません。しまい箱内のOCR結果だけを削除します。手動分類、不要候補、メモ、タグは削除されません。")
             }
             .task {
                 applyAssetIndex()
@@ -885,43 +916,89 @@ struct PhotoGridView: View {
                     .controlSize(.small)
                     .disabled(isBulkOCRBusy)
                 }
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        showsOCRDetails.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(showsOCRDetails ? "隠す" : "詳細")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Image(systemName: showsOCRDetails ? "chevron.up" : "chevron.down")
+                            .font(.caption2.weight(.bold))
+                    }
+                    .frame(minWidth: 44)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityLabel(showsOCRDetails ? "OCR詳細を隠す" : "OCR詳細を表示")
             }
             .frame(height: 36)
             .padding(.horizontal, 2)
 
-            if isRunningBulkOCR || bulkTotal > 0 {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(bulkStatusText)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            if showsOCRDetails {
+                bulkOCRDetails
+            } else if shouldShowCompactBulkStatus {
+                bulkOCRCompactStatus
+            }
+        }
+        .padding(12)
+        .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
+    }
 
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8)
-                    ], alignment: .leading, spacing: 6) {
-                        BulkProgressLabel(title: "対象", value: bulkTotal, systemImage: "scope")
-                        BulkProgressLabel(title: "処理中", value: bulkProcessingCount, systemImage: "hourglass")
-                        BulkProgressLabel(title: "完了", value: bulkCompleted, systemImage: "checkmark.circle")
-                        BulkProgressLabel(title: "失敗", value: bulkFailed, systemImage: "exclamationmark.triangle")
+    private var bulkOCRCompactStatus: some View {
+        HStack(spacing: 8) {
+            Label(compactBulkStatusText, systemImage: bulkCompactStatusIcon)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
 
-                        if bulkWasCancelled {
-                            Label("キャンセル済み", systemImage: "xmark.circle")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                        }
+            if let bulkInterruptedReason {
+                Text(bulkInterruptedReason)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
 
-                        if bulkInterruptedReason != nil {
-                            Label("中断", systemImage: "pause.circle")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                        }
-                    }
-                }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 2)
+    }
+
+    private var bulkCompactStatusIcon: String {
+        if isRunningBulkOCR && bulkCancellationRequested {
+            return "xmark.circle"
+        }
+
+        if isRunningBulkOCR {
+            return "text.viewfinder"
+        }
+
+        if bulkInterruptedReason != nil {
+            return "pause.circle"
+        }
+
+        if bulkWasCancelled {
+            return "xmark.circle"
+        }
+
+        return "checkmark.circle"
+    }
+
+    private var bulkOCRDetails: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isRunningBulkOCR || bulkTotal > 0 || bulkInterruptedReason != nil || bulkWasCancelled {
+                bulkOCRProgressDetails
+            } else {
+                Text("現在の検索・カテゴリで表示中の写真だけが対象です。元写真・元動画は削除・変更されません。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if visibleOCRClearTargets.isEmpty == false {
@@ -943,8 +1020,41 @@ struct PhotoGridView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(12)
-        .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var bulkOCRProgressDetails: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(bulkStatusText)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ], alignment: .leading, spacing: 6) {
+                BulkProgressLabel(title: "対象", value: bulkTotal, systemImage: "scope")
+                BulkProgressLabel(title: "処理中", value: bulkProcessingCount, systemImage: "hourglass")
+                BulkProgressLabel(title: "完了", value: bulkCompleted, systemImage: "checkmark.circle")
+                BulkProgressLabel(title: "失敗", value: bulkFailed, systemImage: "exclamationmark.triangle")
+
+                if bulkWasCancelled {
+                    Label("キャンセル済み", systemImage: "xmark.circle")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+
+                if bulkInterruptedReason != nil {
+                    Label("中断", systemImage: "pause.circle")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+            }
+        }
     }
 
     private func presentBulkSafety() {
