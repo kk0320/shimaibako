@@ -6,25 +6,30 @@ import Photos
 final class PhotoIndexService: ObservableObject {
     @Published private(set) var recordsByAssetID: [String: PhotoIndexRecord] = [:]
     @Published private(set) var indexSummary: PhotoIndexSummary = .empty
-    @Published private(set) var displayStateCountCache: [PhotoDisplayState: Int] = .emptyDisplayStateCounts
-    @Published private(set) var categoryCountCache: [PhotoCategory: Int] = .emptyCategoryCounts
-    @Published private(set) var screenshotSubcategoryCountCache: [ScreenshotSubcategory: Int] = .emptyScreenshotSubcategoryCounts
-    @Published private(set) var categoryCountCacheByDisplayState: [PhotoDisplayState: [PhotoCategory: Int]] = [:]
-    @Published private(set) var screenshotSubcategoryCountCacheByDisplayState: [PhotoDisplayState: [ScreenshotSubcategory: Int]] = [:]
-    @Published private(set) var indexStoreStatusText: String?
-    @Published private(set) var isIndexStorePreparing = false
+    @Published private(set) var filterCountsSnapshot: FilterCountsSnapshot = .empty
     @Published var errorMessage: String?
 
     private let store: any PhotoIndexStoring
     private let learningService: ManualCategoryLearningService
+    private let progressStore: IndexProgressStore
+    private(set) var displayStateCountCache: [PhotoDisplayState: Int] = .emptyDisplayStateCounts
+    private(set) var categoryCountCache: [PhotoCategory: Int] = .emptyCategoryCounts
+    private(set) var screenshotSubcategoryCountCache: [ScreenshotSubcategory: Int] = .emptyScreenshotSubcategoryCounts
+    private(set) var categoryCountCacheByDisplayState: [PhotoDisplayState: [PhotoCategory: Int]] = [:]
+    private(set) var screenshotSubcategoryCountCacheByDisplayState: [PhotoDisplayState: [ScreenshotSubcategory: Int]] = [:]
+    private(set) var indexStoreStatusText: String?
+    private(set) var isIndexStorePreparing = false
     private var migrationObserver: NSObjectProtocol?
+    private var filterCountsRevision = 0
 
     init(
         store: any PhotoIndexStoring = SQLitePhotoIndexStore(),
-        learningService: ManualCategoryLearningService
+        learningService: ManualCategoryLearningService,
+        progressStore: IndexProgressStore? = nil
     ) {
         self.store = store
         self.learningService = learningService
+        self.progressStore = progressStore ?? .shared
         migrationObserver = NotificationCenter.default.addObserver(
             forName: SQLitePhotoIndexStore.migrationProgressNotification,
             object: nil,
@@ -39,6 +44,7 @@ final class PhotoIndexService: ObservableObject {
 
                 self.isIndexStorePreparing = true
                 self.indexStoreStatusText = "旧インデックスをSQLiteへ移行中 \(completed) / \(total)件"
+                self.progressStore.update(statusText: self.indexStoreStatusText)
             }
         }
 
@@ -164,6 +170,62 @@ final class PhotoIndexService: ObservableObject {
         }
 
         return screenshotSubcategoryCountCacheByDisplayState[displayState] ?? .emptyScreenshotSubcategoryCounts
+    }
+
+    func filterCountsSnapshot(for scope: PhotoDisplayState) -> FilterCountsSnapshot {
+        if filterCountsSnapshot.categoryScope == scope {
+            return filterCountsSnapshot
+        }
+
+        return .preparing(revision: filterCountsSnapshot.revision, categoryScope: scope)
+    }
+
+    func refreshFilterCountsSnapshot(scope: PhotoDisplayState) async {
+        filterCountsRevision += 1
+        let revision = filterCountsRevision
+        filterCountsSnapshot = .preparing(revision: revision, categoryScope: scope)
+
+        do {
+            let snapshot = try await PerformanceTelemetry.measure(.fetchFilterCounts, "scope=\(scope.rawValue)") {
+                let displayCounts = try await store.displayStateCounts()
+                let categoryCounts = try await store.categoryCounts(displayState: scope)
+                let screenshotCounts = try await store.screenshotSubcategoryCounts(displayState: scope)
+                return FilterCountsSnapshot(
+                    revision: revision,
+                    categoryScope: scope,
+                    displayStateCounts: displayCounts,
+                    categoryCounts: categoryCounts,
+                    screenshotSubcategoryCounts: screenshotCounts,
+                    isPreparing: false
+                )
+            }
+
+            guard revision == filterCountsRevision else {
+                return
+            }
+
+            displayStateCountCache = snapshot.displayStateCounts ?? .emptyDisplayStateCounts
+            categoryCountsByReplacing(scope: scope, categoryCounts: snapshot.categoryCounts, screenshotCounts: snapshot.screenshotSubcategoryCounts)
+            filterCountsSnapshot = snapshot
+        } catch {
+            guard revision == filterCountsRevision else {
+                return
+            }
+
+            errorMessage = "件数を読み込めませんでした: \(error.localizedDescription)"
+            filterCountsSnapshot = .preparing(revision: revision, categoryScope: scope)
+        }
+    }
+
+    func page(matching request: PhotoIndexPageRequest) async -> PhotoIndexPage {
+        do {
+            return try await PerformanceTelemetry.measure(.fetchPhotoPage, "limit=\(request.normalizedLimit) offset=\(request.normalizedOffset)") {
+                try await store.localIdentifierPage(matching: request)
+            }
+        } catch {
+            errorMessage = "写真一覧を読み込めませんでした: \(error.localizedDescription)"
+            return PhotoIndexPage(localIdentifiers: [], totalCount: 0)
+        }
     }
 
     func setDisplayState(
@@ -828,13 +890,16 @@ final class PhotoIndexService: ObservableObject {
         do {
             isIndexStorePreparing = true
             indexStoreStatusText = "検索インデックスを準備しています"
+            progressStore.update(statusText: indexStoreStatusText)
             let records = try await store.loadPage(limit: 500, offset: 0)
             recordsByAssetID = Dictionary(uniqueKeysWithValues: records.map { ($0.localIdentifier, $0) })
             try await refreshStoreStats()
             indexStoreStatusText = nil
             isIndexStorePreparing = false
+            progressStore.update(statusText: nil)
         } catch {
             isIndexStorePreparing = false
+            progressStore.update(statusText: nil)
             errorMessage = "インデックスを読み込めませんでした: \(error.localizedDescription)"
         }
     }
@@ -872,6 +937,31 @@ final class PhotoIndexService: ObservableObject {
 
         categoryCountCacheByDisplayState = nextCategoryCounts
         screenshotSubcategoryCountCacheByDisplayState = nextScreenshotCounts
+
+        let scope = filterCountsSnapshot.categoryScope
+        filterCountsRevision += 1
+        filterCountsSnapshot = FilterCountsSnapshot(
+            revision: filterCountsRevision,
+            categoryScope: scope,
+            displayStateCounts: displayStateCountCache,
+            categoryCounts: categoryCountCacheByDisplayState[scope] ?? .emptyCategoryCounts,
+            screenshotSubcategoryCounts: screenshotSubcategoryCountCacheByDisplayState[scope] ?? .emptyScreenshotSubcategoryCounts,
+            isPreparing: false
+        )
+    }
+
+    private func categoryCountsByReplacing(
+        scope: PhotoDisplayState,
+        categoryCounts: [PhotoCategory: Int]?,
+        screenshotCounts: [ScreenshotSubcategory: Int]?
+    ) {
+        if let categoryCounts {
+            categoryCountCacheByDisplayState[scope] = categoryCounts
+        }
+
+        if let screenshotCounts {
+            screenshotSubcategoryCountCacheByDisplayState[scope] = screenshotCounts
+        }
     }
 
     private func refreshSummary() {

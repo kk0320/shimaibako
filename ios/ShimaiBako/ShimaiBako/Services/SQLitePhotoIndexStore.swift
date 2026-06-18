@@ -151,9 +151,31 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             return Set(try identifiers(whereClause: nil, bindings: []))
         }
 
-        let conditions = tokens.map { _ in "normalized_search_text LIKE ?" }.joined(separator: " AND ")
+        let conditions = tokens.map { _ in "s.normalized_text LIKE ?" }.joined(separator: " AND ")
         let bindings = tokens.map { "%\($0)%" }
-        return Set(try identifiers(whereClause: conditions, bindings: bindings))
+        return Set(try identifiers(
+            whereClause: conditions,
+            bindings: bindings,
+            joins: "JOIN search_documents s ON s.asset_identifier = photo_records.asset_identifier"
+        ))
+    }
+
+    func localIdentifierPage(matching request: PhotoIndexPageRequest) async throws -> PhotoIndexPage {
+        try openIfNeeded()
+        try await migrateLegacyJSONIfNeeded()
+
+        return try PerformanceTelemetry.measure(.executeSearch, "limit=\(request.normalizedLimit) offset=\(request.normalizedOffset)") {
+            let queryPlan = pageQueryPlan(for: request)
+            let total = try scalarInt(queryPlan.countSQL, bindings: queryPlan.bindings)
+            let identifiers = try identifiers(
+                whereClause: queryPlan.whereClause,
+                bindings: queryPlan.bindings,
+                joins: queryPlan.joins,
+                orderAndLimit: "ORDER BY photo_records.creation_date DESC, photo_records.asset_identifier DESC LIMIT ? OFFSET ?",
+                limitBindings: [request.normalizedLimit, request.normalizedOffset]
+            )
+            return PhotoIndexPage(localIdentifiers: identifiers, totalCount: total)
+        }
     }
 
     func displayStateCounts() async throws -> [PhotoDisplayState: Int] {
@@ -298,6 +320,7 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             category TEXT NOT NULL,
             screenshot_category TEXT,
             manual_category TEXT,
+            is_screenshot INTEGER NOT NULL DEFAULT 0,
             has_ocr INTEGER NOT NULL,
             ocr_status TEXT NOT NULL,
             classification_status TEXT NOT NULL,
@@ -308,6 +331,7 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             normalized_search_text TEXT NOT NULL
         )
         """)
+        try addColumnIfNeeded(table: "photo_records", column: "is_screenshot", definition: "INTEGER NOT NULL DEFAULT 0")
 
         try execute("""
         CREATE TABLE IF NOT EXISTS photo_texts (
@@ -323,6 +347,16 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             tag TEXT NOT NULL,
             normalized_tag TEXT NOT NULL,
             PRIMARY KEY (asset_identifier, normalized_tag)
+        )
+        """)
+
+        try execute("""
+        CREATE TABLE IF NOT EXISTS search_documents (
+            asset_identifier TEXT PRIMARY KEY NOT NULL,
+            normalized_text TEXT NOT NULL,
+            index_version INTEGER NOT NULL,
+            source_revision REAL NOT NULL,
+            indexed_at REAL NOT NULL
         )
         """)
 
@@ -354,11 +388,14 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         try execute("CREATE INDEX IF NOT EXISTS idx_photo_creation_date ON photo_records(creation_date DESC, asset_identifier)")
         try execute("CREATE INDEX IF NOT EXISTS idx_photo_display_state ON photo_records(display_state)")
         try execute("CREATE INDEX IF NOT EXISTS idx_photo_category ON photo_records(category)")
+        try execute("CREATE INDEX IF NOT EXISTS idx_photo_is_screenshot ON photo_records(is_screenshot)")
         try execute("CREATE INDEX IF NOT EXISTS idx_photo_screenshot_category ON photo_records(screenshot_category)")
         try execute("CREATE INDEX IF NOT EXISTS idx_photo_has_ocr ON photo_records(has_ocr)")
         try execute("CREATE INDEX IF NOT EXISTS idx_photo_ocr_status ON photo_records(ocr_status)")
         try execute("CREATE INDEX IF NOT EXISTS idx_photo_classification_status ON photo_records(classification_status)")
         try execute("CREATE INDEX IF NOT EXISTS idx_photo_tags_normalized ON photo_tags(normalized_tag)")
+        try execute("CREATE INDEX IF NOT EXISTS idx_search_documents_text ON search_documents(normalized_text)")
+        try execute("CREATE INDEX IF NOT EXISTS idx_search_documents_revision ON search_documents(index_version, source_revision)")
     }
 
     private func migrateLegacyJSONIfNeeded() async throws {
@@ -368,6 +405,7 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
 
         didMigrateLegacyJSON = true
         guard try scalarInt("SELECT COUNT(*) FROM photo_records") == 0 else {
+            try backfillSearchDocumentsIfNeeded()
             return
         }
 
@@ -381,9 +419,42 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         postMigrationProgress(completed: 0, total: legacyRecords.count)
         while index < legacyRecords.count {
             let upperBound = min(index + batchSize, legacyRecords.count)
-            try await upsert(Array(legacyRecords[index..<upperBound]))
+            try await PerformanceTelemetry.measure(.searchIndexBatch, "legacy=\(index)-\(upperBound)") {
+                try await upsert(Array(legacyRecords[index..<upperBound]))
+            }
             index = upperBound
             postMigrationProgress(completed: index, total: legacyRecords.count)
+        }
+    }
+
+    private func backfillSearchDocumentsIfNeeded() throws {
+        guard try scalarInt("SELECT COUNT(*) FROM search_documents") == 0,
+              try scalarInt("SELECT COUNT(*) FROM photo_records") > 0 else {
+            return
+        }
+
+        let records = try records(
+            whereClause: nil,
+            bindings: [],
+            orderAndLimit: "ORDER BY creation_date DESC, asset_identifier DESC"
+        )
+        let batchSize = 500
+        var index = 0
+        while index < records.count {
+            let upperBound = min(index + batchSize, records.count)
+            try PerformanceTelemetry.measure(.searchIndexBatch, "backfill=\(index)-\(upperBound)") {
+                try execute("BEGIN IMMEDIATE TRANSACTION")
+                do {
+                    for record in records[index..<upperBound] {
+                        try upsertRecord(record)
+                    }
+                    try execute("COMMIT")
+                } catch {
+                    try? execute("ROLLBACK")
+                    throw error
+                }
+            }
+            index = upperBound
         }
     }
 
@@ -396,6 +467,7 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
                 "total": total
             ]
         )
+        PerformanceTelemetry.mark(.publishIndexProgress, "\(completed)/\(total)")
     }
 
     private func upsertRecord(_ record: PhotoIndexRecord) throws {
@@ -417,6 +489,7 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             category,
             screenshot_category,
             manual_category,
+            is_screenshot,
             has_ocr,
             ocr_status,
             classification_status,
@@ -425,7 +498,7 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             updated_at,
             last_seen_at,
             normalized_search_text
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """) { statement in
             try bindText(statement, 1, record.localIdentifier)
             try bindBlob(statement, 2, data)
@@ -438,19 +511,40 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             try bindText(statement, 9, record.inferredCategory.rawValue)
             try bindNullableText(statement, 10, record.screenshotSubcategory?.rawValue)
             try bindNullableText(statement, 11, record.manualCategory?.rawValue)
-            try bindInt(statement, 12, record.hasOCRText ? 1 : 0)
-            try bindText(statement, 13, record.ocrStatus.rawValue)
-            try bindText(statement, 14, record.inferredCategory == .uncategorized ? "pending" : "classified")
-            try bindInt(statement, 15, 1)
-            try bindText(statement, 16, record.userMemo)
-            try bindDate(statement, 17, record.updatedAt)
-            try bindDate(statement, 18, record.lastSeenAt)
-            try bindText(statement, 19, normalizedText)
+            try bindInt(statement, 12, record.isScreenshot ? 1 : 0)
+            try bindInt(statement, 13, record.hasOCRText ? 1 : 0)
+            try bindText(statement, 14, record.ocrStatus.rawValue)
+            try bindText(statement, 15, record.inferredCategory == .uncategorized ? "pending" : "classified")
+            try bindInt(statement, 16, 1)
+            try bindText(statement, 17, record.userMemo)
+            try bindDate(statement, 18, record.updatedAt)
+            try bindDate(statement, 19, record.lastSeenAt)
+            try bindText(statement, 20, normalizedText)
             try stepDone(statement)
         }
 
         try upsertText(record)
         try upsertTags(record)
+        try upsertSearchDocument(record, normalizedText: normalizedText)
+    }
+
+    private func upsertSearchDocument(_ record: PhotoIndexRecord, normalizedText: String) throws {
+        try withStatement("""
+        INSERT OR REPLACE INTO search_documents (
+            asset_identifier,
+            normalized_text,
+            index_version,
+            source_revision,
+            indexed_at
+        ) VALUES (?, ?, ?, ?, ?)
+        """) { statement in
+            try bindText(statement, 1, record.localIdentifier)
+            try bindText(statement, 2, normalizedText)
+            try bindInt(statement, 3, 1)
+            try bindDate(statement, 4, record.updatedAt)
+            try bindDate(statement, 5, Date())
+            try stepDone(statement)
+        }
     }
 
     private func upsertText(_ record: PhotoIndexRecord) throws {
@@ -506,17 +600,87 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         try records(whereClause: "asset_identifier = ?", bindings: [localIdentifier]).first
     }
 
-    private func identifiers(whereClause: String?, bindings: [String]) throws -> [String] {
-        var sql = "SELECT asset_identifier FROM photo_records"
+    private struct PageQueryPlan {
+        var joins: String
+        var whereClause: String?
+        var bindings: [String]
+        var countSQL: String
+    }
+
+    private func pageQueryPlan(for request: PhotoIndexPageRequest) -> PageQueryPlan {
+        var joins = ""
+        var clauses: [String] = []
+        var bindings: [String] = []
+
+        if request.includeUnwantedWhenActive,
+           request.displayState == .active {
+            clauses.append("photo_records.display_state IN (?, ?)")
+            bindings.append(PhotoDisplayState.active.rawValue)
+            bindings.append(PhotoDisplayState.unwanted.rawValue)
+        } else {
+            clauses.append("photo_records.display_state = ?")
+            bindings.append(request.displayState.rawValue)
+        }
+
+        if request.category != .all {
+            clauses.append("photo_records.category = ?")
+            bindings.append(request.category.rawValue)
+        }
+
+        if request.category == .screenshots,
+           request.screenshotSubcategory != .all {
+            clauses.append("photo_records.is_screenshot = 1")
+            clauses.append("COALESCE(photo_records.screenshot_category, ?) = ?")
+            bindings.append(ScreenshotSubcategory.otherScreenshot.rawValue)
+            bindings.append(request.screenshotSubcategory.rawValue)
+        }
+
+        let tokens = normalizedSearchTokens(in: request.query)
+        if tokens.isEmpty == false {
+            joins = "JOIN search_documents s ON s.asset_identifier = photo_records.asset_identifier"
+            for token in tokens {
+                clauses.append("s.normalized_text LIKE ?")
+                bindings.append("%\(token)%")
+            }
+        }
+
+        let whereClause = clauses.isEmpty ? nil : clauses.joined(separator: " AND ")
+        var countSQL = "SELECT COUNT(*) FROM photo_records"
+        if joins.isEmpty == false {
+            countSQL += " \(joins)"
+        }
+        if let whereClause {
+            countSQL += " WHERE \(whereClause)"
+        }
+
+        return PageQueryPlan(joins: joins, whereClause: whereClause, bindings: bindings, countSQL: countSQL)
+    }
+
+    private func identifiers(
+        whereClause: String?,
+        bindings: [String],
+        joins: String = "",
+        orderAndLimit: String = "ORDER BY photo_records.creation_date DESC, photo_records.asset_identifier DESC",
+        limitBindings: [Int] = []
+    ) throws -> [String] {
+        var sql = "SELECT photo_records.asset_identifier FROM photo_records"
+        if joins.isEmpty == false {
+            sql += " \(joins)"
+        }
         if let whereClause {
             sql += " WHERE \(whereClause)"
         }
-        sql += " ORDER BY creation_date DESC, asset_identifier DESC"
+        sql += " \(orderAndLimit)"
 
         var identifiers: [String] = []
         try withStatement(sql) { statement in
             for (index, binding) in bindings.enumerated() {
                 try bindText(statement, Int32(index + 1), binding)
+            }
+
+            let offset = bindings.count
+            for (index, binding) in limitBindings.enumerated() {
+                try bindInt(statement, Int32(offset + index + 1), binding)
             }
 
             while sqlite3_step(statement) == SQLITE_ROW {
@@ -613,6 +777,31 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             sqlite3_free(error)
             throw StoreError.stepFailed(message)
         }
+    }
+
+    private func addColumnIfNeeded(table: String, column: String, definition: String) throws {
+        guard try tableHasColumn(table: table, column: column) == false else {
+            return
+        }
+
+        try execute("ALTER TABLE \(table) ADD COLUMN \(column) \(definition)")
+    }
+
+    private func tableHasColumn(table: String, column: String) throws -> Bool {
+        var exists = false
+        try withStatement("PRAGMA table_info(\(table))") { statement in
+            while sqlite3_step(statement) == SQLITE_ROW {
+                guard let rawPointer = sqlite3_column_text(statement, 1) else {
+                    continue
+                }
+
+                if String(cString: rawPointer) == column {
+                    exists = true
+                    break
+                }
+            }
+        }
+        return exists
     }
 
     private func withStatement(_ sql: String, _ body: (OpaquePointer) throws -> Void) throws {
