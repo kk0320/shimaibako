@@ -287,6 +287,22 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         )
     }
 
+    func records(localIdentifiers: [String]) async throws -> [PhotoIndexRecord] {
+        try openIfNeeded()
+        try await migrateLegacyJSONIfNeeded()
+
+        guard localIdentifiers.isEmpty == false else {
+            return []
+        }
+
+        let placeholders = Array(repeating: "?", count: localIdentifiers.count).joined(separator: ",")
+        return try records(
+            whereClause: "asset_identifier IN (\(placeholders))",
+            bindings: localIdentifiers,
+            orderAndLimit: "ORDER BY creation_date DESC, asset_identifier DESC"
+        )
+    }
+
     private func openIfNeeded() throws {
         guard didOpen == false else {
             return
@@ -414,7 +430,7 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             return
         }
 
-        let batchSize = 500
+        let batchSize = 200
         var index = 0
         postMigrationProgress(completed: 0, total: legacyRecords.count)
         while index < legacyRecords.count {
@@ -433,19 +449,21 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             return
         }
 
-        let records = try records(
-            whereClause: nil,
-            bindings: [],
-            orderAndLimit: "ORDER BY creation_date DESC, asset_identifier DESC"
-        )
-        let batchSize = 500
+        let totalCount = try scalarInt("SELECT COUNT(*) FROM photo_records")
+        let batchSize = 200
         var index = 0
-        while index < records.count {
-            let upperBound = min(index + batchSize, records.count)
+        while index < totalCount {
+            let upperBound = min(index + batchSize, totalCount)
+            let records = try records(
+                whereClause: nil,
+                bindings: [],
+                orderAndLimit: "ORDER BY creation_date DESC, asset_identifier DESC LIMIT ? OFFSET ?",
+                limitBindings: [batchSize, index]
+            )
             try PerformanceTelemetry.measure(.searchIndexBatch, "backfill=\(index)-\(upperBound)") {
                 try execute("BEGIN IMMEDIATE TRANSACTION")
                 do {
-                    for record in records[index..<upperBound] {
+                    for record in records {
                         try upsertRecord(record)
                     }
                     try execute("COMMIT")

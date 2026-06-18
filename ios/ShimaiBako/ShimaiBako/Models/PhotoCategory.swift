@@ -745,11 +745,22 @@ enum CategoryInference {
     }
 
     private nonisolated static func normalized(_ text: String?) -> String {
-        (text ?? "").lowercased()
+        let rawText = text ?? ""
+        let widthAdjusted = rawText.applyingTransform(.fullwidthToHalfwidth, reverse: false) ?? rawText
+        let kanaAdjusted = widthAdjusted.applyingTransform(.hiraganaToKatakana, reverse: false) ?? widthAdjusted
+        return kanaAdjusted
+            .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "ja_JP"))
+            .lowercased()
     }
 
     private nonisolated static func containsAny(_ text: String, keywords: [String]) -> Bool {
-        keywords.contains { text.localizedCaseInsensitiveContains($0) }
+        guard text.isEmpty == false else {
+            return false
+        }
+
+        return keywords.contains { keyword in
+            text.contains(normalized(keyword))
+        }
     }
 
     private nonisolated static func looksDocumentLike(_ asset: PhotoAsset) -> Bool {

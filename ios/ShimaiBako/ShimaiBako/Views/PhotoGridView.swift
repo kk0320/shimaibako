@@ -297,7 +297,9 @@ struct PhotoGridView: View {
             }
             .onChange(of: photoLibrary.assets) {
                 applyAssetIndex()
-                fetchGridPage(reset: true)
+                if pageIdentifiers.isEmpty {
+                    fetchGridPage(reset: true)
+                }
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
             }
@@ -327,8 +329,10 @@ struct PhotoGridView: View {
 
                 Task {
                     await indexService.rebuild(for: batch, ocrService: ocrService)
-                    await indexService.refreshFilterCountsSnapshot(scope: selectedDisplayState)
-                    fetchGridPage(reset: true)
+                    if shouldRefreshGridAfterImportBatch {
+                        await indexService.refreshFilterCountsSnapshot(scope: selectedDisplayState)
+                        fetchGridPage(reset: true)
+                    }
                 }
             }
             .onChange(of: scenePhase) { _, newPhase in
@@ -654,7 +658,40 @@ struct PhotoGridView: View {
     }
 
     private func applyAssetIndex() {
-        assetByID = Dictionary(uniqueKeysWithValues: photoLibrary.assets.map { ($0.id, $0) })
+        var nextIndex = assetByID
+        for asset in photoLibrary.assets {
+            nextIndex[asset.id] = asset
+        }
+        assetByID = trimmedAssetIndex(nextIndex)
+    }
+
+    private var shouldRefreshGridAfterImportBatch: Bool {
+        if pageIdentifiers.isEmpty || visibleAssets.isEmpty {
+            return true
+        }
+
+        if photoLibrary.loadedAssetCount <= 200 {
+            return true
+        }
+
+        if photoLibrary.importProgress.phase == .completed {
+            return true
+        }
+
+        return photoLibrary.loadedAssetCount.isMultiple(of: 500)
+    }
+
+    private func trimmedAssetIndex(_ index: [String: PhotoAsset]) -> [String: PhotoAsset] {
+        let pinnedIdentifiers = Set(pageIdentifiers)
+            .union(photoLibrary.assets.map(\.id))
+            .union(photoLibrary.latestLoadedBatch.map(\.id))
+        var trimmed = index.filter { pinnedIdentifiers.contains($0.key) }
+
+        if trimmed.count > 900 {
+            trimmed = Dictionary(uniqueKeysWithValues: trimmed.prefix(900).map { ($0.key, $0.value) })
+        }
+
+        return trimmed
     }
 
     private func scheduleSearchUpdate() {
@@ -696,6 +733,7 @@ struct PhotoGridView: View {
         isFetchingPage = true
         pageFetchTask = Task {
             let page = await indexService.page(matching: request)
+            let resolvedAssets = photoLibrary.assets(for: page.localIdentifiers)
             guard Task.isCancelled == false else {
                 return
             }
@@ -706,7 +744,12 @@ struct PhotoGridView: View {
                 }
 
                 PerformanceTelemetry.mark(.applyGridSnapshot, "items=\(page.localIdentifiers.count) total=\(page.totalCount)")
-                pageIdentifiers = page.localIdentifiers
+                var nextIndex = assetByID
+                for asset in resolvedAssets {
+                    nextIndex[asset.id] = asset
+                }
+                pageIdentifiers = resolvedAssets.map(\.id)
+                assetByID = trimmedAssetIndex(nextIndex)
                 pageTotalCount = page.totalCount
                 isFetchingPage = false
             }

@@ -21,6 +21,8 @@ final class PhotoIndexService: ObservableObject {
     private(set) var isIndexStorePreparing = false
     private var migrationObserver: NSObjectProtocol?
     private var filterCountsRevision = 0
+    private var recordCacheOrder: [String] = []
+    private let maximumCachedRecords = 1_500
 
     init(
         store: any PhotoIndexStoring = SQLitePhotoIndexStore(),
@@ -219,9 +221,11 @@ final class PhotoIndexService: ObservableObject {
 
     func page(matching request: PhotoIndexPageRequest) async -> PhotoIndexPage {
         do {
-            return try await PerformanceTelemetry.measure(.fetchPhotoPage, "limit=\(request.normalizedLimit) offset=\(request.normalizedOffset)") {
+            let page = try await PerformanceTelemetry.measure(.fetchPhotoPage, "limit=\(request.normalizedLimit) offset=\(request.normalizedOffset)") {
                 try await store.localIdentifierPage(matching: request)
             }
+            await cacheRecords(localIdentifiers: page.localIdentifiers)
+            return page
         } catch {
             errorMessage = "写真一覧を読み込めませんでした: \(error.localizedDescription)"
             return PhotoIndexPage(localIdentifiers: [], totalCount: 0)
@@ -367,23 +371,24 @@ final class PhotoIndexService: ObservableObject {
             return
         }
 
-        var nextRecords = recordsByAssetID
+        await cacheRecords(localIdentifiers: assets.map(\.localIdentifier))
         var changedRecords: [PhotoIndexRecord] = []
+        changedRecords.reserveCapacity(assets.count)
 
         for (index, asset) in assets.enumerated() {
             let record = makeRecord(for: asset, ocrService: ocrService)
-            nextRecords[asset.id] = record
+            recordsByAssetID[asset.id] = record
+            recordCacheOrder.removeAll { $0 == asset.id }
+            recordCacheOrder.append(asset.id)
             changedRecords.append(record)
 
             if index.isMultiple(of: 500) {
-                recordsByAssetID = nextRecords
                 await Task.yield()
             }
         }
 
-        recordsByAssetID = nextRecords
-        refreshSummary()
-        await persistRecords(changedRecords)
+        trimRecordCacheIfNeeded()
+        await persistRecords(changedRecords, refreshStats: assets.count < 50)
     }
 
     func update(asset: PhotoAsset, ocrService: OCRService) async {
@@ -555,15 +560,19 @@ final class PhotoIndexService: ObservableObject {
         await ocrService.clearAllResults()
 
         let now = Date()
-        var nextRecords = recordsByAssetID.mapValues { $0.clearingOCR(at: now) }
+        recordsByAssetID = recordsByAssetID.mapValues { $0.clearingOCR(at: now) }
 
         for asset in assets where asset.mediaType == .image {
-            nextRecords[asset.id] = makeClearedOCRRecord(for: asset)
+            recordsByAssetID[asset.id] = makeClearedOCRRecord(for: asset)
         }
 
-        recordsByAssetID = nextRecords
         refreshSummary()
-        await persistAllRecords(Array(nextRecords.values))
+        do {
+            try await store.clearAllOCRResults()
+            try await refreshStoreStats()
+        } catch {
+            errorMessage = "OCR結果を削除できませんでした: \(error.localizedDescription)"
+        }
     }
 
     func resetCategory(localIdentifier: String) async {
@@ -892,7 +901,9 @@ final class PhotoIndexService: ObservableObject {
             indexStoreStatusText = "検索インデックスを準備しています"
             progressStore.update(statusText: indexStoreStatusText)
             let records = try await store.loadPage(limit: 500, offset: 0)
-            recordsByAssetID = Dictionary(uniqueKeysWithValues: records.map { ($0.localIdentifier, $0) })
+            recordsByAssetID = [:]
+            recordCacheOrder = []
+            updateRecordCache(with: records)
             try await refreshStoreStats()
             indexStoreStatusText = nil
             isIndexStorePreparing = false
@@ -904,19 +915,12 @@ final class PhotoIndexService: ObservableObject {
         }
     }
 
-    private func persistRecords(_ records: [PhotoIndexRecord]) async {
+    private func persistRecords(_ records: [PhotoIndexRecord], refreshStats: Bool = true) async {
         do {
             try await store.upsert(records)
-            try await refreshStoreStats()
-        } catch {
-            errorMessage = "インデックスを保存できませんでした: \(error.localizedDescription)"
-        }
-    }
-
-    private func persistAllRecords(_ records: [PhotoIndexRecord]) async {
-        do {
-            try await store.saveAll(records)
-            try await refreshStoreStats()
+            if refreshStats {
+                try await refreshStoreStats()
+            }
         } catch {
             errorMessage = "インデックスを保存できませんでした: \(error.localizedDescription)"
         }
@@ -962,6 +966,42 @@ final class PhotoIndexService: ObservableObject {
         if let screenshotCounts {
             screenshotSubcategoryCountCacheByDisplayState[scope] = screenshotCounts
         }
+    }
+
+    private func cacheRecords(localIdentifiers: [String]) async {
+        do {
+            let records = try await store.records(localIdentifiers: localIdentifiers)
+            updateRecordCache(with: records)
+        } catch {
+            errorMessage = "表示用インデックスを読み込めませんでした: \(error.localizedDescription)"
+        }
+    }
+
+    private func updateRecordCache(with records: [PhotoIndexRecord]) {
+        guard records.isEmpty == false else {
+            return
+        }
+
+        for record in records {
+            recordsByAssetID[record.localIdentifier] = record
+            recordCacheOrder.removeAll { $0 == record.localIdentifier }
+            recordCacheOrder.append(record.localIdentifier)
+        }
+
+        trimRecordCacheIfNeeded()
+    }
+
+    private func trimRecordCacheIfNeeded() {
+        guard recordCacheOrder.count > maximumCachedRecords else {
+            return
+        }
+
+        let overflow = recordCacheOrder.count - maximumCachedRecords
+        let identifiersToRemove = recordCacheOrder.prefix(overflow)
+        for identifier in identifiersToRemove {
+            recordsByAssetID.removeValue(forKey: identifier)
+        }
+        recordCacheOrder.removeFirst(overflow)
     }
 
     private func refreshSummary() {

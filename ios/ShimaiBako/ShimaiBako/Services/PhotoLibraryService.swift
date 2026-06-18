@@ -29,8 +29,11 @@ final class PhotoLibraryService: ObservableObject {
     private var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
     private var thumbnails: [String: UIImage] = [:]
     private var thumbnailRequests: [String: PHImageRequestID] = [:]
+    private var memoryWarningObserver: NSObjectProtocol?
+    private var memoryWarningCount = 0
     private let batchSize = 100
-    private let firstPaintLimit = 100
+    private let firstPaintLimit = 200
+    private let largeScaleRetainedAssetLimit = 500
 
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
@@ -52,7 +55,23 @@ final class PhotoLibraryService: ObservableObject {
 
         authorizationStatus = assumesAuthorizedForDebugRun ? .authorized : PHPhotoLibrary.authorizationStatus(for: .readWrite)
 
+        memoryWarningObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.handleMemoryWarning()
+            }
+        }
+
         recoverStaleImportIfNeeded()
+    }
+
+    deinit {
+        if let memoryWarningObserver {
+            NotificationCenter.default.removeObserver(memoryWarningObserver)
+        }
     }
 
     var canReadPhotos: Bool {
@@ -85,6 +104,14 @@ final class PhotoLibraryService: ObservableObject {
         }
 
         return importProgress.phase == .completed && importProgress.readMode.isLargeScale
+    }
+
+    private var retainedAssetLimit: Int {
+        if readMode.isLargeScale {
+            return largeScaleRetainedAssetLimit
+        }
+
+        return readMode.limit ?? largeScaleRetainedAssetLimit
     }
 
     var statusTitle: String {
@@ -140,6 +167,27 @@ final class PhotoLibraryService: ObservableObject {
     func updateICloudMode(_ nextMode: ICloudPhotoMode) {
         iCloudMode = nextMode
         userDefaults.set(nextMode.rawValue, forKey: iCloudModeKey)
+    }
+
+    func assets(for localIdentifiers: [String]) -> [PhotoAsset] {
+        guard localIdentifiers.isEmpty == false else {
+            return []
+        }
+
+        let cachedAssets = Dictionary(uniqueKeysWithValues: assets.map { ($0.localIdentifier, $0) })
+        var resolvedByID = cachedAssets
+        let missingIdentifiers = localIdentifiers.filter { cachedAssets[$0] == nil }
+
+        if missingIdentifiers.isEmpty == false {
+            let result = PHAsset.fetchAssets(withLocalIdentifiers: missingIdentifiers, options: nil)
+            let includeFilename = readMode == .light || readMode == .standard
+            result.enumerateObjects { asset, _, _ in
+                let photoAsset = PhotoAsset(asset: asset, includeFilename: includeFilename)
+                resolvedByID[photoAsset.localIdentifier] = photoAsset
+            }
+        }
+
+        return localIdentifiers.compactMap { resolvedByID[$0] }
     }
 
     func presentLimitedLibraryPicker() {
@@ -231,7 +279,11 @@ final class PhotoLibraryService: ObservableObject {
             finishedAt: Date(),
             message: PhotoImportInterruptionReason.userCancelled.message,
             interruptionReason: .userCancelled,
-            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers,
+            lastSuccessfulBatchEnd: loadedAssetCount,
+            lastPhase: importProgress.lastPhase,
+            lastExitReasonCandidate: PhotoImportInterruptionReason.userCancelled.rawValue,
+            memoryWarningCount: memoryWarningCount
         )
     }
 
@@ -253,7 +305,16 @@ final class PhotoLibraryService: ObservableObject {
             finishedAt: nil,
             message: nil,
             interruptionReason: nil,
-            latestLoadedIdentifiers: []
+            latestLoadedIdentifiers: [],
+            lastSuccessfulBatchEnd: nil,
+            lastPhase: nil,
+            lastErrorSummary: nil,
+            lastExitReasonCandidate: nil,
+            batchStart: nil,
+            batchEnd: nil,
+            batchSize: nil,
+            elapsedMilliseconds: nil,
+            memoryWarningCount: memoryWarningCount
         )
     }
 
@@ -284,10 +345,11 @@ final class PhotoLibraryService: ObservableObject {
 
     private func runImport(generation: Int, resume: Bool) async {
         let now = Date()
-        let existingAssets = resume ? assets : []
-        var nextAssets = existingAssets
-        var seenIdentifiers = Set(existingAssets.map(\.localIdentifier))
+        var retainedAssets = resume ? assets : []
+        var loadedCount = resume ? min(importProgress.loadedCount, importProgress.totalCount) : 0
         let shouldIncludeFilename = readMode == .light || readMode == .standard
+        let importStartedAt = importProgress.startedAt ?? now
+        let wallClockStart = Date()
 
         if resume == false {
             updateImportProgress(
@@ -299,19 +361,26 @@ final class PhotoLibraryService: ObservableObject {
                 finishedAt: nil,
                 message: "画面切替では読み込みを継続しています",
                 interruptionReason: nil,
-                latestLoadedIdentifiers: []
+                latestLoadedIdentifiers: [],
+                lastPhase: "photoFetch",
+                lastExitReasonCandidate: nil,
+                memoryWarningCount: memoryWarningCount
             )
         } else {
             updateImportProgress(
                 phase: .fetchingAssetList,
                 readMode: readMode,
-                loadedCount: nextAssets.count,
+                loadedCount: loadedCount,
                 totalCount: max(totalAssetCount, importProgress.totalCount),
-                startedAt: importProgress.startedAt ?? now,
+                startedAt: importStartedAt,
                 finishedAt: nil,
                 message: "続きから再開しています",
                 interruptionReason: nil,
-                latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+                latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers,
+                lastSuccessfulBatchEnd: importProgress.lastSuccessfulBatchEnd,
+                lastPhase: "photoFetch",
+                lastExitReasonCandidate: nil,
+                memoryWarningCount: memoryWarningCount
             )
         }
 
@@ -328,24 +397,31 @@ final class PhotoLibraryService: ObservableObject {
 
         let result = PHAsset.fetchAssets(with: options)
         let expectedCount = readMode.limit.map { min(result.count, $0) } ?? result.count
-        nextAssets.reserveCapacity(expectedCount)
+        let resumeStartIndex = resume ? min(loadedCount, expectedCount) : 0
+        retainedAssets = Array(retainedAssets.prefix(retainedAssetLimit))
 
         updateImportProgress(
             phase: .indexing,
             readMode: readMode,
-            loadedCount: nextAssets.count,
+            loadedCount: loadedCount,
             totalCount: expectedCount,
-            startedAt: importProgress.startedAt ?? now,
+            startedAt: importStartedAt,
             finishedAt: nil,
             message: "画面切替では読み込みを継続しています",
             interruptionReason: nil,
-            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers,
+            lastSuccessfulBatchEnd: importProgress.lastSuccessfulBatchEnd,
+            lastPhase: "sqliteBatchInsert",
+            batchStart: resumeStartIndex,
+            batchEnd: resumeStartIndex,
+            batchSize: batchSize,
+            memoryWarningCount: memoryWarningCount
         )
 
         var currentBatch: [PhotoAsset] = []
         currentBatch.reserveCapacity(batchSize)
 
-        for index in 0..<result.count {
+        for index in resumeStartIndex..<result.count {
             guard generation == loadGeneration else {
                 return
             }
@@ -353,7 +429,7 @@ final class PhotoLibraryService: ObservableObject {
             if Task.isCancelled {
                 markImportPausedIfCurrent(
                     generation: generation,
-                    loadedCount: nextAssets.count,
+                    loadedCount: loadedCount,
                     totalCount: expectedCount,
                     reason: .taskCancelled
                 )
@@ -363,28 +439,31 @@ final class PhotoLibraryService: ObservableObject {
             if cancellationRequested {
                 markImportCancelledIfCurrent(
                     generation: generation,
-                    loadedCount: nextAssets.count,
+                    loadedCount: loadedCount,
                     totalCount: expectedCount
                 )
                 return
             }
 
             let asset = result.object(at: index)
-            guard seenIdentifiers.contains(asset.localIdentifier) == false else {
-                continue
+            let photoAsset = PhotoAsset(asset: asset, includeFilename: shouldIncludeFilename)
+            currentBatch.append(photoAsset)
+            loadedCount = index + 1
+
+            if retainedAssets.count < retainedAssetLimit {
+                retainedAssets.append(photoAsset)
             }
 
-            let photoAsset = PhotoAsset(asset: asset, includeFilename: shouldIncludeFilename)
-            nextAssets.append(photoAsset)
-            currentBatch.append(photoAsset)
-            seenIdentifiers.insert(photoAsset.localIdentifier)
-
-            if currentBatch.count >= batchSize || nextAssets.count == firstPaintLimit {
+            if currentBatch.count >= batchSize || loadedCount == firstPaintLimit {
                 publishLoadedAssets(
-                    nextAssets,
+                    retainedAssets,
                     batch: currentBatch,
+                    loadedCount: loadedCount,
                     expectedCount: expectedCount,
-                    generation: generation
+                    generation: generation,
+                    batchStart: max(loadedCount - currentBatch.count, 0),
+                    batchEnd: loadedCount,
+                    elapsedMilliseconds: Int(Date().timeIntervalSince(wallClockStart) * 1000)
                 )
                 currentBatch = []
                 await Task.yield()
@@ -396,10 +475,14 @@ final class PhotoLibraryService: ObservableObject {
         }
 
         publishLoadedAssets(
-            nextAssets,
+            retainedAssets,
             batch: currentBatch,
+            loadedCount: loadedCount,
             expectedCount: expectedCount,
-            generation: generation
+            generation: generation,
+            batchStart: max(loadedCount - currentBatch.count, 0),
+            batchEnd: loadedCount,
+            elapsedMilliseconds: Int(Date().timeIntervalSince(wallClockStart) * 1000)
         )
 
         isLoading = false
@@ -408,13 +491,20 @@ final class PhotoLibraryService: ObservableObject {
         updateImportProgress(
             phase: .completed,
             readMode: readMode,
-            loadedCount: nextAssets.count,
+            loadedCount: loadedCount,
             totalCount: expectedCount,
-            startedAt: importProgress.startedAt ?? now,
+            startedAt: importStartedAt,
             finishedAt: Date(),
             message: "読み込みが完了しました",
             interruptionReason: nil,
-            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers,
+            lastSuccessfulBatchEnd: loadedCount,
+            lastPhase: "finalization",
+            batchStart: nil,
+            batchEnd: nil,
+            batchSize: nil,
+            elapsedMilliseconds: Int(Date().timeIntervalSince(wallClockStart) * 1000),
+            memoryWarningCount: memoryWarningCount
         )
     }
 
@@ -515,17 +605,21 @@ final class PhotoLibraryService: ObservableObject {
     }
 
     private func publishLoadedAssets(
-        _ nextAssets: [PhotoAsset],
+        _ retainedAssets: [PhotoAsset],
         batch: [PhotoAsset],
+        loadedCount: Int,
         expectedCount: Int,
-        generation: Int
+        generation: Int,
+        batchStart: Int?,
+        batchEnd: Int?,
+        elapsedMilliseconds: Int?
     ) {
         guard generation == loadGeneration else {
             return
         }
 
-        assets = nextAssets
-        loadedAssetCount = nextAssets.count
+        assets = retainedAssets
+        loadedAssetCount = loadedCount
 
         if batch.isEmpty == false {
             latestLoadedBatch = batch
@@ -534,13 +628,20 @@ final class PhotoLibraryService: ObservableObject {
         updateImportProgress(
             phase: .indexing,
             readMode: readMode,
-            loadedCount: nextAssets.count,
+            loadedCount: loadedCount,
             totalCount: expectedCount,
             startedAt: importProgress.startedAt,
             finishedAt: nil,
             message: "画面切替では読み込みを継続しています",
             interruptionReason: nil,
-            latestLoadedIdentifiers: batch.isEmpty ? importProgress.latestLoadedIdentifiers : batch.map(\.localIdentifier)
+            latestLoadedIdentifiers: batch.isEmpty ? importProgress.latestLoadedIdentifiers : batch.map(\.localIdentifier),
+            lastSuccessfulBatchEnd: loadedCount,
+            lastPhase: "sqliteBatchInsert",
+            batchStart: batchStart,
+            batchEnd: batchEnd,
+            batchSize: batch.count,
+            elapsedMilliseconds: elapsedMilliseconds,
+            memoryWarningCount: memoryWarningCount
         )
     }
 
@@ -550,6 +651,23 @@ final class PhotoLibraryService: ObservableObject {
         }
         thumbnailRequests = [:]
         thumbnails = [:]
+    }
+
+    private func handleMemoryWarning() {
+        memoryWarningCount += 1
+        clearThumbnailPipeline()
+        imageManager.stopCachingImagesForAllAssets()
+
+        guard isLoading else {
+            return
+        }
+
+        markImportPausedIfCurrent(
+            generation: loadGeneration,
+            loadedCount: loadedAssetCount,
+            totalCount: max(totalAssetCount, importProgress.totalCount),
+            reason: .pausedByMemoryPressure
+        )
     }
 
     private func thumbnailRequestKey(for asset: PhotoAsset, targetSize: CGSize) -> String {
@@ -599,7 +717,11 @@ final class PhotoLibraryService: ObservableObject {
             finishedAt: Date(),
             message: reason.message,
             interruptionReason: reason,
-            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers,
+            lastSuccessfulBatchEnd: loadedCount,
+            lastPhase: importProgress.lastPhase,
+            lastExitReasonCandidate: reason.rawValue,
+            memoryWarningCount: memoryWarningCount
         )
     }
 
@@ -650,7 +772,11 @@ final class PhotoLibraryService: ObservableObject {
             finishedAt: Date(),
             message: PhotoImportInterruptionReason.pausedByAppLifecycle.message,
             interruptionReason: .pausedByAppLifecycle,
-            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers
+            latestLoadedIdentifiers: importProgress.latestLoadedIdentifiers,
+            lastSuccessfulBatchEnd: loadedAssetCount,
+            lastPhase: importProgress.lastPhase,
+            lastExitReasonCandidate: PhotoImportInterruptionReason.pausedByAppLifecycle.rawValue,
+            memoryWarningCount: memoryWarningCount
         )
         endBackgroundTaskIfNeeded()
     }
@@ -673,7 +799,16 @@ final class PhotoLibraryService: ObservableObject {
         finishedAt: Date?,
         message: String?,
         interruptionReason: PhotoImportInterruptionReason?,
-        latestLoadedIdentifiers: [String]?
+        latestLoadedIdentifiers: [String]?,
+        lastSuccessfulBatchEnd: Int? = nil,
+        lastPhase: String? = nil,
+        lastErrorSummary: String? = nil,
+        lastExitReasonCandidate: String? = nil,
+        batchStart: Int? = nil,
+        batchEnd: Int? = nil,
+        batchSize: Int? = nil,
+        elapsedMilliseconds: Int? = nil,
+        memoryWarningCount: Int? = nil
     ) {
         importProgress = PhotoImportProgress(
             phase: phase,
@@ -685,7 +820,16 @@ final class PhotoLibraryService: ObservableObject {
             finishedAt: finishedAt,
             message: message,
             interruptionReason: interruptionReason,
-            latestLoadedIdentifiers: latestLoadedIdentifiers ?? importProgress.latestLoadedIdentifiers
+            latestLoadedIdentifiers: latestLoadedIdentifiers ?? importProgress.latestLoadedIdentifiers,
+            lastSuccessfulBatchEnd: lastSuccessfulBatchEnd ?? importProgress.lastSuccessfulBatchEnd,
+            lastPhase: lastPhase ?? importProgress.lastPhase,
+            lastErrorSummary: lastErrorSummary,
+            lastExitReasonCandidate: lastExitReasonCandidate ?? interruptionReason?.rawValue ?? importProgress.lastExitReasonCandidate,
+            batchStart: batchStart,
+            batchEnd: batchEnd,
+            batchSize: batchSize,
+            elapsedMilliseconds: elapsedMilliseconds ?? importProgress.elapsedMilliseconds,
+            memoryWarningCount: memoryWarningCount ?? importProgress.memoryWarningCount
         )
         persistImportProgress()
     }

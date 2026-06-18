@@ -4,6 +4,7 @@ import Foundation
 nonisolated protocol PhotoIndexStoring: Sendable {
     func loadAll() async throws -> [PhotoIndexRecord]
     func loadPage(limit: Int, offset: Int) async throws -> [PhotoIndexRecord]
+    func records(localIdentifiers: [String]) async throws -> [PhotoIndexRecord]
     func localIdentifierPage(matching request: PhotoIndexPageRequest) async throws -> PhotoIndexPage
     func saveAll(_ records: [PhotoIndexRecord]) async throws
     func upsert(_ records: [PhotoIndexRecord]) async throws
@@ -159,6 +160,15 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
                 }
             }
         return Array(records.dropFirst(max(offset, 0)).prefix(max(limit, 1)))
+    }
+
+    func records(localIdentifiers: [String]) async throws -> [PhotoIndexRecord] {
+        guard localIdentifiers.isEmpty == false else {
+            return []
+        }
+
+        let identifiers = Set(localIdentifiers)
+        return try await loadAll().filter { identifiers.contains($0.localIdentifier) }
     }
 
     func localIdentifierPage(matching request: PhotoIndexPageRequest) async throws -> PhotoIndexPage {

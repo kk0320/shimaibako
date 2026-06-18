@@ -43,6 +43,15 @@ struct PhotoImportProgressCard: View {
                 ImportProgressInfo(title: "進捗", value: "\(Int((progress.progressFraction * 100).rounded()))%")
                 ImportProgressInfo(title: "最終更新", value: progress.updatedAtTitle)
                 ImportProgressInfo(title: "経過", value: progress.elapsedTitle)
+                if let lastSuccessfulBatchEnd = progress.lastSuccessfulBatchEnd {
+                    ImportProgressInfo(title: "最終完了", value: "\(lastSuccessfulBatchEnd)件")
+                }
+                if let lastPhaseTitle {
+                    ImportProgressInfo(title: "最後の処理", value: lastPhaseTitle)
+                }
+                if let memoryWarningCount = progress.memoryWarningCount, memoryWarningCount > 0 {
+                    ImportProgressInfo(title: "負荷警告", value: "\(memoryWarningCount)回")
+                }
             }
 
             if photoLibrary.importAppearsStalled || progress.phase == .stale {
@@ -163,6 +172,31 @@ struct PhotoImportProgressCard: View {
             Color(red: 0.16, green: 0.42, blue: 0.75)
         }
     }
+
+    private var lastPhaseTitle: String? {
+        guard let phase = progress.lastPhase else {
+            return nil
+        }
+
+        switch phase {
+        case "photoFetch":
+            return "写真一覧取得"
+        case "sqliteMigration":
+            return "SQLite移行"
+        case "sqliteBatchInsert":
+            return "インデックス保存"
+        case "searchIndexPrepare":
+            return "検索準備"
+        case "countSnapshot":
+            return "件数集計"
+        case "gridSnapshot":
+            return "一覧反映"
+        case "finalization":
+            return "完了処理"
+        default:
+            return phase
+        }
+    }
 }
 
 struct ImportRecoveryEmptyView: View {
@@ -187,6 +221,20 @@ struct ImportRecoveryEmptyView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if photoLibrary.importProgress.loadedCount > 0 || photoLibrary.importProgress.totalCount > 0 {
+                    Text("最後に完了した件数: \(photoLibrary.importProgress.loadedCount) / \(photoLibrary.importProgress.totalCount)件")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                if let lastPhase = photoLibrary.importProgress.lastPhase {
+                    Text("最後の処理: \(lastPhase)")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
 
             VStack(spacing: 8) {
