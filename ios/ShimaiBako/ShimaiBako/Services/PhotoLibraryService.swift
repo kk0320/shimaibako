@@ -99,11 +99,11 @@ final class PhotoLibraryService: ObservableObject {
     }
 
     var shouldShowImportProgress: Bool {
-        if isLoading || hasRecoverableImportState {
-            return true
-        }
+        isLoading || hasRecoverableImportState
+    }
 
-        return importProgress.phase == .completed && importProgress.readMode.isLargeScale
+    var shouldShowCompletedImportSummary: Bool {
+        importProgress.phase == .completed && importProgress.readMode.isLargeScale
     }
 
     private var retainedAssetLimit: Int {

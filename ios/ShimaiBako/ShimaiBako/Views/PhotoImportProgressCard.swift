@@ -199,6 +199,89 @@ struct PhotoImportProgressCard: View {
     }
 }
 
+struct PhotoImportCompactStatusCard: View {
+    @ObservedObject var photoLibrary: PhotoLibraryService
+
+    private var progress: PhotoImportProgress {
+        photoLibrary.importProgress
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: iconName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(iconColor)
+                .frame(width: 18, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Text("元写真・元動画は削除・変更しません。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.white.opacity(0.74), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var title: String {
+        switch progress.phase {
+        case .completed:
+            return "読み込み完了 \(progress.loadedCount)件"
+        case .fetchingAssetList, .indexing, .preparingThumbnails:
+            return "読み込み中 \(progress.countTitle)"
+        case .paused:
+            return "読み込みを一時停止中"
+        case .cancelled:
+            return "ユーザー操作で中止しました"
+        case .failed:
+            return "読み込みに失敗しました"
+        case .stale:
+            return "前回の読み込みが途中で停止"
+        case .idle:
+            return "読み込み待機中"
+        }
+    }
+
+    private var iconName: String {
+        switch progress.phase {
+        case .completed:
+            "checkmark.circle.fill"
+        case .failed, .stale:
+            "exclamationmark.triangle.fill"
+        case .cancelled:
+            "xmark.circle"
+        case .paused, .idle:
+            "pause.circle"
+        case .fetchingAssetList, .indexing, .preparingThumbnails:
+            "arrow.triangle.2.circlepath"
+        }
+    }
+
+    private var iconColor: Color {
+        switch progress.phase {
+        case .completed:
+            Color(red: 0.14, green: 0.55, blue: 0.32)
+        case .failed, .stale:
+            Color(red: 0.75, green: 0.24, blue: 0.18)
+        case .cancelled, .paused, .idle:
+            .secondary
+        case .fetchingAssetList, .indexing, .preparingThumbnails:
+            Color(red: 0.16, green: 0.42, blue: 0.75)
+        }
+    }
+}
+
 struct ImportRecoveryEmptyView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @State private var showingResetConfirmation = false

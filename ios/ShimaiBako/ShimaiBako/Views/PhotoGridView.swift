@@ -192,21 +192,23 @@ struct PhotoGridView: View {
                 AppBackground()
 
                 VStack(spacing: 12) {
-                    statusHeader
+                    topStatusSection
                     IndexStoreStatusContainer()
-                    if photoLibrary.shouldShowImportProgress {
-                        PhotoImportProgressCard(photoLibrary: photoLibrary)
-                    }
+                    importStatusSection
                     displayStateChips
                     searchOptions
                     categoryFilterSection
-                    bulkOCRControls
+                    if mode == .library {
+                        bulkOCRControls
+                    }
                     content
+                        .layoutPriority(1)
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
             }
             .navigationTitle(mode.title)
+            .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "日付・種類・カテゴリ・OCRで検索")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -340,6 +342,32 @@ struct PhotoGridView: View {
                     cancelBulkOCR(reason: "アプリがバックグラウンドへ移行したため停止しました。")
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var topStatusSection: some View {
+        switch mode {
+        case .library:
+            statusHeader
+        case .search:
+            if photoLibrary.shouldShowImportProgress {
+                PhotoImportCompactStatusCard(photoLibrary: photoLibrary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var importStatusSection: some View {
+        switch mode {
+        case .library:
+            if photoLibrary.shouldShowImportProgress {
+                PhotoImportProgressCard(photoLibrary: photoLibrary)
+            } else if photoLibrary.shouldShowCompletedImportSummary {
+                PhotoImportCompactStatusCard(photoLibrary: photoLibrary)
+            }
+        case .search:
+            EmptyView()
         }
     }
 
@@ -733,8 +761,14 @@ struct PhotoGridView: View {
         isFetchingPage = true
         pageFetchTask = Task {
             let page = await indexService.page(matching: request)
+            guard Task.isCancelled == false else {
+                finishPageFetchIfCurrent(generation)
+                return
+            }
+
             let resolvedAssets = photoLibrary.assets(for: page.localIdentifiers)
             guard Task.isCancelled == false else {
+                finishPageFetchIfCurrent(generation)
                 return
             }
 
@@ -754,6 +788,15 @@ struct PhotoGridView: View {
                 isFetchingPage = false
             }
         }
+    }
+
+    @MainActor
+    private func finishPageFetchIfCurrent(_ generation: Int) {
+        guard generation == pageGeneration else {
+            return
+        }
+
+        isFetchingPage = false
     }
 
     private var bulkOCRControls: some View {

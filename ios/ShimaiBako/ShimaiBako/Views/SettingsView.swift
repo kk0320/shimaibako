@@ -44,7 +44,7 @@ struct SettingsView: View {
                         header
                         summaryCard
                         IndexStoreStatusContainer()
-                        if photoLibrary.shouldShowImportProgress {
+                        if photoLibrary.shouldShowImportProgress || photoLibrary.shouldShowCompletedImportSummary {
                             PhotoImportProgressCard(photoLibrary: photoLibrary)
                         }
                         loadingModeCard
