@@ -31,6 +31,10 @@ struct PhotoGridView: View {
     @State private var selectedCategory: PhotoCategory = .all
     @State private var selectedScreenshotSubcategory: ScreenshotSubcategory = .all
     @State private var selectedBulkTarget: OCRBatchTarget = .visible
+    @State private var visibleAssetLimit = 200
+    @State private var selectedBulkLimit = 20
+    @State private var effectiveSearchText: String
+    @State private var searchDebounceTask: Task<Void, Never>?
     @State private var debugPresentedAsset: PhotoAsset?
     @State private var didPresentDebugAsset = false
     @State private var isRunningBulkOCR = false
@@ -66,7 +70,9 @@ struct PhotoGridView: View {
         self.learningService = learningService
         self.deviceSafety = deviceSafety
         self.mode = mode
-        _searchText = State(initialValue: mode == .search ? Self.debugInitialSearchText : "")
+        let initialSearchText = mode == .search ? Self.debugInitialSearchText : ""
+        _searchText = State(initialValue: initialSearchText)
+        _effectiveSearchText = State(initialValue: initialSearchText)
     }
 
     private var filteredAssets: [PhotoAsset] {
@@ -74,8 +80,12 @@ struct PhotoGridView: View {
             displayStateIncludes(asset) &&
             categoryIncludes(asset) &&
             screenshotSubcategoryIncludes(asset) &&
-            indexService.matches(asset: asset, query: searchText, ocrService: ocrService)
+            indexService.matches(asset: asset, query: effectiveSearchText, ocrService: ocrService)
         }
+    }
+
+    private var visibleAssets: [PhotoAsset] {
+        Array(filteredAssets.prefix(visibleAssetLimit))
     }
 
     private var displayScopedAssets: [PhotoAsset] {
@@ -126,7 +136,7 @@ struct PhotoGridView: View {
             asset.mediaType == .image &&
             indexService.status(for: asset, ocrService: ocrService) != .completed &&
             indexService.status(for: asset, ocrService: ocrService) != .processing
-        }.prefix(OCRConfiguration.batchLimit))
+        }.prefix(selectedBulkLimit))
     }
 
     private var visibleOCRClearTargets: [PhotoAsset] {
@@ -268,14 +278,30 @@ struct PhotoGridView: View {
                 if photoLibrary.latestLoadedBatch.isEmpty == false {
                     await indexService.rebuild(for: photoLibrary.latestLoadedBatch, ocrService: ocrService)
                 } else if photoLibrary.assets.isEmpty == false {
-                    await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
+                    await indexService.rebuild(
+                        for: Array(photoLibrary.assets.prefix(visibleAssetLimit)),
+                        ocrService: ocrService
+                    )
                 }
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
             }
             .onChange(of: photoLibrary.assets) {
+                resetVisiblePage()
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
+            }
+            .onChange(of: searchText) {
+                scheduleSearchUpdate()
+            }
+            .onChange(of: selectedDisplayState) {
+                resetVisiblePage()
+            }
+            .onChange(of: selectedCategory) {
+                resetVisiblePage()
+            }
+            .onChange(of: selectedScreenshotSubcategory) {
+                resetVisiblePage()
             }
             .onChange(of: photoLibrary.latestLoadedBatch) {
                 let batch = photoLibrary.latestLoadedBatch
@@ -410,7 +436,7 @@ struct PhotoGridView: View {
 
     private var statusDetailText: String {
         let stateTitle = selectedDisplayState.title
-        let searchIsActive = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        let searchIsActive = effectiveSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
 
         if searchIsActive {
             return "\(stateTitle)から検索結果 \(filteredAssets.count)件。検索は端末内だけで実行します。"
@@ -567,33 +593,47 @@ struct PhotoGridView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if filteredAssets.isEmpty {
             ContentUnavailableView(
-                searchText.isEmpty ? "写真がありません" : "見つかりません",
-                systemImage: searchText.isEmpty ? "photo.on.rectangle.angled" : "magnifyingglass",
-                description: Text(searchText.isEmpty ? "許可された写真があるとここに表示されます。" : "検索条件を変えてください。")
+                effectiveSearchText.isEmpty ? "写真がありません" : "見つかりません",
+                systemImage: effectiveSearchText.isEmpty ? "photo.on.rectangle.angled" : "magnifyingglass",
+                description: Text(effectiveSearchText.isEmpty ? "許可された写真があるとここに表示されます。" : "検索条件を変えてください。")
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(filteredAssets) { asset in
-                        NavigationLink(value: asset) {
-                            VStack(alignment: .leading, spacing: 5) {
-                                PhotoThumbnailView(
-                                    photoLibrary: photoLibrary,
-                                    ocrService: ocrService,
-                                    asset: asset,
-                                    displayState: indexService.displayState(for: asset, ocrService: ocrService)
-                                )
-
-                                if shouldShowSearchMatch {
-                                    SearchMatchSummaryView(
-                                        match: indexService.searchMatch(asset: asset, query: searchText, ocrService: ocrService),
-                                        status: indexService.status(for: asset, ocrService: ocrService)
+                VStack(spacing: 12) {
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(visibleAssets) { asset in
+                            NavigationLink(value: asset) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    PhotoThumbnailView(
+                                        photoLibrary: photoLibrary,
+                                        ocrService: ocrService,
+                                        asset: asset,
+                                        displayState: indexService.displayState(for: asset, ocrService: ocrService)
                                     )
+
+                                    if shouldShowSearchMatch {
+                                        SearchMatchSummaryView(
+                                            match: indexService.searchMatch(asset: asset, query: effectiveSearchText, ocrService: ocrService),
+                                            status: indexService.status(for: asset, ocrService: ocrService)
+                                        )
+                                    }
                                 }
                             }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                    }
+
+                    if visibleAssets.count < filteredAssets.count {
+                        Button {
+                            visibleAssetLimit += 200
+                        } label: {
+                            Label("さらに表示 \(min(visibleAssetLimit + 200, filteredAssets.count)) / \(filteredAssets.count)件", systemImage: "chevron.down.circle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .padding(.top, 4)
                     }
                 }
                 .padding(.bottom, 24)
@@ -602,7 +642,27 @@ struct PhotoGridView: View {
     }
 
     private var shouldShowSearchMatch: Bool {
-        mode == .search && searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        mode == .search && effectiveSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
+    private func resetVisiblePage() {
+        visibleAssetLimit = 200
+    }
+
+    private func scheduleSearchUpdate() {
+        searchDebounceTask?.cancel()
+        let nextText = searchText
+        searchDebounceTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard Task.isCancelled == false else {
+                return
+            }
+
+            await MainActor.run {
+                effectiveSearchText = nextText
+                resetVisiblePage()
+            }
+        }
     }
 
     private var bulkOCRControls: some View {
@@ -613,7 +673,7 @@ struct PhotoGridView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
 
-                    Text(bulkCandidates.isEmpty ? "未処理の対象写真はありません" : "\(selectedBulkTarget.title)から最大\(OCRConfiguration.batchLimit)件")
+                    Text(bulkCandidates.isEmpty ? "未処理の対象写真はありません" : "\(selectedBulkTarget.title)から最大\(selectedBulkLimit)件")
                         .font(.caption)
                         .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
                         .lineLimit(2)
@@ -636,6 +696,22 @@ struct PhotoGridView: View {
                 .controlSize(.small)
                 .disabled(isRunningBulkOCR)
                 .accessibilityLabel("OCR対象を選択")
+
+                Menu {
+                    ForEach([20, 50, 100], id: \.self) { limit in
+                        Button {
+                            selectedBulkLimit = limit
+                        } label: {
+                            Label("最大\(limit)件", systemImage: selectedBulkLimit == limit ? "checkmark" : "circle")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "number.circle")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isRunningBulkOCR)
+                .accessibilityLabel("OCR件数を選択")
 
                 if isRunningBulkOCR {
                     Button(role: .cancel) {
