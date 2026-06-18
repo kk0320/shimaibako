@@ -80,7 +80,9 @@ SQLiteはiOS標準の `SQLite3` を使う。外部ライブラリは追加しな
 - スクショ細分類理由
 - OCRテキスト
 
-SettingsViewのOCR件数、分類済み件数、カテゴリ別件数は `PhotoIndexService` 経由で計算する。将来SQLiteへ移行した場合は、同じ集計をSQL側へ寄せられる。
+SettingsViewのOCR件数、分類済み件数、カテゴリ別件数は `PhotoIndexService` 経由で表示する。SQLite実装では表示状態別件数、カテゴリ別件数、スクショ細分類件数をSQLで集計し、`PhotoIndexService` のキャッシュへ反映する。
+
+検索用に `searchLocalIdentifiers(matching:)` を用意している。現段階の画面表示は読み込み済み `PhotoAsset` 配列との照合が残るため、28,000件規模の実機確認で重い場合は、検索結果のID取得とページングをSQLite側へさらに寄せる。
 
 ## リセット操作
 
@@ -157,7 +159,7 @@ SQLiteには次のテーブルを作る。
 
 `photo_records` は一覧や集計に必要な軽量カラムを持つ。OCR本文は `photo_texts` へ分離し、一覧を開くだけで大量のOCR全文を読み込まないようにする。タグは `photo_tags` に分離する。
 
-初回移行時、SQLite側が空なら旧JSONから500件ずつ登録する。旧JSONは削除しない。
+初回移行時、SQLite側が空なら旧JSONから500件ずつ登録する。旧JSONは削除しない。移行中は進捗通知を出し、写真画面と設定画面で件数を表示する。
 
 OCR検索は初期段階では正規化済みテキストへの `LIKE` で実装する。実機データで不足した場合はFTSへ移行する。
 
