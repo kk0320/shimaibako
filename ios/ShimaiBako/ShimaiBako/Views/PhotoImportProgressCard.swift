@@ -2,6 +2,9 @@ import SwiftUI
 
 struct PhotoImportProgressCard: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
+    @State private var showsRecoveryOptions = false
+    @State private var showingResetConfirmation = false
+    @State private var isResetting = false
 
     private var progress: PhotoImportProgress {
         photoLibrary.importProgress
@@ -40,6 +43,15 @@ struct PhotoImportProgressCard: View {
                 ImportProgressInfo(title: "進捗", value: "\(Int((progress.progressFraction * 100).rounded()))%")
                 ImportProgressInfo(title: "最終更新", value: progress.updatedAtTitle)
                 ImportProgressInfo(title: "経過", value: progress.elapsedTitle)
+                if let lastSuccessfulBatchEnd = progress.lastSuccessfulBatchEnd {
+                    ImportProgressInfo(title: "最終完了", value: "\(lastSuccessfulBatchEnd)件")
+                }
+                if let lastPhaseTitle {
+                    ImportProgressInfo(title: "最後の処理", value: lastPhaseTitle)
+                }
+                if let memoryWarningCount = progress.memoryWarningCount, memoryWarningCount > 0 {
+                    ImportProgressInfo(title: "負荷警告", value: "\(memoryWarningCount)回")
+                }
             }
 
             if photoLibrary.importAppearsStalled || progress.phase == .stale {
@@ -72,14 +84,28 @@ struct PhotoImportProgressCard: View {
                     .controlSize(.small)
                 }
 
-                Button {
-                    photoLibrary.resetLoadingState()
+                DisclosureGroup(isExpanded: $showsRecoveryOptions) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("通常は使いません。読み込みが止まった時だけ、途中の読み込みジョブ状態を初期化します。")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Button {
+                            showingResetConfirmation = true
+                        } label: {
+                            Label(isResetting ? "リセット中" : "読み込み処理だけを初期化", systemImage: "arrow.counterclockwise")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isResetting)
+                    }
+                    .padding(.top, 6)
                 } label: {
-                    Label("読み込み状態をリセット", systemImage: "arrow.counterclockwise")
-                        .frame(maxWidth: .infinity)
+                    Label("復旧オプション", systemImage: "wrench.and.screwdriver")
+                        .font(.caption.weight(.semibold))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
 
                 Button {
                     Task {
@@ -95,6 +121,20 @@ struct PhotoImportProgressCard: View {
         }
         .padding(12)
         .background(.white.opacity(0.80), in: RoundedRectangle(cornerRadius: 8))
+        .alert("読み込み処理だけを初期化しますか？", isPresented: $showingResetConfirmation) {
+            Button("キャンセル", role: .cancel) {}
+            Button("読み込み処理を初期化", role: .destructive) {
+                Task {
+                    isResetting = true
+                    photoLibrary.resetLoadingState()
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    isResetting = false
+                }
+            }
+            .disabled(isResetting)
+        } message: {
+            Text("元写真・元動画は削除されません。OCR結果・手動分類・不要候補・メモ・タグは削除しません。読み込みジョブ状態だけをリセットします。")
+        }
     }
 
     private var iconName: String {
@@ -132,10 +172,120 @@ struct PhotoImportProgressCard: View {
             Color(red: 0.16, green: 0.42, blue: 0.75)
         }
     }
+
+    private var lastPhaseTitle: String? {
+        guard let phase = progress.lastPhase else {
+            return nil
+        }
+
+        switch phase {
+        case "photoFetch":
+            return "写真一覧取得"
+        case "sqliteMigration":
+            return "SQLite移行"
+        case "sqliteBatchInsert":
+            return "インデックス保存"
+        case "searchIndexPrepare":
+            return "検索準備"
+        case "countSnapshot":
+            return "件数集計"
+        case "gridSnapshot":
+            return "一覧反映"
+        case "finalization":
+            return "完了処理"
+        default:
+            return phase
+        }
+    }
+}
+
+struct PhotoImportCompactStatusCard: View {
+    @ObservedObject var photoLibrary: PhotoLibraryService
+
+    private var progress: PhotoImportProgress {
+        photoLibrary.importProgress
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: iconName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(iconColor)
+                .frame(width: 18, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Text("元写真・元動画は削除・変更しません。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.white.opacity(0.74), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var title: String {
+        switch progress.phase {
+        case .completed:
+            return "読み込み完了 \(progress.loadedCount)件"
+        case .fetchingAssetList, .indexing, .preparingThumbnails:
+            return "読み込み中 \(progress.countTitle)"
+        case .paused:
+            return "読み込みを一時停止中"
+        case .cancelled:
+            return "ユーザー操作で中止しました"
+        case .failed:
+            return "読み込みに失敗しました"
+        case .stale:
+            return "前回の読み込みが途中で停止"
+        case .idle:
+            return "読み込み待機中"
+        }
+    }
+
+    private var iconName: String {
+        switch progress.phase {
+        case .completed:
+            "checkmark.circle.fill"
+        case .failed, .stale:
+            "exclamationmark.triangle.fill"
+        case .cancelled:
+            "xmark.circle"
+        case .paused, .idle:
+            "pause.circle"
+        case .fetchingAssetList, .indexing, .preparingThumbnails:
+            "arrow.triangle.2.circlepath"
+        }
+    }
+
+    private var iconColor: Color {
+        switch progress.phase {
+        case .completed:
+            Color(red: 0.14, green: 0.55, blue: 0.32)
+        case .failed, .stale:
+            Color(red: 0.75, green: 0.24, blue: 0.18)
+        case .cancelled, .paused, .idle:
+            .secondary
+        case .fetchingAssetList, .indexing, .preparingThumbnails:
+            Color(red: 0.16, green: 0.42, blue: 0.75)
+        }
+    }
 }
 
 struct ImportRecoveryEmptyView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
+    @State private var showingResetConfirmation = false
+    @State private var isResetting = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -154,6 +304,20 @@ struct ImportRecoveryEmptyView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if photoLibrary.importProgress.loadedCount > 0 || photoLibrary.importProgress.totalCount > 0 {
+                    Text("最後に完了した件数: \(photoLibrary.importProgress.loadedCount) / \(photoLibrary.importProgress.totalCount)件")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                if let lastPhase = photoLibrary.importProgress.lastPhase {
+                    Text("最後の処理: \(lastPhase)")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
             }
 
             VStack(spacing: 8) {
@@ -176,15 +340,30 @@ struct ImportRecoveryEmptyView: View {
                 .buttonStyle(.bordered)
 
                 Button {
-                    photoLibrary.resetLoadingState()
+                    showingResetConfirmation = true
                 } label: {
-                    Label("読み込み状態をリセット", systemImage: "arrow.counterclockwise")
+                    Label(isResetting ? "リセット中" : "読み込み処理だけを初期化", systemImage: "arrow.counterclockwise")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
+                .disabled(isResetting)
             }
         }
         .padding(24)
+        .alert("読み込み処理だけを初期化しますか？", isPresented: $showingResetConfirmation) {
+            Button("キャンセル", role: .cancel) {}
+            Button("読み込み処理を初期化", role: .destructive) {
+                Task {
+                    isResetting = true
+                    photoLibrary.resetLoadingState()
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    isResetting = false
+                }
+            }
+            .disabled(isResetting)
+        } message: {
+            Text("元写真・元動画は削除されません。OCR結果・手動分類・不要候補・メモ・タグは削除しません。読み込みジョブ状態だけをリセットします。")
+        }
     }
 }
 

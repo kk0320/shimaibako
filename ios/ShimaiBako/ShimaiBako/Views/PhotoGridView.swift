@@ -1,6 +1,7 @@
 import Photos
 import Foundation
 import SwiftUI
+import UIKit
 
 enum PhotoGridMode {
     case library
@@ -19,7 +20,7 @@ enum PhotoGridMode {
 struct PhotoGridView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
-    @ObservedObject var indexService: PhotoIndexService
+    let indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
     let mode: PhotoGridMode
@@ -31,6 +32,18 @@ struct PhotoGridView: View {
     @State private var selectedCategory: PhotoCategory = .all
     @State private var selectedScreenshotSubcategory: ScreenshotSubcategory = .all
     @State private var selectedBulkTarget: OCRBatchTarget = .visible
+    @State private var visibleAssetLimit = 200
+    @AppStorage("shimaibako.ocrBatchLimit") private var selectedBulkLimit = 20
+    @AppStorage("shimaibako.photoGridShowsCategoryFilters") private var showsCategoryFilters = false
+    @AppStorage("shimaibako.photoGridShowsOCRDetails") private var showsOCRDetails = false
+    @State private var effectiveSearchText: String
+    @State private var searchDebounceTask: Task<Void, Never>?
+    @State private var pageFetchTask: Task<Void, Never>?
+    @State private var pageGeneration = 0
+    @State private var pageIdentifiers: [String] = []
+    @State private var pageTotalCount = 0
+    @State private var isFetchingPage = false
+    @State private var assetByID: [String: PhotoAsset] = [:]
     @State private var debugPresentedAsset: PhotoAsset?
     @State private var didPresentDebugAsset = false
     @State private var isRunningBulkOCR = false
@@ -43,6 +56,7 @@ struct PhotoGridView: View {
     @State private var bulkFailed = 0
     @State private var didStartDebugBulkOCR = false
     @State private var pendingBulkTargets: [PhotoAsset] = []
+    @State private var pendingBulkCandidateCount = 0
     @State private var showingBulkSafety = false
     @State private var showingVisibleOCRClearConfirmation = false
 
@@ -66,36 +80,42 @@ struct PhotoGridView: View {
         self.learningService = learningService
         self.deviceSafety = deviceSafety
         self.mode = mode
-        _searchText = State(initialValue: mode == .search ? Self.debugInitialSearchText : "")
+        let initialSearchText = mode == .search ? Self.debugInitialSearchText : ""
+        _searchText = State(initialValue: initialSearchText)
+        _effectiveSearchText = State(initialValue: initialSearchText)
     }
 
     private var filteredAssets: [PhotoAsset] {
-        photoLibrary.assets.filter { asset in
-            displayStateIncludes(asset) &&
-            categoryIncludes(asset) &&
-            screenshotSubcategoryIncludes(asset) &&
-            indexService.matches(asset: asset, query: searchText, ocrService: ocrService)
+        pageAssets
+    }
+
+    private var visibleAssets: [PhotoAsset] {
+        pageAssets
+    }
+
+    private var pageAssets: [PhotoAsset] {
+        let assets = pageIdentifiers.compactMap { assetByID[$0] }
+        if assets.isEmpty,
+           pageIdentifiers.isEmpty,
+           photoLibrary.assets.isEmpty == false,
+           indexService.indexedRecordCount == 0,
+           effectiveSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return Array(photoLibrary.assets.prefix(visibleAssetLimit))
         }
+
+        return assets
     }
 
     private var displayScopedAssets: [PhotoAsset] {
-        photoLibrary.assets.filter(displayStateIncludes)
+        pageAssets
     }
 
-    private var categoryCounts: [PhotoCategory: Int] {
-        indexService.counts(for: displayScopedAssets, ocrService: ocrService)
-    }
-
-    private var screenshotSubcategoryCounts: [ScreenshotSubcategory: Int] {
-        let screenshotAssets = displayScopedAssets.filter { asset in
-            indexService.category(for: asset, ocrService: ocrService) == .screenshots
+    private var resultTotalCount: Int {
+        if pageTotalCount > 0 {
+            return pageTotalCount
         }
 
-        return indexService.screenshotSubcategoryCounts(for: screenshotAssets, ocrService: ocrService)
-    }
-
-    private var displayStateCounts: [PhotoDisplayState: Int] {
-        indexService.displayStateCounts(for: photoLibrary.assets, ocrService: ocrService)
+        return pageAssets.count
     }
 
     private var bulkTargetAssets: [PhotoAsset] {
@@ -115,18 +135,24 @@ struct PhotoGridView: View {
 
     private var bulkTargetCandidateCount: Int {
         bulkTargetAssets.filter { asset in
-            asset.mediaType == .image &&
-            indexService.status(for: asset, ocrService: ocrService) != .completed &&
-            indexService.status(for: asset, ocrService: ocrService) != .processing
+            asset.mediaType == .image
         }.count
     }
 
-    private var bulkCandidates: [PhotoAsset] {
-        Array(bulkTargetAssets.filter { asset in
+    private var bulkEligibleTargets: [PhotoAsset] {
+        bulkTargetAssets.filter { asset in
             asset.mediaType == .image &&
             indexService.status(for: asset, ocrService: ocrService) != .completed &&
             indexService.status(for: asset, ocrService: ocrService) != .processing
-        }.prefix(OCRConfiguration.batchLimit))
+        }
+    }
+
+    private var bulkCandidates: [PhotoAsset] {
+        Array(bulkEligibleTargets.prefix(selectedBulkLimit))
+    }
+
+    private var isBulkOCRBusy: Bool {
+        isRunningBulkOCR || bulkOCRTask != nil
     }
 
     private var visibleOCRClearTargets: [PhotoAsset] {
@@ -168,29 +194,59 @@ struct PhotoGridView: View {
         return ""
     }
 
+    private var shouldShowCompactBulkStatus: Bool {
+        isRunningBulkOCR || bulkTotal > 0 || bulkInterruptedReason != nil || bulkWasCancelled
+    }
+
+    private var compactBulkStatusText: String {
+        let processedCount = min(bulkCompleted + bulkFailed, bulkTotal)
+
+        if isRunningBulkOCR && bulkCancellationRequested {
+            return "停止中 \(processedCount)/\(bulkTotal)"
+        }
+
+        if isRunningBulkOCR {
+            return "処理中 \(processedCount)/\(bulkTotal)"
+        }
+
+        if bulkInterruptedReason != nil {
+            return "中断 \(processedCount)/\(bulkTotal)"
+        }
+
+        if bulkWasCancelled {
+            return "中止 \(processedCount)/\(bulkTotal)"
+        }
+
+        if bulkTotal > 0 {
+            return "完了 \(bulkCompleted)/\(bulkTotal)"
+        }
+
+        return ""
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 AppBackground()
 
                 VStack(spacing: 12) {
-                    statusHeader
-                    if photoLibrary.shouldShowImportProgress {
-                        PhotoImportProgressCard(photoLibrary: photoLibrary)
-                    }
+                    topStatusSection
+                    IndexStoreStatusContainer()
+                    importStatusSection
                     displayStateChips
                     searchOptions
-                    categoryChips
-                    if selectedCategory == .screenshots {
-                        screenshotSubcategoryChips
+                    categoryFilterSection
+                    if mode == .library {
+                        bulkOCRControls
                     }
-                    bulkOCRControls
                     content
+                        .layoutPriority(1)
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
             }
             .navigationTitle(mode.title)
+            .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "日付・種類・カテゴリ・OCRで検索")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -231,17 +287,21 @@ struct PhotoGridView: View {
             .sheet(isPresented: $showingBulkSafety) {
                 OCRBatchSafetyView(
                     targetTitle: selectedBulkTarget.title,
-                    candidateCount: bulkTargetCandidateCount,
-                    runCount: pendingBulkTargets.count,
+                    candidateCount: pendingBulkCandidateCount,
+                    eligibleCount: pendingBulkTargets.count,
+                    selectedLimit: $selectedBulkLimit,
                     iCloudMode: photoLibrary.iCloudMode,
                     deviceSafety: deviceSafety,
+                    isRunningOCR: isBulkOCRBusy,
                     onCancel: {
                         pendingBulkTargets = []
+                        pendingBulkCandidateCount = 0
                         showingBulkSafety = false
                     },
                     onStart: {
-                        let targets = pendingBulkTargets
+                        let targets = Array(pendingBulkTargets.prefix(selectedBulkLimit))
                         pendingBulkTargets = []
+                        pendingBulkCandidateCount = 0
                         showingBulkSafety = false
                         startBulkOCR(with: targets)
                     }
@@ -256,9 +316,10 @@ struct PhotoGridView: View {
                     }
                 }
             } message: {
-                Text("表示中の写真について、しまい箱に保存されたOCR文字だけを削除します。元写真・元動画は削除・変更されません。")
+                Text("写真アプリの元写真・元動画は削除されません。しまい箱内のOCR結果だけを削除します。手動分類、不要候補、メモ、タグは削除されません。")
             }
             .task {
+                applyAssetIndex()
                 if photoLibrary.canReadPhotos &&
                     photoLibrary.assets.isEmpty &&
                     photoLibrary.hasRecoverableImportState == false {
@@ -268,14 +329,41 @@ struct PhotoGridView: View {
                 if photoLibrary.latestLoadedBatch.isEmpty == false {
                     await indexService.rebuild(for: photoLibrary.latestLoadedBatch, ocrService: ocrService)
                 } else if photoLibrary.assets.isEmpty == false {
-                    await indexService.rebuild(for: photoLibrary.assets, ocrService: ocrService)
+                    await indexService.rebuild(
+                        for: Array(photoLibrary.assets.prefix(visibleAssetLimit)),
+                        ocrService: ocrService
+                    )
                 }
+                await indexService.refreshFilterCountsSnapshot(scope: selectedDisplayState)
+                fetchGridPage(reset: true)
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
             }
             .onChange(of: photoLibrary.assets) {
+                applyAssetIndex()
+                if pageIdentifiers.isEmpty {
+                    fetchGridPage(reset: true)
+                }
                 presentDebugAssetIfNeeded()
                 startDebugBulkOCRIfNeeded()
+            }
+            .onChange(of: searchText) {
+                scheduleSearchUpdate()
+            }
+            .onChange(of: includeUnwantedInSearch) {
+                fetchGridPage(reset: true)
+            }
+            .onChange(of: selectedDisplayState) {
+                Task {
+                    await indexService.refreshFilterCountsSnapshot(scope: selectedDisplayState)
+                }
+                fetchGridPage(reset: true)
+            }
+            .onChange(of: selectedCategory) {
+                fetchGridPage(reset: true)
+            }
+            .onChange(of: selectedScreenshotSubcategory) {
+                fetchGridPage(reset: true)
             }
             .onChange(of: photoLibrary.latestLoadedBatch) {
                 let batch = photoLibrary.latestLoadedBatch
@@ -285,6 +373,10 @@ struct PhotoGridView: View {
 
                 Task {
                     await indexService.rebuild(for: batch, ocrService: ocrService)
+                    if shouldRefreshGridAfterImportBatch {
+                        await indexService.refreshFilterCountsSnapshot(scope: selectedDisplayState)
+                        fetchGridPage(reset: true)
+                    }
                 }
             }
             .onChange(of: scenePhase) { _, newPhase in
@@ -292,6 +384,32 @@ struct PhotoGridView: View {
                     cancelBulkOCR(reason: "アプリがバックグラウンドへ移行したため停止しました。")
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var topStatusSection: some View {
+        switch mode {
+        case .library:
+            statusHeader
+        case .search:
+            if photoLibrary.shouldShowImportProgress {
+                PhotoImportCompactStatusCard(photoLibrary: photoLibrary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var importStatusSection: some View {
+        switch mode {
+        case .library:
+            if photoLibrary.shouldShowImportProgress {
+                PhotoImportProgressCard(photoLibrary: photoLibrary)
+            } else if photoLibrary.shouldShowCompletedImportSummary {
+                PhotoImportCompactStatusCard(photoLibrary: photoLibrary)
+            }
+        case .search:
+            EmptyView()
         }
     }
 
@@ -410,93 +528,79 @@ struct PhotoGridView: View {
 
     private var statusDetailText: String {
         let stateTitle = selectedDisplayState.title
-        let searchIsActive = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        let searchIsActive = effectiveSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
 
         if searchIsActive {
-            return "\(stateTitle)から検索結果 \(filteredAssets.count)件。検索は端末内だけで実行します。"
+            return "\(stateTitle)から検索結果 \(resultTotalCount)件。検索は端末内だけで実行します。"
         }
 
-        return "\(stateTitle) \(filteredAssets.count)件。不要候補や非表示はしまい箱内の表示状態です。"
+        return "\(stateTitle) \(resultTotalCount)件。不要候補や非表示はしまい箱内の表示状態です。"
     }
 
     private var categoryChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(PhotoCategory.allCases) { category in
-                    Button {
-                        selectedCategory = category
-                        if category != .screenshots {
-                            selectedScreenshotSubcategory = .all
-                        }
-                    } label: {
-                        Label(
-                            "\(category.shortTitle) \(categoryCounts[category, default: 0])",
-                            systemImage: category.systemImage
-                        )
-                        .labelStyle(.titleAndIcon)
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .tint(selectedCategory == category ? Color(red: 0.16, green: 0.42, blue: 0.75) : .secondary)
-                }
-            }
-            .padding(.vertical, 2)
-        }
+        CategoryChipRow(
+            indexService: indexService,
+            selectedDisplayState: selectedDisplayState,
+            selectedCategory: $selectedCategory,
+            selectedScreenshotSubcategory: $selectedScreenshotSubcategory
+        )
     }
 
     private var screenshotSubcategoryChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ScreenshotSubcategory.allCases) { subcategory in
-                    Button {
-                        selectedScreenshotSubcategory = subcategory
-                    } label: {
-                        Label(
-                            "\(subcategory.shortTitle) \(screenshotSubcategoryCounts[subcategory, default: 0])",
-                            systemImage: subcategory.systemImage
-                        )
-                        .labelStyle(.titleAndIcon)
-                        .font(.caption2.weight(.semibold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .tint(selectedScreenshotSubcategory == subcategory ? Color(red: 0.25, green: 0.43, blue: 0.57) : .secondary)
-                }
-            }
-            .padding(.vertical, 2)
-        }
+        ScreenshotSubcategoryChipRow(
+            indexService: indexService,
+            selectedDisplayState: selectedDisplayState,
+            selectedScreenshotSubcategory: $selectedScreenshotSubcategory
+        )
     }
 
     private var displayStateChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(PhotoDisplayState.allCases) { state in
-                    Button {
-                        selectedDisplayState = state
-                    } label: {
-                        Label(
-                            "\(state.chipTitle) \(displayStateCounts[state, default: 0])",
-                            systemImage: state.systemImage
-                        )
-                        .labelStyle(.titleAndIcon)
+        DisplayStateChipRow(indexService: indexService, selectedDisplayState: $selectedDisplayState)
+    }
+
+    private var categoryFilterSection: some View {
+        VStack(spacing: showsCategoryFilters ? 6 : 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    showsCategoryFilters.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Label(showsCategoryFilters ? "カテゴリを隠す" : "カテゴリを表示", systemImage: "line.3.horizontal.decrease.circle")
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .tint(selectedDisplayState == state ? Color(red: 0.16, green: 0.42, blue: 0.75) : .secondary)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: 8)
+
+                    Text(selectedCategory.shortTitle)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+
+                    Image(systemName: showsCategoryFilters ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 14)
                 }
+                .frame(height: 32)
+                .padding(.horizontal, 10)
+                .foregroundStyle(Color(red: 0.13, green: 0.22, blue: 0.34))
+                .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
             }
-            .padding(.vertical, 2)
+            .buttonStyle(.plain)
+            .accessibilityLabel(showsCategoryFilters ? "カテゴリを隠す" : "カテゴリを表示")
+
+            if showsCategoryFilters {
+                VStack(spacing: 4) {
+                    categoryChips
+                    if selectedCategory == .screenshots {
+                        screenshotSubcategoryChips
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
     }
 
@@ -552,12 +656,12 @@ struct PhotoGridView: View {
 
     @ViewBuilder
     private var content: some View {
-        if photoLibrary.hasRecoverableImportState && filteredAssets.isEmpty {
+        if photoLibrary.hasRecoverableImportState && visibleAssets.isEmpty {
             ImportRecoveryEmptyView(photoLibrary: photoLibrary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if photoLibrary.isLoading && filteredAssets.isEmpty {
+        } else if (photoLibrary.isLoading || isFetchingPage) && visibleAssets.isEmpty {
             VStack(spacing: 14) {
-                ProgressView("読み込み中")
+                ProgressView(isFetchingPage ? "写真一覧を準備中" : "読み込み中")
                 Text("元写真・元動画は削除・変更しません。進まない場合は中止して軽量モードで再読み込みできます。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -565,35 +669,49 @@ struct PhotoGridView: View {
                     .padding(.horizontal, 24)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if filteredAssets.isEmpty {
+        } else if visibleAssets.isEmpty {
             ContentUnavailableView(
-                searchText.isEmpty ? "写真がありません" : "見つかりません",
-                systemImage: searchText.isEmpty ? "photo.on.rectangle.angled" : "magnifyingglass",
-                description: Text(searchText.isEmpty ? "許可された写真があるとここに表示されます。" : "検索条件を変えてください。")
+                effectiveSearchText.isEmpty ? "写真がありません" : "見つかりません",
+                systemImage: effectiveSearchText.isEmpty ? "photo.on.rectangle.angled" : "magnifyingglass",
+                description: Text(effectiveSearchText.isEmpty ? "許可された写真があるとここに表示されます。" : "検索条件を変えてください。")
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(filteredAssets) { asset in
-                        NavigationLink(value: asset) {
-                            VStack(alignment: .leading, spacing: 5) {
-                                PhotoThumbnailView(
-                                    photoLibrary: photoLibrary,
-                                    ocrService: ocrService,
-                                    asset: asset,
-                                    displayState: indexService.displayState(for: asset, ocrService: ocrService)
-                                )
-
-                                if shouldShowSearchMatch {
-                                    SearchMatchSummaryView(
-                                        match: indexService.searchMatch(asset: asset, query: searchText, ocrService: ocrService),
-                                        status: indexService.status(for: asset, ocrService: ocrService)
+                VStack(spacing: 12) {
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(visibleAssets) { asset in
+                            NavigationLink(value: asset) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    PhotoThumbnailView(
+                                        photoLibrary: photoLibrary,
+                                        ocrService: ocrService,
+                                        asset: asset,
+                                        displayState: indexService.displayState(for: asset, ocrService: ocrService)
                                     )
+
+                                    if shouldShowSearchMatch {
+                                        SearchMatchSummaryView(
+                                            match: indexService.searchMatch(asset: asset, query: effectiveSearchText, ocrService: ocrService),
+                                            status: indexService.status(for: asset, ocrService: ocrService)
+                                        )
+                                    }
                                 }
                             }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                    }
+
+                    if visibleAssets.count < resultTotalCount {
+                        Button {
+                            fetchGridPage(reset: false)
+                        } label: {
+                            Label("さらに表示 \(min(visibleAssetLimit + 200, resultTotalCount)) / \(resultTotalCount)件", systemImage: "chevron.down.circle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .padding(.top, 4)
                     }
                 }
                 .padding(.bottom, 24)
@@ -602,24 +720,135 @@ struct PhotoGridView: View {
     }
 
     private var shouldShowSearchMatch: Bool {
-        mode == .search && searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        mode == .search && effectiveSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
+    private func resetVisiblePage() {
+        visibleAssetLimit = 200
+    }
+
+    private func applyAssetIndex() {
+        var nextIndex = assetByID
+        for asset in photoLibrary.assets {
+            nextIndex[asset.id] = asset
+        }
+        assetByID = trimmedAssetIndex(nextIndex)
+    }
+
+    private var shouldRefreshGridAfterImportBatch: Bool {
+        if pageIdentifiers.isEmpty || visibleAssets.isEmpty {
+            return true
+        }
+
+        if photoLibrary.loadedAssetCount <= 200 {
+            return true
+        }
+
+        if photoLibrary.importProgress.phase == .completed {
+            return true
+        }
+
+        return photoLibrary.loadedAssetCount.isMultiple(of: 500)
+    }
+
+    private func trimmedAssetIndex(_ index: [String: PhotoAsset]) -> [String: PhotoAsset] {
+        let pinnedIdentifiers = Set(pageIdentifiers)
+            .union(photoLibrary.assets.map(\.id))
+            .union(photoLibrary.latestLoadedBatch.map(\.id))
+        var trimmed = index.filter { pinnedIdentifiers.contains($0.key) }
+
+        if trimmed.count > 900 {
+            trimmed = Dictionary(uniqueKeysWithValues: trimmed.prefix(900).map { ($0.key, $0.value) })
+        }
+
+        return trimmed
+    }
+
+    private func scheduleSearchUpdate() {
+        searchDebounceTask?.cancel()
+        let nextText = searchText
+        searchDebounceTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard Task.isCancelled == false else {
+                return
+            }
+
+            await MainActor.run {
+                effectiveSearchText = nextText
+                fetchGridPage(reset: true)
+            }
+        }
+    }
+
+    private func fetchGridPage(reset: Bool) {
+        if reset {
+            resetVisiblePage()
+        } else {
+            visibleAssetLimit += 200
+        }
+
+        pageGeneration += 1
+        let generation = pageGeneration
+        let request = PhotoIndexPageRequest(
+            query: effectiveSearchText,
+            displayState: selectedDisplayState,
+            includeUnwantedWhenActive: mode == .search && includeUnwantedInSearch,
+            category: selectedCategory,
+            screenshotSubcategory: selectedScreenshotSubcategory,
+            limit: visibleAssetLimit,
+            offset: 0
+        )
+
+        pageFetchTask?.cancel()
+        isFetchingPage = true
+        pageFetchTask = Task {
+            let page = await indexService.page(matching: request)
+            guard Task.isCancelled == false else {
+                finishPageFetchIfCurrent(generation)
+                return
+            }
+
+            let resolvedAssets = photoLibrary.assets(for: page.localIdentifiers)
+            guard Task.isCancelled == false else {
+                finishPageFetchIfCurrent(generation)
+                return
+            }
+
+            await MainActor.run {
+                guard generation == pageGeneration else {
+                    return
+                }
+
+                PerformanceTelemetry.mark(.applyGridSnapshot, "items=\(page.localIdentifiers.count) total=\(page.totalCount)")
+                var nextIndex = assetByID
+                for asset in resolvedAssets {
+                    nextIndex[asset.id] = asset
+                }
+                pageIdentifiers = resolvedAssets.map(\.id)
+                assetByID = trimmedAssetIndex(nextIndex)
+                pageTotalCount = page.totalCount
+                isFetchingPage = false
+            }
+        }
+    }
+
+    @MainActor
+    private func finishPageFetchIfCurrent(_ generation: Int) {
+        guard generation == pageGeneration else {
+            return
+        }
+
+        isFetchingPage = false
     }
 
     private var bulkOCRControls: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("OCR")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-
-                    Text(bulkCandidates.isEmpty ? "未処理の対象写真はありません" : "\(selectedBulkTarget.title)から最大\(OCRConfiguration.batchLimit)件")
-                        .font(.caption)
-                        .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
-                        .lineLimit(2)
-                }
-
-                Spacer(minLength: 8)
+            HStack(spacing: 6) {
+                Text("OCR")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(width: 30, alignment: .leading)
 
                 Menu {
                     ForEach(OCRBatchTarget.allCases) { target in
@@ -631,11 +860,36 @@ struct PhotoGridView: View {
                     }
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
+                        .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isRunningBulkOCR)
+                .disabled(isBulkOCRBusy)
                 .accessibilityLabel("OCR対象を選択")
+
+                Menu {
+                    ForEach([20, 50, 100], id: \.self) { limit in
+                        Button {
+                            selectedBulkLimit = limit
+                        } label: {
+                            Label("最大\(limit)件", systemImage: selectedBulkLimit == limit ? "checkmark" : "circle")
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "number.circle")
+                            .font(.caption.weight(.semibold))
+                        Text("\(selectedBulkLimit)件")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .frame(minWidth: 50)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isBulkOCRBusy)
+                .accessibilityLabel("OCR件数を選択")
 
                 if isRunningBulkOCR {
                     Button(role: .cancel) {
@@ -643,6 +897,8 @@ struct PhotoGridView: View {
                     } label: {
                         Label(bulkCancellationRequested ? "停止中" : "キャンセル", systemImage: "xmark.circle")
                             .labelStyle(.titleAndIcon)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -653,46 +909,96 @@ struct PhotoGridView: View {
                     } label: {
                         Label("まとめてOCR", systemImage: "text.viewfinder")
                             .labelStyle(.titleAndIcon)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                    .disabled(bulkCandidates.isEmpty)
+                    .disabled(isBulkOCRBusy)
                 }
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        showsOCRDetails.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(showsOCRDetails ? "隠す" : "詳細")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Image(systemName: showsOCRDetails ? "chevron.up" : "chevron.down")
+                            .font(.caption2.weight(.bold))
+                    }
+                    .frame(minWidth: 44)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityLabel(showsOCRDetails ? "OCR詳細を隠す" : "OCR詳細を表示")
+            }
+            .frame(height: 36)
+            .padding(.horizontal, 2)
+
+            if showsOCRDetails {
+                bulkOCRDetails
+            } else if shouldShowCompactBulkStatus {
+                bulkOCRCompactStatus
+            }
+        }
+        .padding(12)
+        .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var bulkOCRCompactStatus: some View {
+        HStack(spacing: 8) {
+            Label(compactBulkStatusText, systemImage: bulkCompactStatusIcon)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+
+            if let bulkInterruptedReason {
+                Text(bulkInterruptedReason)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
 
-            if isRunningBulkOCR || bulkTotal > 0 {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(bulkStatusText)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 2)
+    }
 
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8)
-                    ], alignment: .leading, spacing: 6) {
-                        BulkProgressLabel(title: "対象", value: bulkTotal, systemImage: "scope")
-                        BulkProgressLabel(title: "処理中", value: bulkProcessingCount, systemImage: "hourglass")
-                        BulkProgressLabel(title: "完了", value: bulkCompleted, systemImage: "checkmark.circle")
-                        BulkProgressLabel(title: "失敗", value: bulkFailed, systemImage: "exclamationmark.triangle")
+    private var bulkCompactStatusIcon: String {
+        if isRunningBulkOCR && bulkCancellationRequested {
+            return "xmark.circle"
+        }
 
-                        if bulkWasCancelled {
-                            Label("キャンセル済み", systemImage: "xmark.circle")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                        }
+        if isRunningBulkOCR {
+            return "text.viewfinder"
+        }
 
-                        if bulkInterruptedReason != nil {
-                            Label("中断", systemImage: "pause.circle")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                        }
-                    }
-                }
+        if bulkInterruptedReason != nil {
+            return "pause.circle"
+        }
+
+        if bulkWasCancelled {
+            return "xmark.circle"
+        }
+
+        return "checkmark.circle"
+    }
+
+    private var bulkOCRDetails: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isRunningBulkOCR || bulkTotal > 0 || bulkInterruptedReason != nil || bulkWasCancelled {
+                bulkOCRProgressDetails
+            } else {
+                Text("現在の検索・カテゴリで表示中の写真だけが対象です。元写真・元動画は削除・変更されません。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if visibleOCRClearTargets.isEmpty == false {
@@ -706,7 +1012,7 @@ struct PhotoGridView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isRunningBulkOCR)
+                .disabled(isBulkOCRBusy)
 
                 Text("現在の検索・カテゴリで表示中の写真だけが対象です。元写真・元動画は削除・変更されません。")
                     .font(.caption2)
@@ -714,26 +1020,60 @@ struct PhotoGridView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(12)
-        .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var bulkOCRProgressDetails: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(bulkStatusText)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ], alignment: .leading, spacing: 6) {
+                BulkProgressLabel(title: "対象", value: bulkTotal, systemImage: "scope")
+                BulkProgressLabel(title: "処理中", value: bulkProcessingCount, systemImage: "hourglass")
+                BulkProgressLabel(title: "完了", value: bulkCompleted, systemImage: "checkmark.circle")
+                BulkProgressLabel(title: "失敗", value: bulkFailed, systemImage: "exclamationmark.triangle")
+
+                if bulkWasCancelled {
+                    Label("キャンセル済み", systemImage: "xmark.circle")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+
+                if bulkInterruptedReason != nil {
+                    Label("中断", systemImage: "pause.circle")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+            }
+        }
     }
 
     private func presentBulkSafety() {
-        let targets = bulkCandidates
-        guard targets.isEmpty == false,
-              isRunningBulkOCR == false,
+        let candidateCount = bulkTargetCandidateCount
+        let targets = bulkEligibleTargets
+        guard isBulkOCRBusy == false,
               bulkOCRTask == nil else {
             return
         }
 
         deviceSafety.refresh()
         pendingBulkTargets = targets
+        pendingBulkCandidateCount = candidateCount
         showingBulkSafety = true
     }
 
     private func startBulkOCR(with targets: [PhotoAsset]) {
         guard targets.isEmpty == false,
-              isRunningBulkOCR == false,
+              isBulkOCRBusy == false,
               bulkOCRTask == nil else {
             return
         }
@@ -850,6 +1190,199 @@ struct PhotoGridView: View {
     }
 }
 
+private struct DisplayStateChipRow: View {
+    @ObservedObject var indexService: PhotoIndexService
+    @Binding var selectedDisplayState: PhotoDisplayState
+
+    var body: some View {
+        HorizontalChipScroll {
+            ForEach(PhotoDisplayState.allCases) { state in
+                FilterChipButton(
+                    title: "\(state.chipTitle) \(countText(indexService.filterCountsSnapshot.displayStateCounts?[state]))",
+                    systemImage: state.systemImage,
+                    isSelected: selectedDisplayState == state
+                ) {
+                    selectedDisplayState = state
+                }
+            }
+        }
+    }
+
+    private func countText(_ count: Int?) -> String {
+        count.map(String.init) ?? "—"
+    }
+}
+
+private struct CategoryChipRow: View {
+    @ObservedObject var indexService: PhotoIndexService
+    let selectedDisplayState: PhotoDisplayState
+    @Binding var selectedCategory: PhotoCategory
+    @Binding var selectedScreenshotSubcategory: ScreenshotSubcategory
+
+    var body: some View {
+        let snapshot = indexService.filterCountsSnapshot(for: selectedDisplayState)
+        HorizontalChipScroll {
+            ForEach(PhotoCategory.allCases) { category in
+                FilterChipButton(
+                    title: "\(category.shortTitle) \(countText(snapshot.categoryCounts?[category]))",
+                    systemImage: category.systemImage,
+                    isSelected: selectedCategory == category
+                ) {
+                    selectedCategory = category
+                    if category != .screenshots {
+                        selectedScreenshotSubcategory = .all
+                    }
+                }
+            }
+        }
+    }
+
+    private func countText(_ count: Int?) -> String {
+        count.map(String.init) ?? "—"
+    }
+}
+
+private struct ScreenshotSubcategoryChipRow: View {
+    @ObservedObject var indexService: PhotoIndexService
+    let selectedDisplayState: PhotoDisplayState
+    @Binding var selectedScreenshotSubcategory: ScreenshotSubcategory
+
+    var body: some View {
+        let snapshot = indexService.filterCountsSnapshot(for: selectedDisplayState)
+        HorizontalChipScroll(height: 40) {
+            ForEach(ScreenshotSubcategory.allCases) { subcategory in
+                FilterChipButton(
+                    title: "\(subcategory.shortTitle) \(countText(snapshot.screenshotSubcategoryCounts?[subcategory]))",
+                    systemImage: subcategory.systemImage,
+                    isSelected: selectedScreenshotSubcategory == subcategory,
+                    font: .caption2.weight(.semibold)
+                ) {
+                    selectedScreenshotSubcategory = subcategory
+                }
+            }
+        }
+    }
+
+    private func countText(_ count: Int?) -> String {
+        count.map(String.init) ?? "—"
+    }
+}
+
+private struct HorizontalChipScroll<Content: View>: View {
+    var height: CGFloat = 44
+    private let content: Content
+
+    init(height: CGFloat = 44, @ViewBuilder content: () -> Content) {
+        self.height = height
+        self.content = content()
+    }
+
+    var body: some View {
+        LockedHorizontalScrollView(height: height) {
+            HStack(spacing: 8) {
+                content
+            }
+            .padding(.horizontal, 2)
+            .fixedSize(horizontal: true, vertical: false)
+        }
+        .frame(height: height)
+        .clipped()
+    }
+}
+
+private struct LockedHorizontalScrollView<Content: View>: UIViewRepresentable {
+    let height: CGFloat
+    private let content: Content
+
+    init(height: CGFloat, @ViewBuilder content: () -> Content) {
+        self.height = height
+        self.content = content()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(content: content)
+    }
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.alwaysBounceHorizontal = true
+        scrollView.alwaysBounceVertical = false
+        scrollView.isDirectionalLockEnabled = true
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.delaysContentTouches = false
+        scrollView.canCancelContentTouches = true
+        scrollView.delegate = context.coordinator
+
+        let hostedView = context.coordinator.hostingController.view!
+        hostedView.backgroundColor = .clear
+        hostedView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(hostedView)
+
+        NSLayoutConstraint.activate([
+            hostedView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            hostedView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            hostedView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            hostedView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            hostedView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
+        ])
+
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        context.coordinator.hostingController.rootView = content
+        scrollView.alwaysBounceVertical = false
+        scrollView.contentOffset.y = 0
+    }
+
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        let hostingController: UIHostingController<Content>
+
+        init(content: Content) {
+            hostingController = UIHostingController(rootView: content)
+            super.init()
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            if scrollView.contentOffset.y != 0 {
+                scrollView.contentOffset.y = 0
+            }
+        }
+    }
+}
+
+private struct FilterChipButton: View {
+    let title: String
+    let systemImage: String
+    let isSelected: Bool
+    var font: Font = .caption.weight(.semibold)
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .labelStyle(.titleAndIcon)
+                .font(font)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 11)
+                .frame(height: 32)
+                .foregroundStyle(isSelected ? .white : Color(red: 0.13, green: 0.22, blue: 0.34))
+                .background(
+                    Capsule()
+                        .fill(isSelected ? Color(red: 0.16, green: 0.42, blue: 0.75) : Color.white.opacity(0.78))
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(isSelected ? Color(red: 0.16, green: 0.42, blue: 0.75) : Color.gray.opacity(0.28), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct BulkProgressLabel: View {
     let title: String
     let value: Int
@@ -867,22 +1400,56 @@ private struct BulkProgressLabel: View {
 private struct OCRBatchSafetyView: View {
     let targetTitle: String
     let candidateCount: Int
-    let runCount: Int
+    let eligibleCount: Int
+    @Binding var selectedLimit: Int
     let iCloudMode: ICloudPhotoMode
     @ObservedObject var deviceSafety: DeviceSafetyService
+    let isRunningOCR: Bool
     let onCancel: () -> Void
     let onStart: () -> Void
 
+    private var runCount: Int {
+        min(eligibleCount, selectedLimit)
+    }
+
     private var noticeTitle: String {
-        if candidateCount >= 100 {
+        if runCount >= 100 {
             return "段階実行を強く推奨"
         }
 
-        if candidateCount >= 21 {
+        if runCount >= 21 {
             return "対象が多めです"
         }
 
         return "OCR開始前の確認"
+    }
+
+    private var startDisabledReason: String? {
+        if isRunningOCR {
+            return "OCRを実行中です"
+        }
+
+        if candidateCount == 0 {
+            return "OCR対象がありません"
+        }
+
+        if eligibleCount == 0 {
+            return "OCR済みまたは処理中の写真を除外したため、対象がありません"
+        }
+
+        if runCount == 0 {
+            return "OCR対象を確認しています"
+        }
+
+        if let blockingReason = deviceSafety.blockingReasonForLargeWork {
+            return blockingReason
+        }
+
+        return nil
+    }
+
+    private var canStart: Bool {
+        startDisabledReason == nil
     }
 
     var body: some View {
@@ -894,11 +1461,60 @@ private struct OCRBatchSafetyView: View {
                             .font(.title3.bold())
                             .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-                        Text("\(targetTitle)の候補\(candidateCount)件から、今回は最大\(runCount)件だけ処理します。全件OCRは行いません。")
+                        Text("\(targetTitle)の候補から、今回は最大\(runCount)件だけ処理します。全件OCRは行いません。")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("OCRする件数", systemImage: "number.circle")
+                            .font(.headline)
+
+                        VStack(spacing: 8) {
+                            ForEach([20, 50, 100], id: \.self) { limit in
+                                Button {
+                                    selectedLimit = limit
+                                } label: {
+                                    HStack {
+                                        Image(systemName: selectedLimit == limit ? "largecircle.fill.circle" : "circle")
+                                            .frame(width: 20)
+                                        Text("現在の絞り込み結果から最大\(limit)件")
+                                            .font(.callout.weight(.medium))
+                                        Spacer()
+                                    }
+                                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                                    .padding(10)
+                                    .background(.white.opacity(selectedLimit == limit ? 0.92 : 0.72), in: RoundedRectangle(cornerRadius: 8))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+
+                        Label("OCR済みと処理中の写真は除外します", systemImage: "checkmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            OCRBatchCountRow(title: "候補", value: "\(candidateCount)件")
+                            OCRBatchCountRow(title: "OCR済み/処理中を除外後", value: "\(eligibleCount)件")
+                            OCRBatchCountRow(title: "今回処理", value: "最大\(runCount)件")
+                        }
+                        .padding(10)
+                        .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8))
+
+                        if let startDisabledReason {
+                            Label(startDisabledReason, systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(red: 1.0, green: 0.94, blue: 0.90), in: RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                    .padding(14)
+                    .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
 
                     VStack(alignment: .leading, spacing: 10) {
                         SafetyBullet("OCRは端末内で実行されます")
@@ -952,7 +1568,7 @@ private struct OCRBatchSafetyView: View {
                     Button("開始") {
                         onStart()
                     }
-                    .disabled(runCount == 0 || deviceSafety.blockingReasonForLargeWork != nil)
+                    .disabled(canStart == false)
                 }
             }
             .onAppear {
@@ -980,6 +1596,29 @@ private struct OCRBatchSafetyView: View {
             Color(red: 0.75, green: 0.50, blue: 0.12)
         case .blocking:
             Color(red: 0.75, green: 0.24, blue: 0.18)
+        }
+    }
+}
+
+private struct OCRBatchCountRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            Spacer(minLength: 8)
+
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
     }
 }
@@ -1038,16 +1677,55 @@ private struct SearchMatchSummaryView: View {
     }
 }
 
+struct IndexStoreStatusContainer: View {
+    @ObservedObject private var progressStore = IndexProgressStore.shared
+
+    var body: some View {
+        if let statusText = progressStore.statusText {
+            IndexStoreStatusCard(statusText: statusText)
+        }
+    }
+}
+
+private struct IndexStoreStatusCard: View {
+    let statusText: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(statusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                Text("元写真・元動画は削除・変更しません。旧JSONは移行元として残します。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
 private struct PhotoThumbnailView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     let asset: PhotoAsset
     let displayState: PhotoDisplayState
+    @State private var thumbnailImage: UIImage?
+
+    private let thumbnailSize = CGSize(width: 360, height: 360)
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             Group {
-                if let image = photoLibrary.cachedThumbnail(for: asset) {
+                if let image = thumbnailImage ?? photoLibrary.cachedThumbnail(for: asset) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
@@ -1101,7 +1779,16 @@ private struct PhotoThumbnailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .contentShape(RoundedRectangle(cornerRadius: 8))
         .onAppear {
-            photoLibrary.requestThumbnail(for: asset, targetSize: CGSize(width: 360, height: 360))
+            if let image = photoLibrary.cachedThumbnail(for: asset) {
+                thumbnailImage = image
+            } else {
+                photoLibrary.requestThumbnail(for: asset, targetSize: thumbnailSize) { image in
+                    thumbnailImage = image
+                }
+            }
+        }
+        .onDisappear {
+            photoLibrary.cancelThumbnailRequest(for: asset, targetSize: thumbnailSize)
         }
     }
 

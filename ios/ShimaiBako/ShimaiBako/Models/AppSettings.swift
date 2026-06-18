@@ -118,6 +118,7 @@ enum PhotoImportInterruptionReason: String, Codable, Equatable {
     case taskCancelled
     case pausedByViewLifecycle
     case pausedByAppLifecycle
+    case pausedByMemoryPressure
     case staleJob
 
     var message: String {
@@ -130,6 +131,8 @@ enum PhotoImportInterruptionReason: String, Codable, Equatable {
             "画面切替では読み込みを継続しています"
         case .pausedByAppLifecycle:
             "アプリの状態変化により一時停止しました"
+        case .pausedByMemoryPressure:
+            "端末の負荷が高いため一時停止しました"
         case .staleJob:
             "前回の読み込みが途中で止まりました"
         }
@@ -147,6 +150,15 @@ struct PhotoImportProgress: Codable, Equatable {
     var message: String?
     var interruptionReason: PhotoImportInterruptionReason?
     var latestLoadedIdentifiers: [String]?
+    var lastSuccessfulBatchEnd: Int?
+    var lastPhase: String?
+    var lastErrorSummary: String?
+    var lastExitReasonCandidate: String?
+    var batchStart: Int?
+    var batchEnd: Int?
+    var batchSize: Int?
+    var elapsedMilliseconds: Int?
+    var memoryWarningCount: Int?
 
     static let idle = PhotoImportProgress(
         phase: .idle,
@@ -158,7 +170,16 @@ struct PhotoImportProgress: Codable, Equatable {
         finishedAt: nil,
         message: nil,
         interruptionReason: nil,
-        latestLoadedIdentifiers: []
+        latestLoadedIdentifiers: [],
+        lastSuccessfulBatchEnd: nil,
+        lastPhase: nil,
+        lastErrorSummary: nil,
+        lastExitReasonCandidate: nil,
+        batchStart: nil,
+        batchEnd: nil,
+        batchSize: nil,
+        elapsedMilliseconds: nil,
+        memoryWarningCount: nil
     )
 
     var progressFraction: Double {
@@ -215,6 +236,7 @@ struct PhotoImportProgress: Codable, Equatable {
         progress.updatedAt = date
         progress.message = PhotoImportInterruptionReason.staleJob.message
         progress.interruptionReason = .staleJob
+        progress.lastExitReasonCandidate = PhotoImportInterruptionReason.staleJob.rawValue
         return progress
     }
 }

@@ -344,7 +344,7 @@ enum PhotoSearchMatchedField: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-struct PhotoSearchMatch: Equatable {
+nonisolated struct PhotoSearchMatch: Equatable {
     var isMatch: Bool
     var matchedFields: [PhotoSearchMatchedField]
     var ocrSnippet: String?
@@ -352,7 +352,7 @@ struct PhotoSearchMatch: Equatable {
     static let empty = PhotoSearchMatch(isMatch: true, matchedFields: [], ocrSnippet: nil)
 }
 
-struct CategoryInferenceResult: Codable, Equatable {
+nonisolated struct CategoryInferenceResult: Codable, Equatable {
     let photoLocalIdentifier: String
     var category: PhotoCategory
     var confidence: Double
@@ -360,7 +360,7 @@ struct CategoryInferenceResult: Codable, Equatable {
     var updatedAt: Date
 }
 
-struct ScreenshotSubcategoryInferenceResult: Codable, Equatable {
+nonisolated struct ScreenshotSubcategoryInferenceResult: Codable, Equatable {
     let photoLocalIdentifier: String
     var subcategory: ScreenshotSubcategory
     var confidence: Double
@@ -368,7 +368,7 @@ struct ScreenshotSubcategoryInferenceResult: Codable, Equatable {
     var updatedAt: Date
 }
 
-struct PhotoIndexRecord: Codable, Equatable, Identifiable {
+nonisolated struct PhotoIndexRecord: Codable, Equatable, Identifiable {
     var id: String {
         localIdentifier
     }
@@ -572,7 +572,7 @@ struct PhotoIndexRecord: Codable, Equatable, Identifiable {
     }
 }
 
-struct PhotoIndexSummary: Equatable {
+nonisolated struct PhotoIndexSummary: Equatable {
     var indexedCount: Int
     var completedOCRCount: Int
     var failedOCRCount: Int
@@ -745,11 +745,22 @@ enum CategoryInference {
     }
 
     private nonisolated static func normalized(_ text: String?) -> String {
-        (text ?? "").lowercased()
+        let rawText = text ?? ""
+        let widthAdjusted = rawText.applyingTransform(.fullwidthToHalfwidth, reverse: false) ?? rawText
+        let kanaAdjusted = widthAdjusted.applyingTransform(.hiraganaToKatakana, reverse: false) ?? widthAdjusted
+        return kanaAdjusted
+            .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "ja_JP"))
+            .lowercased()
     }
 
     private nonisolated static func containsAny(_ text: String, keywords: [String]) -> Bool {
-        keywords.contains { text.localizedCaseInsensitiveContains($0) }
+        guard text.isEmpty == false else {
+            return false
+        }
+
+        return keywords.contains { keyword in
+            text.contains(normalized(keyword))
+        }
     }
 
     private nonisolated static func looksDocumentLike(_ asset: PhotoAsset) -> Bool {

@@ -79,7 +79,7 @@
 - Vision frameworkによる端末内OCR
 - 詳細画面から1枚だけOCRを実行する導線
 - OCR済み写真の再OCR導線
-- 表示中、スクショのみ、書類写真候補のみ、未OCRのみを最大20件までまとめてOCRする導線
+- 表示中、スクショのみ、書類写真候補のみ、未OCRのみを20/50/100件から選んでまとめてOCRする導線
 - まとめてOCR開始前の安全確認画面
 - OCR状態表示
   - 未処理
@@ -90,7 +90,15 @@
 - OCR結果を含む検索
 - OCR結果、分類結果、検索用メタデータを統合する検索インデックス
 - `PhotoIndexStoring` protocolによる保存層の抽象化
-- `JSONPhotoIndexStore` による `photo_index.json` version 2保存
+- `SQLitePhotoIndexStore` による `photo_index.sqlite` 保存
+- 旧 `photo_index.json` version 2からSQLiteへの200件単位移行
+- `JSONPhotoIndexStore` を互換バックアップ/移行元として維持
+- 写真一覧の初期表示200件と「さらに表示」による200件単位表示
+- 大規模モードでSwiftUIへ全件配列を渡さない表示用アセット保持制限
+- SQLiteページIDから必要分だけPhotoKitアセットを復元する一覧表示
+- メモリ警告時のサムネイルキャッシュ解放と読み込み一時停止
+- フル/全件読み込みの最終成功件数、直近フェーズ、メモリ警告回数表示
+- 検索入力の350ms debounce
 - 既存 `ocr_results.json` との互換読み込み
 - 1枚ごとのOCR結果削除と未処理戻し
 - 表示中写真のOCR結果まとめて削除
@@ -139,6 +147,7 @@
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoLibraryService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoIndexService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/PhotoIndexStore.swift`
+- `ios/ShimaiBako/ShimaiBako/Services/SQLitePhotoIndexStore.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/AccuracyImprovementService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/ManualCategoryLearningService.swift`
 - `ios/ShimaiBako/ShimaiBako/Services/OCRService.swift`
@@ -151,6 +160,10 @@
 - `ios/ShimaiBako/ShimaiBako/Assets.xcassets/AppIcon.appiconset/Contents.json`
 - `ios/scripts/index_store_performance_check.swift`
 - `ios/docs/index_store_design.md`
+- `ios/docs/database_index_design.md`
+- `ios/docs/large_library_performance_plan.md`
+- `ios/docs/large_library_crash_investigation.md`
+- `ios/docs/ocr_batch_design.md`
 - `ios/docs/large_library_performance_notes.md`
 - `ios/docs/cache_reset_design.md`
 - `ios/docs/screenshot_classification_design.md`

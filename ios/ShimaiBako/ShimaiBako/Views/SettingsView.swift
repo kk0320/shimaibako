@@ -15,21 +15,19 @@ struct SettingsView: View {
     @State private var showingClearAllOCRConfirmation = false
     @State private var showingClearLearningConfirmation = false
     @State private var showingClearAccuracyDataConfirmation = false
+    @State private var showingResetLoadingConfirmation = false
+    @State private var isResettingLoadingState = false
 
     private var indexSummary: PhotoIndexSummary {
-        indexService.summary(for: photoLibrary.assets, ocrService: ocrService)
+        indexService.indexSummary
     }
 
     private var categoryCounts: [PhotoCategory: Int] {
-        indexService.counts(for: photoLibrary.assets, ocrService: ocrService)
+        indexService.cachedCategoryCounts()
     }
 
     private var screenshotSubcategoryCounts: [ScreenshotSubcategory: Int] {
-        let screenshotAssets = photoLibrary.assets.filter { asset in
-            indexService.category(for: asset, ocrService: ocrService) == .screenshots
-        }
-
-        return indexService.screenshotSubcategoryCounts(for: screenshotAssets, ocrService: ocrService)
+        indexService.cachedScreenshotSubcategoryCounts()
     }
 
     private var ocrCacheCount: Int {
@@ -45,7 +43,8 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         header
                         summaryCard
-                        if photoLibrary.shouldShowImportProgress {
+                        IndexStoreStatusContainer()
+                        if photoLibrary.shouldShowImportProgress || photoLibrary.shouldShowCompletedImportSummary {
                             PhotoImportProgressCard(photoLibrary: photoLibrary)
                         }
                         loadingModeCard
@@ -123,6 +122,20 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("分類傾向学習データ、将来の画像特徴量データ、精度向上モードの処理履歴だけを削除します。元写真・元動画、OCR結果、手動分類、写真アプリ側のデータは削除されません。")
+            }
+            .alert("読み込み処理だけを初期化しますか？", isPresented: $showingResetLoadingConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("読み込み処理を初期化", role: .destructive) {
+                    Task {
+                        isResettingLoadingState = true
+                        photoLibrary.resetLoadingState()
+                        try? await Task.sleep(nanoseconds: 500_000_000)
+                        isResettingLoadingState = false
+                    }
+                }
+                .disabled(isResettingLoadingState)
+            } message: {
+                Text("元写真・元動画は削除されません。OCR結果・手動分類・不要候補・メモ・タグは削除しません。読み込みジョブ状態だけをリセットします。")
             }
             .task {
                 if photoLibrary.canReadPhotos &&
@@ -238,13 +251,14 @@ struct SettingsView: View {
                 }
 
                 Button {
-                    photoLibrary.resetLoadingState()
+                    showingResetLoadingConfirmation = true
                 } label: {
-                    Label("読み込み状態をリセット", systemImage: "arrow.counterclockwise")
+                    Label(isResettingLoadingState ? "初期化中" : "読み込み状態をリセット", systemImage: "arrow.counterclockwise")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .disabled(isResettingLoadingState)
             }
         }
         .padding(16)
