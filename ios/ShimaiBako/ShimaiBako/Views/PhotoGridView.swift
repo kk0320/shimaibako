@@ -1,6 +1,7 @@
 import Photos
 import Foundation
 import SwiftUI
+import UIKit
 
 enum PhotoGridMode {
     case library
@@ -1061,18 +1062,86 @@ private struct ScreenshotSubcategoryChipRow: View {
 
 private struct HorizontalChipScroll<Content: View>: View {
     var height: CGFloat = 44
-    @ViewBuilder var content: () -> Content
+    private let content: Content
+
+    init(height: CGFloat = 44, @ViewBuilder content: () -> Content) {
+        self.height = height
+        self.content = content()
+    }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        LockedHorizontalScrollView(height: height) {
             HStack(spacing: 8) {
-                content()
+                content
             }
             .padding(.horizontal, 2)
+            .fixedSize(horizontal: true, vertical: false)
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         .frame(height: height)
         .clipped()
+    }
+}
+
+private struct LockedHorizontalScrollView<Content: View>: UIViewRepresentable {
+    let height: CGFloat
+    private let content: Content
+
+    init(height: CGFloat, @ViewBuilder content: () -> Content) {
+        self.height = height
+        self.content = content()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(content: content)
+    }
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.alwaysBounceHorizontal = true
+        scrollView.alwaysBounceVertical = false
+        scrollView.isDirectionalLockEnabled = true
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.delaysContentTouches = false
+        scrollView.canCancelContentTouches = true
+        scrollView.delegate = context.coordinator
+
+        let hostedView = context.coordinator.hostingController.view!
+        hostedView.backgroundColor = .clear
+        hostedView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(hostedView)
+
+        NSLayoutConstraint.activate([
+            hostedView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            hostedView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            hostedView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            hostedView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            hostedView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
+        ])
+
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        context.coordinator.hostingController.rootView = content
+        scrollView.alwaysBounceVertical = false
+        scrollView.contentOffset.y = 0
+    }
+
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        let hostingController: UIHostingController<Content>
+
+        init(content: Content) {
+            hostingController = UIHostingController(rootView: content)
+            super.init()
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            if scrollView.contentOffset.y != 0 {
+                scrollView.contentOffset.y = 0
+            }
+        }
     }
 }
 
