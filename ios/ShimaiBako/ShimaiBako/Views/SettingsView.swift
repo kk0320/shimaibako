@@ -9,6 +9,7 @@ struct SettingsView: View {
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var ocrJobRunner: OCRJobRunner
     @Environment(\.openURL) private var openURL
     @State private var pendingReadMode: PhotoReadMode?
     @State private var showingLargeModeSafety = false
@@ -32,6 +33,14 @@ struct SettingsView: View {
 
     private var ocrCacheCount: Int {
         indexService.indexSummary.completedOCRCount + indexService.indexSummary.failedOCRCount
+    }
+
+    private var currentOCRJobStateTitle: String {
+        guard let job = ocrJobRunner.snapshot.job else {
+            return "未実行"
+        }
+
+        return ocrJobRunner.snapshot.isRunning ? "OCR実行中" : job.state.title
     }
 
     var body: some View {
@@ -384,18 +393,28 @@ struct SettingsView: View {
 
             DetailInfoRow(title: "OCR言語", value: OCRConfiguration.recognitionLanguageTitle)
             DetailInfoRow(title: "OCR精度", value: OCRConfiguration.recognitionQualityTitle)
-            DetailInfoRow(title: "まとめてOCR上限", value: "\(OCRConfiguration.batchLimit)件")
+            DetailInfoRow(title: "クイックOCR", value: OCRConfiguration.quickBatchLimitTitle)
+            DetailInfoRow(title: "絞り込み結果OCR", value: "対応済み")
+            DetailInfoRow(title: "スマート全数OCR", value: "推奨")
+            DetailInfoRow(title: "全数高精度OCR", value: "上級者向け")
             DetailInfoRow(title: "OCR画像サイズ", value: OCRConfiguration.maxRecognitionImageLongSideTitle)
-            DetailInfoRow(title: "OCR結果件数", value: "\(indexSummary.completedOCRCount)件")
+            DetailInfoRow(title: "OCR済み写真", value: "\(indexSummary.completedOCRCount)件")
             DetailInfoRow(title: "インデックス保存先", value: "端末内")
-            DetailInfoRow(title: "保存内容", value: "検索インデックスのみ")
+            DetailInfoRow(title: "保存内容", value: "OCR結果・検索インデックス")
+
+            ocrJobStatusRows
 
             Text("OCR結果、分類結果、検索用メタデータだけを端末内に保存します。元写真・元動画やサムネイル本体は保存しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("OCRは必要な写真から段階的に実行します。発熱やバッテリー消費を避けるため、全件OCRは初期運用では行いません。")
+            Text("全数OCRは長時間実行され、端末が発熱する場合があります。充電中かつ涼しく安定した場所での実行をおすすめします。端末の温度が高い場合、処理は自動的に一時停止します。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("OCR結果は端末内で扱います。元写真・元動画は削除・変更されません。iCloud写真をご利用中で画像が端末上にない場合、iOSがAppleのiCloudから画像を取得することがあります。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -403,6 +422,31 @@ struct SettingsView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    @ViewBuilder
+    private var ocrJobStatusRows: some View {
+        Divider()
+
+        DetailInfoRow(title: "全数OCR状態", value: currentOCRJobStateTitle)
+
+        if let job = ocrJobRunner.snapshot.job {
+            DetailInfoRow(title: "対象", value: "\(job.totalCount)件")
+            DetailInfoRow(title: "完了", value: "\(job.completedCount)件")
+            DetailInfoRow(title: "文字あり", value: "\(job.textFoundCount)件")
+            DetailInfoRow(title: "文字なし", value: "\(job.noTextCount)件")
+            DetailInfoRow(title: "iCloud待ち", value: "\(job.cloudPendingCount)件")
+            DetailInfoRow(title: "失敗", value: "\(job.failedCount)件")
+            DetailInfoRow(title: "スキップ", value: "\(job.skippedCount)件")
+            DetailInfoRow(title: "最終更新", value: job.updatedAtLabel)
+
+            if let pausedReason = job.pausedReason, pausedReason.isEmpty == false {
+                Text(pausedReason)
+                    .font(.caption)
+                    .foregroundStyle(Color(red: 0.75, green: 0.37, blue: 0.08))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private var learningSettingsCard: some View {

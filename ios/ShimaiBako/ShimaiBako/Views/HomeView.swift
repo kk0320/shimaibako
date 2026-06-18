@@ -52,7 +52,8 @@ struct HomeView: View {
                 indexService: indexService,
                 learningService: learningService,
                 accuracyImprovementService: accuracyImprovementService,
-                deviceSafety: deviceSafety
+                deviceSafety: deviceSafety,
+                ocrJobRunner: ocrJobRunner
             )
                 .tabItem {
                     Label("設定", systemImage: "gearshape")
