@@ -299,6 +299,8 @@ OCR進捗は `OCRProgressStore` に小さな値型スナップショットとし
 
 写真画面では `OCRProgressStore.activeSnapshot` がある場合にコンパクト進捗カードを表示する。カードには状態、`completed / total`、ProgressView、パーセント、現在phase、Heartbeat、速度、残り時間、最低限の操作だけを出し、詳細は管理導線へ逃がす。`PhotoGridView` 本体は進捗storeを直接監視せず、OCRカードだけが進捗を購読する。
 
+開始直後は、対象抽出より先に永続ジョブを `preparing` として作成し、`activeSnapshot` へpublishする。`totalCount` が0でもカードを表示し、「対象写真を確認しています」と出す。重い対象抽出やJobItem作成は、その後に進める。
+
 全数OCRが準備中、実行中、減速中、一時停止中、終了処理中の場合、`全数OCRを管理` は有効にし、`まとめてOCR` は待機扱いにする。競合するOCR処理を同時に走らせない。
 
 ## Heartbeatと停止検出
@@ -331,6 +333,8 @@ Debug buildでは個人情報を含まない `OCR_JOB state=... completed=... to
 アプリ起動時に未完了ジョブを読み込み、古い `fetchingImage` / `recognizing` 相当のアイテムを `pending` に戻す。前回 `preparing` / `running` / `throttled` のまま終了したジョブは一時停止扱いにし、進捗カードで続きから再開できるようにする。
 
 復元処理では写真本体、OCR結果、手動分類、不要候補、メモ、タグを削除しない。
+
+復元後は `OCRProgressStore.activeSnapshot` を再作成する。写真画面とOCR runnerは同じ `OCRProgressStore` インスタンスを共有し、DEBUG buildではstore識別子とsnapshot状態をログで確認できる。
 
 ## やってはいけない実装
 

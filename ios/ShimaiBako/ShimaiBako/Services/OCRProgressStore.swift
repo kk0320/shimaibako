@@ -5,6 +5,12 @@ import Foundation
 final class OCRProgressStore: ObservableObject {
     @Published private(set) var activeSnapshot: OCRProgressSnapshot?
 
+    #if DEBUG
+    var debugIdentifier: String {
+        String(ObjectIdentifier(self).hashValue)
+    }
+    #endif
+
     var snapshot: OCRProgressSnapshot? {
         activeSnapshot
     }
@@ -17,6 +23,9 @@ final class OCRProgressStore: ObservableObject {
               let nextSnapshot = OCRProgressSnapshot(job: job, isRunning: isRunning) else {
             if force {
                 activeSnapshot = nil
+                #if DEBUG
+                print("OCR_PROGRESS_STORE store=\(debugIdentifier) activeSnapshot=false snapshotCreated=false")
+                #endif
             }
             return
         }
@@ -28,5 +37,9 @@ final class OCRProgressStore: ObservableObject {
 
         lastPublishedAt = now
         activeSnapshot = nextSnapshot
+
+        #if DEBUG
+        print("OCR_PROGRESS_STORE store=\(debugIdentifier) activeSnapshot=true state=\(nextSnapshot.state.rawValue) completed=\(nextSnapshot.completed) total=\(nextSnapshot.total) snapshotCreated=true")
+        #endif
     }
 }

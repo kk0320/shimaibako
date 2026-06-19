@@ -1222,29 +1222,40 @@ struct PhotoGridView: View {
 
     @ViewBuilder
     private var persistentOCRProgressSection: some View {
-        CompactFullOCRProgressView(
-            progressStore: ocrProgressStore,
-            onShowDetails: {
-                withAnimation(.easeInOut(duration: 0.16)) {
-                    showsOCRDetails = true
+        VStack(spacing: 6) {
+            CompactFullOCRProgressView(
+                progressStore: ocrProgressStore,
+                onShowDetails: {
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        showsOCRDetails = true
+                    }
+                },
+                onPause: {
+                    ocrJobRunner.pause()
+                },
+                onResume: {
+                    ocrJobRunner.resume()
+                },
+                onCancel: {
+                    ocrJobRunner.cancel()
+                },
+                onRetryFailures: {
+                    ocrJobRunner.retryFailures()
+                },
+                onResumeCloudPending: {
+                    ocrJobRunner.resumeCloudPendingWithNetworkAccess()
                 }
-            },
-            onPause: {
-                ocrJobRunner.pause()
-            },
-            onResume: {
-                ocrJobRunner.resume()
-            },
-            onCancel: {
-                ocrJobRunner.cancel()
-            },
-            onRetryFailures: {
-                ocrJobRunner.retryFailures()
-            },
-            onResumeCloudPending: {
-                ocrJobRunner.resumeCloudPendingWithNetworkAccess()
-            }
-        )
+            )
+
+            #if DEBUG
+            OCRProgressDebugView(
+                progressStore: ocrProgressStore,
+                activeJob: ocrJobRunner.activeJob,
+                isRunning: ocrJobRunner.isRunning,
+                isPreparing: ocrJobRunner.isPreparingJob
+            )
+            #endif
+        }
     }
 
     private func presentOCRStart() {
@@ -2308,6 +2319,56 @@ private struct CompactFullOCRProgressView: View {
         return "\(Int((seconds / 3600).rounded()))時間"
     }
 }
+
+#if DEBUG
+private struct OCRProgressDebugView: View {
+    @ObservedObject var progressStore: OCRProgressStore
+    let activeJob: OCRJob?
+    let isRunning: Bool
+    let isPreparing: Bool
+
+    var body: some View {
+        let snapshot = progressStore.activeSnapshot
+        Text("OCR debug: store: \(progressStore.debugIdentifier) / activeSnapshot: \(snapshot == nil ? "nil" : "present") / activeJob: \(activeJob == nil ? "none" : "true") / jobState: \(activeJob?.state.rawValue ?? "none") / observer: \(observerState) / lastHeartbeat: \(heartbeatText(snapshot))")
+            .font(.caption2.monospaced())
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .minimumScaleFactor(0.72)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(.white.opacity(0.45), in: RoundedRectangle(cornerRadius: 7))
+            .onAppear {
+                logPhotoTab(snapshot)
+            }
+            .onChange(of: snapshot) { _, newValue in
+                logPhotoTab(newValue)
+            }
+    }
+
+    private var observerState: String {
+        if isRunning {
+            return "running"
+        }
+        if isPreparing {
+            return "preparing"
+        }
+        return "idle"
+    }
+
+    private func heartbeatText(_ snapshot: OCRProgressSnapshot?) -> String {
+        guard let snapshot else {
+            return "-"
+        }
+        return String(format: "%.1fs", snapshot.heartbeatAge)
+    }
+
+    private func logPhotoTab(_ snapshot: OCRProgressSnapshot?) {
+        let state = snapshot?.state.rawValue ?? "none"
+        print("OCR_PHOTO_TAB store=\(progressStore.debugIdentifier) activeSnapshot=\(snapshot != nil) state=\(state) activeJob=\(activeJob != nil) observer=\(observerState)")
+    }
+}
+#endif
 
 private struct OCRJobMetric: View {
     let title: String

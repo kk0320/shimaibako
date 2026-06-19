@@ -105,6 +105,10 @@ final class OCRJobRunner: ObservableObject {
         do {
             let preparingJob = try await store.createPreparingJob(scope: plan.jobScope, qualityMode: plan.qualityMode)
             publish(job: preparingJob, force: true, isRunning: false)
+            #if DEBUG
+            print("OCR_START plan=\(plan.debugKind) jobCreated=true snapshotPublished=\(progressStore.activeSnapshot != nil) store=\(progressStore.debugIdentifier)")
+            #endif
+            await Task.yield()
             let request = pageRequest(for: plan)
             let identifiers = await indexService.localIdentifiersForOCRJob(matching: request)
             let records = await indexService.recordsForOCRJob(localIdentifiers: identifiers)
@@ -137,6 +141,10 @@ final class OCRJobRunner: ObservableObject {
             try await store.recoverInterruptedItems()
             let job = try await store.activeJob()
             publish(job: job, force: true, isRunning: false)
+            #if DEBUG
+            let state = job?.state.rawValue ?? "none"
+            print("OCR_PROGRESS_STORE restore activeJob=\(job != nil) state=\(state) snapshotCreated=\(progressStore.activeSnapshot != nil) store=\(progressStore.debugIdentifier)")
+            #endif
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -175,7 +183,7 @@ final class OCRJobRunner: ObservableObject {
 
         do {
             let job = try await store.createJob(scope: scope, qualityMode: qualityMode, items: inputs)
-            snapshot = OCRJobSnapshot(job: job, isRunning: false)
+            publish(job: job, force: true, isRunning: false)
             allowsNetworkAccessForCurrentRun = false
             resume()
         } catch {
@@ -220,7 +228,12 @@ final class OCRJobRunner: ObservableObject {
 
     func resume(allowNetworkAccess: Bool = false) {
         guard let job = snapshot.job,
-              job.state == .pending || job.state == .paused || job.state == .running,
+              job.state == .pending ||
+              job.state == .paused ||
+              job.state == .pausedThermal ||
+              job.state == .pausedUser ||
+              job.state == .running ||
+              job.state == .throttled,
               runTask == nil else {
             return
         }
