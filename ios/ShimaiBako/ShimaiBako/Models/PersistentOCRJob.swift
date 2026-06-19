@@ -509,6 +509,67 @@ struct OCRJob: Codable, Equatable, Identifiable {
         max(totalCount - processedCount, 0)
     }
 
+    nonisolated var isInvalidEmptyCompletedJob: Bool {
+        state == .completed &&
+        totalCount == 0 &&
+        textFoundCount == 0 &&
+        noTextCount == 0 &&
+        skippedCount == 0 &&
+        cloudPendingCount == 0 &&
+        failedCount == 0
+    }
+
+    nonisolated var isInvalidEmptyTerminalJob: Bool {
+        switch state {
+        case .completed, .cancelled, .failed:
+            totalCount == 0 && terminalCount == 0
+        case .preparing, .pending, .running, .throttled, .finalizing, .paused, .pausedThermal, .pausedUser, .cancelling:
+            false
+        }
+    }
+
+    nonisolated func isStaleEmptyActiveJob(referenceDate: Date = Date(), threshold: TimeInterval = 180) -> Bool {
+        state.isActive &&
+        totalCount == 0 &&
+        referenceDate.timeIntervalSince(updatedAt) >= threshold
+    }
+
+    nonisolated var isValidCompletedSummary: Bool {
+        state == .completed &&
+        totalCount > 0 &&
+        terminalCount >= totalCount
+    }
+
+    nonisolated var shouldBlockQuickOCR: Bool {
+        switch state {
+        case .preparing, .pending, .running, .throttled, .finalizing, .cancelling:
+            true
+        case .paused, .pausedThermal, .pausedUser, .completed, .cancelled, .failed:
+            false
+        }
+    }
+
+    nonisolated func isDisplayableProgressJob(referenceDate: Date = Date()) -> Bool {
+        if isInvalidEmptyTerminalJob || isStaleEmptyActiveJob(referenceDate: referenceDate) {
+            return false
+        }
+
+        if state == .completed {
+            return isValidCompletedSummary
+        }
+
+        if totalCount == 0 {
+            switch state {
+            case .preparing, .pending:
+                return true
+            case .running, .throttled, .finalizing, .paused, .pausedThermal, .pausedUser, .cancelling, .cancelled, .failed, .completed:
+                return false
+            }
+        }
+
+        return true
+    }
+
     nonisolated var progress: Double {
         guard totalCount > 0 else {
             return 0
@@ -665,6 +726,15 @@ struct OCRProgressSnapshot: Equatable, Sendable {
         }
     }
 
+    var shouldBlockQuickOCR: Bool {
+        switch state {
+        case .preparing, .running, .throttled, .finalizing, .cancelling:
+            true
+        case .pausedThermal, .pausedUser, .completed, .failed:
+            false
+        }
+    }
+
     var phaseTitle: String {
         phase?.title ?? "待機中"
     }
@@ -685,11 +755,24 @@ struct OCRProgressSnapshot: Equatable, Sendable {
         lastProcessedCount: Int? = nil,
         progressDelta: Int = 0
     ) {
+        guard job.isDisplayableProgressJob() else {
+            #if DEBUG
+            if job.isInvalidEmptyCompletedJob {
+                print("OCR_JOB_IGNORED reason=invalidEmptyCompletedJob jobID=\(job.id)")
+            } else if job.isInvalidEmptyTerminalJob {
+                print("OCR_JOB_IGNORED reason=invalidEmptyTerminalJob jobID=\(job.id) state=\(job.state.rawValue)")
+            } else if job.isStaleEmptyActiveJob() {
+                print("OCR_JOB_IGNORED reason=staleEmptyActiveJob jobID=\(job.id) state=\(job.state.rawValue)")
+            }
+            #endif
+            return nil
+        }
+
         guard let uuid = UUID(uuidString: job.id) else {
             return nil
         }
 
-        let processed = job.processedCount
+        let processed = job.state == .completed ? job.terminalCount : job.processedCount
         jobID = uuid
         scopeTitle = job.scope.compactTitle
         state = Self.snapshotState(for: job, isRunning: isRunning)

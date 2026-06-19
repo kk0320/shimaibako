@@ -40,15 +40,23 @@ struct SettingsView: View {
     }
 
     private var currentOCRJobStateTitle: String {
-        if let progress = ocrProgressStore.snapshot {
+        if let progress = currentOCRProgress {
             return progress.stateTitle
         }
 
-        guard let job = ocrJobRunner.snapshot.job else {
-            return "未実行"
+        if ocrJobRunner.isPreparingJob {
+            return "準備中"
         }
 
-        return ocrJobRunner.snapshot.isRunning ? "OCR実行中" : job.state.title
+        if ocrJobRunner.isRunning {
+            return "実行中"
+        }
+
+        return "未実行"
+    }
+
+    private var currentOCRProgress: OCRProgressSnapshot? {
+        ocrProgressStore.activeSnapshot ?? ocrProgressStore.latestCompletedSummary
     }
 
     var body: some View {
@@ -267,6 +275,14 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.borderedProminent)
 
+                Button {
+                    ocrJobRunner.repairJobStateForUI()
+                } label: {
+                    Label("全数OCRジョブ状態を整理", systemImage: "wrench.and.screwdriver")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
                 Button(role: .destructive) {
                     Task {
                         await indexService.clearDebugLargeLibraryFixture()
@@ -279,6 +295,11 @@ struct SettingsView: View {
             }
 
             Text("削除対象はDebug用テストレコードだけです。元写真・元動画、実ユーザーのOCR結果、手動分類には触れません。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("全数OCRジョブ状態の整理は、壊れたジョブ制御状態だけを整理します。OCR結果、検索インデックス、手動分類、不要候補、メモ、タグは削除しません。")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -523,7 +544,7 @@ struct SettingsView: View {
 
         DetailInfoRow(title: "全数OCR状態", value: currentOCRJobStateTitle)
 
-        if let progress = ocrProgressStore.snapshot {
+        if let progress = currentOCRProgress {
             DetailInfoRow(title: "対象", value: "\(progress.total)件")
             DetailInfoRow(title: "完了", value: "\(progress.completed)件")
             DetailInfoRow(title: "進捗", value: progress.percentText)

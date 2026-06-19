@@ -118,9 +118,75 @@ actor OCRJobStore {
         ])
     }
 
+    func repairInvalidJobStates(referenceDate: Date = Date()) async throws {
+        try openIfNeeded()
+        let staleDate = referenceDate.addingTimeInterval(-180)
+        let now = referenceDate
+
+        try execute("""
+        UPDATE ocr_jobs
+        SET state = ?, paused_reason = ?, current_phase = NULL, current_asset_identifier = NULL, updated_at = ?, last_heartbeat_at = ?
+        WHERE state = ?
+          AND total_count = 0
+          AND text_found_count = 0
+          AND no_text_count = 0
+          AND skipped_count = 0
+          AND cloud_pending_count = 0
+          AND failed_count = 0
+        """, bindings: [
+            .text(OCRJobState.cancelled.rawValue),
+            .text("invalidEmptyCompletedJob"),
+            .date(now),
+            .date(now),
+            .text(OCRJobState.completed.rawValue)
+        ])
+
+        try execute("""
+        UPDATE ocr_jobs
+        SET state = ?, paused_reason = ?, current_phase = NULL, current_asset_identifier = NULL, updated_at = ?, last_heartbeat_at = ?
+        WHERE state IN (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          AND total_count = 0
+          AND updated_at <= ?
+        """, bindings: [
+            .text(OCRJobState.cancelled.rawValue),
+            .text("invalidEmptyActiveJob"),
+            .date(now),
+            .date(now),
+            .text(OCRJobState.preparing.rawValue),
+            .text(OCRJobState.pending.rawValue),
+            .text(OCRJobState.running.rawValue),
+            .text(OCRJobState.throttled.rawValue),
+            .text(OCRJobState.finalizing.rawValue),
+            .text(OCRJobState.paused.rawValue),
+            .text(OCRJobState.pausedThermal.rawValue),
+            .text(OCRJobState.pausedUser.rawValue),
+            .text(OCRJobState.cancelling.rawValue),
+            .date(staleDate)
+        ])
+
+        try execute("""
+        UPDATE ocr_jobs
+        SET state = ?, paused_reason = ?, current_phase = ?, current_asset_identifier = NULL, updated_at = ?
+        WHERE state IN (?, ?, ?, ?, ?)
+          AND total_count > 0
+          AND last_heartbeat_at <= ?
+        """, bindings: [
+            .text(OCRJobState.pausedUser.rawValue),
+            .text("前回の全数OCRが途中で止まりました。続きから再開できます。"),
+            .text(OCRCurrentPhase.selectingTargets.rawValue),
+            .date(now),
+            .text(OCRJobState.preparing.rawValue),
+            .text(OCRJobState.pending.rawValue),
+            .text(OCRJobState.running.rawValue),
+            .text(OCRJobState.throttled.rawValue),
+            .text(OCRJobState.finalizing.rawValue),
+            .date(staleDate)
+        ])
+    }
+
     func activeJob() async throws -> OCRJob? {
         try openIfNeeded()
-        return try jobs(
+        let candidates = try jobs(
             whereClause: "state IN (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             bindings: [
                 .text(OCRJobState.preparing.rawValue),
@@ -133,8 +199,12 @@ actor OCRJobStore {
                 .text(OCRJobState.pausedUser.rawValue),
                 .text(OCRJobState.cancelling.rawValue)
             ],
-            orderAndLimit: "ORDER BY updated_at DESC LIMIT 1"
-        ).first
+            orderAndLimit: "ORDER BY updated_at DESC LIMIT 20"
+        )
+
+        return candidates.first { job in
+            job.isDisplayableProgressJob() && (job.totalCount > 0 || job.state == .preparing || job.state == .pending)
+        }
     }
 
     func createJob(scope: OCRJobScope, qualityMode: OCRJobQualityMode, items: [OCRJobItemInput]) async throws -> OCRJob {

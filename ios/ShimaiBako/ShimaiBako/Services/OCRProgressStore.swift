@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class OCRProgressStore: ObservableObject {
     @Published private(set) var activeSnapshot: OCRProgressSnapshot?
+    @Published private(set) var latestCompletedSummary: OCRProgressSnapshot?
 
     #if DEBUG
     var debugIdentifier: String {
@@ -64,6 +65,16 @@ final class OCRProgressStore: ObservableObject {
                 print("OCR_PROGRESS_STORE store=\(debugIdentifier) activeSnapshot=false snapshotCreated=false")
                 #endif
             }
+            return
+        }
+
+        if nextSnapshot.state == .completed {
+            latestCompletedSummary = nextSnapshot
+            activeSnapshot = nil
+            resetProgressHealth()
+            #if DEBUG
+            print("OCR_PROGRESS_STORE store=\(debugIdentifier) activeSnapshot=false latestCompletedSummary=true completed=\(nextSnapshot.completed) total=\(nextSnapshot.total)")
+            #endif
             return
         }
 

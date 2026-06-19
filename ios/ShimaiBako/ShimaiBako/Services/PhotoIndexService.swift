@@ -50,7 +50,7 @@ final class PhotoIndexService: ObservableObject {
 
                 self.isIndexStorePreparing = true
                 self.indexStoreStatusText = "旧インデックスをSQLiteへ移行中 \(completed) / \(total)件"
-                self.progressStore.update(statusText: self.indexStoreStatusText)
+                self.progressStore.update(statusText: self.indexStoreStatusText, style: .active)
             }
         }
 
@@ -940,7 +940,7 @@ final class PhotoIndexService: ObservableObject {
             searchIndexPreparationState = try await store.searchIndexPreparationState()
             indexStoreStatusText = nil
             isIndexStorePreparing = false
-            progressStore.update(statusText: nil)
+            progressStore.update(state: searchIndexPreparationState)
         } catch {
             isIndexStorePreparing = false
             progressStore.update(statusText: nil)
@@ -952,12 +952,12 @@ final class PhotoIndexService: ObservableObject {
         do {
             isIndexStorePreparing = true
             indexStoreStatusText = "検索インデックスを確認しています"
-            progressStore.update(statusText: indexStoreStatusText)
+            progressStore.update(statusText: indexStoreStatusText, style: .active)
             searchIndexPreparationState = try await store.prepareSearchIndexIfNeeded()
             try await refreshStoreStats()
             indexStoreStatusText = nil
             isIndexStorePreparing = false
-            progressStore.update(statusText: nil)
+            progressStore.update(state: searchIndexPreparationState)
         } catch {
             isIndexStorePreparing = false
             progressStore.update(statusText: nil)

@@ -187,7 +187,7 @@ struct PhotoGridView: View {
     private var isPersistentOCRBlockingBatch: Bool {
         ocrJobRunner.isRunning ||
         ocrJobRunner.isPreparingJob ||
-        (ocrJobRunner.activeJob?.state.isActive ?? false)
+        (ocrProgressStore.activeSnapshot?.shouldBlockQuickOCR ?? false)
     }
 
     private var visibleOCRClearTargets: [PhotoAsset] {
@@ -355,7 +355,7 @@ struct PhotoGridView: View {
                     candidateCount: pendingPersistentOCRCandidateCount,
                     iCloudMode: photoLibrary.iCloudMode,
                     deviceSafety: deviceSafety,
-                    isRunningOCR: ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob || ocrJobRunner.activeJob?.state.isActive == true,
+                    isRunningOCR: ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob || (ocrProgressStore.activeSnapshot?.shouldBlockQuickOCR ?? false),
                     jobDatabaseDiagnostics: ocrJobRunner.databaseDiagnostics,
                     onCancel: {
                         clearPendingPersistentOCR()
@@ -465,7 +465,7 @@ struct PhotoGridView: View {
                 }
             }
             .onChange(of: scenePhase) { _, newPhase in
-                if newPhase != .active, isRunningBulkOCR {
+                if newPhase == .background, isRunningBulkOCR {
                     cancelBulkOCR(reason: "アプリがバックグラウンドへ移行したため停止しました。")
                 }
             }
@@ -1177,7 +1177,7 @@ struct PhotoGridView: View {
 
                 Spacer(minLength: 0)
 
-                if ocrJobRunner.activeJob != nil {
+                if ocrProgressStore.activeSnapshot != nil {
                     Menu {
                         fullOCRManagementMenuItems
                     } label: {
@@ -1188,6 +1188,18 @@ struct PhotoGridView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(isBulkOCRBusy)
+                } else if ocrProgressStore.latestCompletedSummary != nil {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.16)) {
+                            showsOCRDetails = true
+                        }
+                    } label: {
+                        Label("全数OCRの結果", systemImage: "checkmark.circle")
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 } else {
                     Button {
                         presentPersistentOCRStart(
@@ -1203,7 +1215,7 @@ struct PhotoGridView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                    .disabled(isBulkOCRBusy || ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob || ocrJobRunner.activeJob?.state.isActive == true)
+                    .disabled(isBulkOCRBusy || isPersistentOCRBlockingBatch)
                 }
             }
 
@@ -1376,7 +1388,7 @@ struct PhotoGridView: View {
         guard plan.isQuick == false,
               ocrJobRunner.isRunning == false,
               ocrJobRunner.isPreparingJob == false,
-              ocrJobRunner.activeJob?.state.isActive != true else {
+              (ocrProgressStore.activeSnapshot?.shouldBlockQuickOCR ?? false) == false else {
             return
         }
 
@@ -2387,6 +2399,8 @@ private struct CompactFullOCRProgressView: View {
     var body: some View {
         if let snapshot = progressStore.activeSnapshot {
             progressContent(snapshot)
+        } else if let summary = progressStore.latestCompletedSummary {
+            progressContent(summary)
         }
     }
 
@@ -2811,18 +2825,25 @@ struct IndexStoreStatusContainer: View {
 
     var body: some View {
         if let statusText = progressStore.statusText {
-            IndexStoreStatusCard(statusText: statusText)
+            IndexStoreStatusCard(statusText: statusText, style: progressStore.statusStyle)
         }
     }
 }
 
 private struct IndexStoreStatusCard: View {
     let statusText: String
+    let style: IndexProgressStatusStyle
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            ProgressView()
-                .controlSize(.small)
+            if style == .active {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: style == .warning ? "exclamationmark.triangle.fill" : "pause.circle")
+                    .foregroundStyle(style == .warning ? Color(red: 0.75, green: 0.24, blue: 0.18) : Color(red: 0.75, green: 0.37, blue: 0.08))
+                    .frame(width: 18)
+            }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(statusText)
@@ -2837,7 +2858,7 @@ private struct IndexStoreStatusCard: View {
 
             Spacer(minLength: 0)
         }
-        .padding(10)
+        .padding(style == .active ? 10 : 8)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
     }
 }

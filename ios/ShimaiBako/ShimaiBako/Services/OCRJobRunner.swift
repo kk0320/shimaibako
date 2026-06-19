@@ -155,6 +155,14 @@ final class OCRJobRunner: ObservableObject {
             return blockedStart("クイックOCRはまとめてOCRの経路で実行してください。", traceID: traceID)
         }
 
+        do {
+            try await store.repairInvalidJobStates()
+            let repairedJob = try await store.activeJob()
+            publish(job: repairedJob, force: true, isRunning: false)
+        } catch {
+            return failedStart("OCRジョブ状態を整理できませんでした: \(error.localizedDescription)", traceID: traceID)
+        }
+
         guard isRunning == false,
               isPreparingJob == false,
               snapshot.job?.state.isActive != true else {
@@ -357,6 +365,7 @@ final class OCRJobRunner: ObservableObject {
                 errorMessage = databaseState.lastError ?? "OCRジョブDBを準備できませんでした。"
                 return
             }
+            try await store.repairInvalidJobStates()
             try await store.recoverInterruptedItems()
             let job = try await store.activeJob()
             publish(job: job, force: true, isRunning: false)
@@ -366,6 +375,18 @@ final class OCRJobRunner: ObservableObject {
             #endif
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func repairJobStateForUI() {
+        Task {
+            do {
+                try await store.repairInvalidJobStates()
+                let job = try await store.activeJob()
+                publish(job: job, force: true, isRunning: false)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 

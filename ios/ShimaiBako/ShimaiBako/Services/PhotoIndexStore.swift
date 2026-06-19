@@ -1,6 +1,13 @@
 import Combine
 import Foundation
 
+enum IndexProgressStatusStyle: Sendable {
+    case hidden
+    case active
+    case paused
+    case warning
+}
+
 nonisolated protocol PhotoIndexStoring: Sendable {
     func loadAll() async throws -> [PhotoIndexRecord]
     func loadPage(limit: Int, offset: Int) async throws -> [PhotoIndexRecord]
@@ -99,6 +106,42 @@ nonisolated struct SearchIndexPreparationState: Codable, Equatable, Sendable {
             return false
         }
     }
+
+    var effectiveState: State {
+        isStale() ? .paused : state
+    }
+
+    var displayStatusText: String? {
+        switch effectiveState {
+        case .preparing, .running:
+            guard totalCount > 0 else {
+                return "検索インデックスを確認しています"
+            }
+            return "検索インデックスを準備しています \(completedCount) / \(totalCount)件"
+        case .paused:
+            guard totalCount > 0, completedCount < totalCount else {
+                return nil
+            }
+            return "検索インデックスは一時停止中 \(completedCount) / \(totalCount)件"
+        case .failed:
+            return "検索インデックスを準備できませんでした"
+        case .notStarted, .completed:
+            return nil
+        }
+    }
+
+    var displayStatusStyle: IndexProgressStatusStyle {
+        switch effectiveState {
+        case .preparing, .running:
+            .active
+        case .paused:
+            .paused
+        case .failed:
+            .warning
+        case .notStarted, .completed:
+            .hidden
+        }
+    }
 }
 
 nonisolated struct FilterCountsSnapshot: Equatable, Sendable {
@@ -135,13 +178,19 @@ final class IndexProgressStore: ObservableObject {
     static let shared = IndexProgressStore()
 
     @Published private(set) var statusText: String?
+    @Published private(set) var statusStyle: IndexProgressStatusStyle = .hidden
     @Published private(set) var isPreparing = false
 
     private init() {}
 
-    func update(statusText: String?) {
+    func update(statusText: String?, style: IndexProgressStatusStyle = .active) {
         self.statusText = statusText
-        isPreparing = statusText != nil
+        statusStyle = statusText == nil ? .hidden : style
+        isPreparing = statusText != nil && style == .active
+    }
+
+    func update(state: SearchIndexPreparationState) {
+        update(statusText: state.displayStatusText, style: state.displayStatusStyle)
     }
 }
 
