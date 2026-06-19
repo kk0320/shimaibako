@@ -66,6 +66,52 @@ final class OCRJobRunner: ObservableObject {
         snapshot.job
     }
 
+    func startJob(plan: OCRExecutionPlan) async {
+        guard plan.isQuick == false else {
+            errorMessage = "クイックOCRはまとめてOCRの経路で実行してください。"
+            return
+        }
+
+        guard isRunning == false else {
+            errorMessage = "OCRジョブを実行中です。"
+            return
+        }
+
+        if let deviceSafety {
+            deviceSafety.refresh()
+            if let blockingReason = deviceSafety.blockingReason(for: plan.workloadClass) {
+                errorMessage = blockingReason
+                return
+            }
+        }
+
+        guard let indexService else {
+            errorMessage = "検索インデックスを確認できませんでした。"
+            return
+        }
+
+        #if DEBUG
+        logPlan(plan, jobType: "persistent")
+        #endif
+
+        isPreparingJob = true
+        defer {
+            isPreparingJob = false
+        }
+
+        let request = pageRequest(for: plan)
+        let identifiers = await indexService.localIdentifiersForOCRJob(matching: request)
+        let records = await indexService.recordsForOCRJob(localIdentifiers: identifiers)
+
+        await startJob(
+            scope: plan.jobScope,
+            qualityMode: plan.qualityMode,
+            identifiers: identifiers,
+            records: records,
+            managesPreparingState: false
+        )
+    }
+
     func prepare() async {
         do {
             try await store.recoverInterruptedItems()
@@ -77,14 +123,28 @@ final class OCRJobRunner: ObservableObject {
     }
 
     func startJob(scope: OCRJobScope, qualityMode: OCRJobQualityMode, identifiers: [String], records: [PhotoIndexRecord]) async {
+        await startJob(scope: scope, qualityMode: qualityMode, identifiers: identifiers, records: records, managesPreparingState: true)
+    }
+
+    private func startJob(
+        scope: OCRJobScope,
+        qualityMode: OCRJobQualityMode,
+        identifiers: [String],
+        records: [PhotoIndexRecord],
+        managesPreparingState: Bool
+    ) async {
         guard isRunning == false else {
             errorMessage = "OCRジョブを実行中です。"
             return
         }
 
-        isPreparingJob = true
+        if managesPreparingState {
+            isPreparingJob = true
+        }
         defer {
-            isPreparingJob = false
+            if managesPreparingState {
+                isPreparingJob = false
+            }
         }
 
         let inputs = jobItemInputs(scope: scope, identifiers: identifiers, records: records)
@@ -102,6 +162,32 @@ final class OCRJobRunner: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
+
+    private func pageRequest(for plan: OCRExecutionPlan) -> PhotoIndexPageRequest {
+        switch plan {
+        case .quick(let filter, let limit):
+            filter.pageRequest(limit: limit.rawValue)
+        case .filteredAll(let filter):
+            filter.pageRequest(limit: 100_000)
+        case .smartLibrary, .accuracyReview:
+            PhotoIndexPageRequest(
+                query: "",
+                displayState: .active,
+                includeUnwantedWhenActive: false,
+                category: .all,
+                screenshotSubcategory: .all,
+                limit: 100_000,
+                offset: 0
+            )
+        }
+    }
+
+    #if DEBUG
+    private func logPlan(_ plan: OCRExecutionPlan, jobType: String) {
+        let thermal = deviceSafety?.thermalStateTitle ?? "unknown"
+        print("OCR_PLAN kind=\(plan.debugKind) workloadClass=\(plan.workloadClass) thermalState=\(thermal) jobType=\(jobType)")
+    }
+    #endif
 
     func pause(reason: String = "ユーザー操作で一時停止しました") {
         guard snapshot.job?.state == .running || isRunning else {
@@ -358,11 +444,27 @@ final class OCRJobRunner: ObservableObject {
             return "端末の温度が高いため一時停止しています。続きから再開できます。"
         }
 
-        if let blockingReason = deviceSafety.blockingReasonForLargeWork {
+        let workloadClass: OCRWorkloadClass = snapshot.job.map { workloadClassForScope($0.scope) } ?? .large
+        if let blockingReason = deviceSafety.blockingReason(for: workloadClass) {
             return blockingReason
         }
 
         return nil
+    }
+
+    private func workloadClassForScope(_ scope: OCRJobScope) -> OCRWorkloadClass {
+        switch scope {
+        case .visibleLimit20:
+            .small
+        case .visibleLimit50, .visibleLimit100:
+            .medium
+        case .currentFilterAll:
+            .large
+        case .smartFull:
+            .longRunning
+        case .fullAccurate:
+            .heavy
+        }
     }
 
     private func applyThermalBackoffIfNeeded(jobID: String) async throws {

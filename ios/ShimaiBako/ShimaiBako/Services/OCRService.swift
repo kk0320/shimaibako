@@ -90,6 +90,24 @@ final class OCRService: ObservableObject {
         let finalResult: OCRResultRecord
 
         do {
+            #if DEBUG
+            if UserDefaults.standard.bool(forKey: "shimaibako.debugDummyOCR") {
+                try await Task.sleep(nanoseconds: 100_000_000)
+                let result = OCRResultRecord(
+                    photoLocalIdentifier: asset.localIdentifier,
+                    ocrText: "test",
+                    ocrStatus: .completed,
+                    ocrLanguage: language,
+                    processedAt: Date(),
+                    errorMessage: nil
+                )
+                resultsByAssetID[asset.id] = result
+                processingAssetIDs.remove(asset.id)
+                await persistResults()
+                return result
+            }
+            #endif
+
             let text = try await Self.recognizeText(in: image)
             finalResult = OCRResultRecord(
                 photoLocalIdentifier: asset.localIdentifier,

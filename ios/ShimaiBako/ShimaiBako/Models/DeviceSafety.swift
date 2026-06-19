@@ -79,8 +79,21 @@ final class DeviceSafetyService: ObservableObject {
     }
 
     var blockingReasonForLargeWork: String? {
-        if thermalState == .serious || thermalState == .critical {
-            return "端末温度が高いため、大量処理を中断してください。"
+        blockingReason(for: .large)
+    }
+
+    func blockingReason(for workloadClass: OCRWorkloadClass) -> String? {
+        if thermalState == .critical {
+            return "端末の温度が高いため、現在は開始できません。温度が下がると開始できます。"
+        }
+
+        if thermalState == .serious {
+            switch workloadClass {
+            case .small, .medium:
+                break
+            case .large, .longRunning, .heavy:
+                return "端末の温度が高いため、現在は開始できません。温度が下がると開始できます。"
+            }
         }
 
         if let availableCapacityBytes, availableCapacityBytes < minimumCapacityBytes {

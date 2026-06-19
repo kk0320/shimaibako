@@ -1,5 +1,156 @@
 import Foundation
 
+enum QuickOCRLimit: Int, CaseIterable, Identifiable, Sendable, Equatable {
+    case twenty = 20
+    case fifty = 50
+    case oneHundred = 100
+
+    nonisolated var id: Int {
+        rawValue
+    }
+
+    nonisolated var title: String {
+        switch self {
+        case .twenty:
+            "最大20件"
+        case .fifty:
+            "最大50件"
+        case .oneHundred:
+            "最大100件"
+        }
+    }
+
+    nonisolated var compactTitle: String {
+        switch self {
+        case .twenty:
+            "20件"
+        case .fifty:
+            "50件"
+        case .oneHundred:
+            "100件"
+        }
+    }
+
+    nonisolated var scope: OCRJobScope {
+        switch self {
+        case .twenty:
+            .visibleLimit20
+        case .fifty:
+            .visibleLimit50
+        case .oneHundred:
+            .visibleLimit100
+        }
+    }
+}
+
+nonisolated struct FilterSnapshot: Sendable, Equatable {
+    var query: String
+    var displayState: PhotoDisplayState
+    var includeUnwantedWhenActive: Bool
+    var category: PhotoCategory
+    var screenshotSubcategory: ScreenshotSubcategory
+
+    func pageRequest(limit: Int, offset: Int = 0) -> PhotoIndexPageRequest {
+        PhotoIndexPageRequest(
+            query: query,
+            displayState: displayState,
+            includeUnwantedWhenActive: includeUnwantedWhenActive,
+            category: category,
+            screenshotSubcategory: screenshotSubcategory,
+            limit: limit,
+            offset: offset
+        )
+    }
+}
+
+nonisolated struct SmartOCROptions: Sendable, Equatable {
+    var prioritizeTextLikeImages = true
+    var allowICloudDownload = false
+}
+
+enum OCRWorkloadClass: Sendable, Equatable {
+    case small
+    case medium
+    case large
+    case longRunning
+    case heavy
+}
+
+enum OCRExecutionPlan: Sendable, Equatable {
+    case quick(filter: FilterSnapshot, limit: QuickOCRLimit)
+    case filteredAll(filter: FilterSnapshot)
+    case smartLibrary(libraryRevision: Int64, options: SmartOCROptions)
+    case accuracyReview(sourceJobID: String?)
+
+    nonisolated var title: String {
+        switch self {
+        case .quick(_, let limit):
+            "表示中の候補からOCR（\(limit.compactTitle)）"
+        case .filteredAll:
+            "現在の絞り込み結果すべて"
+        case .smartLibrary:
+            "スマート全数OCR（推奨）"
+        case .accuracyReview:
+            "検索精度をさらに上げる"
+        }
+    }
+
+    nonisolated var debugKind: String {
+        switch self {
+        case .quick:
+            "quick"
+        case .filteredAll:
+            "filteredAll"
+        case .smartLibrary:
+            "smartLibrary"
+        case .accuracyReview:
+            "accuracyReview"
+        }
+    }
+
+    nonisolated var workloadClass: OCRWorkloadClass {
+        switch self {
+        case .quick(_, let limit):
+            limit.rawValue <= 20 ? .small : .medium
+        case .filteredAll:
+            .large
+        case .smartLibrary:
+            .longRunning
+        case .accuracyReview:
+            .heavy
+        }
+    }
+
+    nonisolated var jobScope: OCRJobScope {
+        switch self {
+        case .quick(_, let limit):
+            limit.scope
+        case .filteredAll:
+            .currentFilterAll
+        case .smartLibrary:
+            .smartFull
+        case .accuracyReview:
+            .fullAccurate
+        }
+    }
+
+    nonisolated var qualityMode: OCRJobQualityMode {
+        switch self {
+        case .accuracyReview:
+            .accurate
+        case .quick, .filteredAll, .smartLibrary:
+            .standard
+        }
+    }
+
+    nonisolated var isQuick: Bool {
+        if case .quick = self {
+            return true
+        }
+        return false
+    }
+}
+
 enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
     case visibleLimit20
     case visibleLimit50

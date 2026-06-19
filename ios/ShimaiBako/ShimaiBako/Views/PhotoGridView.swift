@@ -32,7 +32,7 @@ struct PhotoGridView: View {
     @State private var includeUnwantedInSearch = false
     @State private var selectedCategory: PhotoCategory = .all
     @State private var selectedScreenshotSubcategory: ScreenshotSubcategory = .all
-    @State private var selectedOCRScope: OCRJobScope = .visibleLimit20
+    @State private var selectedQuickOCRLimit: QuickOCRLimit = .twenty
     @State private var selectedBulkTarget: OCRBatchTarget = .visible
     @State private var visibleAssetLimit = 200
     @AppStorage("shimaibako.ocrBatchLimit") private var selectedBulkLimit = 20
@@ -60,9 +60,8 @@ struct PhotoGridView: View {
     @State private var pendingBulkTargets: [PhotoAsset] = []
     @State private var pendingBulkCandidateCount = 0
     @State private var showingBulkSafety = false
-    @State private var pendingPersistentOCRScope: OCRJobScope?
-    @State private var pendingPersistentOCRIdentifiers: [String] = []
-    @State private var pendingPersistentOCRRecords: [PhotoIndexRecord] = []
+    @State private var pendingPersistentOCRPlan: OCRExecutionPlan?
+    @State private var pendingPersistentOCRCandidateCount = 0
     @State private var showingPersistentOCRSafety = false
     @State private var showingVisibleOCRClearConfirmation = false
 
@@ -126,6 +125,16 @@ struct PhotoGridView: View {
         return pageAssets.count
     }
 
+    private var currentFilterSnapshot: FilterSnapshot {
+        FilterSnapshot(
+            query: effectiveSearchText,
+            displayState: selectedDisplayState,
+            includeUnwantedWhenActive: mode == .search && includeUnwantedInSearch,
+            category: selectedCategory,
+            screenshotSubcategory: selectedScreenshotSubcategory
+        )
+    }
+
     private var bulkTargetAssets: [PhotoAsset] {
         switch selectedBulkTarget {
         case .visible:
@@ -159,7 +168,7 @@ struct PhotoGridView: View {
     }
 
     private var bulkCandidates: [PhotoAsset] {
-        Array(bulkEligibleTargets.prefix(selectedBulkLimit))
+        Array(bulkEligibleTargets.prefix(selectedQuickOCRLimit.rawValue))
     }
 
     private var isBulkOCRBusy: Bool {
@@ -298,10 +307,11 @@ struct PhotoGridView: View {
             }
             .sheet(isPresented: $showingBulkSafety) {
                 OCRBatchSafetyView(
+                    filter: currentFilterSnapshot,
                     targetTitle: selectedBulkTarget.title,
                     candidateCount: pendingBulkCandidateCount,
                     eligibleCount: pendingBulkTargets.count,
-                    selectedLimit: $selectedBulkLimit,
+                    selectedLimit: $selectedQuickOCRLimit,
                     iCloudMode: photoLibrary.iCloudMode,
                     deviceSafety: deviceSafety,
                     isRunningOCR: isBulkOCRBusy,
@@ -311,7 +321,8 @@ struct PhotoGridView: View {
                         showingBulkSafety = false
                     },
                     onStart: {
-                        let targets = Array(pendingBulkTargets.prefix(selectedBulkLimit))
+                        selectedBulkLimit = selectedQuickOCRLimit.rawValue
+                        let targets = Array(pendingBulkTargets.prefix(selectedQuickOCRLimit.rawValue))
                         pendingBulkTargets = []
                         pendingBulkCandidateCount = 0
                         showingBulkSafety = false
@@ -322,8 +333,11 @@ struct PhotoGridView: View {
             }
             .sheet(isPresented: $showingPersistentOCRSafety) {
                 OCRPersistentJobSafetyView(
-                    scope: pendingPersistentOCRScope ?? .smartFull,
-                    candidateCount: pendingPersistentOCRIdentifiers.count,
+                    plan: pendingPersistentOCRPlan ?? .smartLibrary(
+                        libraryRevision: Int64(indexService.indexedRecordCount),
+                        options: SmartOCROptions()
+                    ),
+                    candidateCount: pendingPersistentOCRCandidateCount,
                     iCloudMode: photoLibrary.iCloudMode,
                     deviceSafety: deviceSafety,
                     isRunningOCR: ocrJobRunner.isRunning,
@@ -331,31 +345,20 @@ struct PhotoGridView: View {
                         clearPendingPersistentOCR()
                     },
                     onUseSmart: {
-                        let identifiers = pendingPersistentOCRIdentifiers
-                        let records = pendingPersistentOCRRecords
+                        let plan = OCRExecutionPlan.smartLibrary(
+                            libraryRevision: Int64(indexService.indexedRecordCount),
+                            options: SmartOCROptions()
+                        )
                         clearPendingPersistentOCR()
-                        Task {
-                            await ocrJobRunner.startJob(
-                                scope: .smartFull,
-                                qualityMode: .standard,
-                                identifiers: identifiers,
-                                records: records
-                            )
-                        }
+                        startPersistentOCR(plan: plan)
                     },
                     onStart: {
-                        let scope = pendingPersistentOCRScope ?? .smartFull
-                        let identifiers = pendingPersistentOCRIdentifiers
-                        let records = pendingPersistentOCRRecords
+                        let plan = pendingPersistentOCRPlan ?? .smartLibrary(
+                            libraryRevision: Int64(indexService.indexedRecordCount),
+                            options: SmartOCROptions()
+                        )
                         clearPendingPersistentOCR()
-                        Task {
-                            await ocrJobRunner.startJob(
-                                scope: scope,
-                                qualityMode: scope == .fullAccurate ? .accurate : .standard,
-                                identifiers: identifiers,
-                                records: records
-                            )
-                        }
+                        startPersistentOCR(plan: plan)
                     }
                 )
                 .presentationDetents([.medium, .large])
@@ -371,6 +374,11 @@ struct PhotoGridView: View {
                 Text("写真アプリの元写真・元動画は削除されません。しまい箱内のOCR結果だけを削除します。手動分類、不要候補、メモ、タグは削除されません。")
             }
             .task {
+                if let savedLimit = QuickOCRLimit(rawValue: selectedBulkLimit) {
+                    selectedQuickOCRLimit = savedLimit
+                } else {
+                    selectedBulkLimit = selectedQuickOCRLimit.rawValue
+                }
                 applyAssetIndex()
                 if photoLibrary.canReadPhotos &&
                     photoLibrary.assets.isEmpty &&
@@ -920,36 +928,24 @@ struct PhotoGridView: View {
                 .accessibilityLabel("OCR対象を選択")
 
                 Menu {
-                    ForEach([OCRJobScope.visibleLimit20, .visibleLimit50, .visibleLimit100]) { scope in
+                    ForEach(QuickOCRLimit.allCases) { limit in
                         Button {
-                            selectedOCRScope = scope
-                            if let quickLimit = scope.quickLimit {
-                                selectedBulkLimit = quickLimit
-                            }
+                            selectedQuickOCRLimit = limit
+                            selectedBulkLimit = limit.rawValue
                         } label: {
-                            Label(scope.title, systemImage: selectedOCRScope == scope ? "checkmark" : "circle")
-                        }
-                    }
-
-                    Divider()
-
-                    ForEach([OCRJobScope.currentFilterAll, .smartFull, .fullAccurate]) { scope in
-                        Button {
-                            selectedOCRScope = scope
-                        } label: {
-                            Label(scope.title, systemImage: selectedOCRScope == scope ? "checkmark" : "circle")
+                            Label(limit.title, systemImage: selectedQuickOCRLimit == limit ? "checkmark" : "circle")
                         }
                     }
                 } label: {
                     HStack(spacing: 3) {
                         Image(systemName: "number.circle")
                             .font(.caption.weight(.semibold))
-                        Text(selectedOCRScope.compactTitle)
+                        Text(selectedQuickOCRLimit.compactTitle)
                             .font(.caption.weight(.semibold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
-                    .frame(minWidth: selectedOCRScope.isPersistentFullScope ? 78 : 50)
+                    .frame(minWidth: 50)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -1066,6 +1062,10 @@ struct PhotoGridView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            Divider()
+
+            fullOCRManagementSection
+
             if visibleOCRClearTargets.isEmpty == false {
                 Divider()
 
@@ -1084,6 +1084,57 @@ struct PhotoGridView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    private var fullOCRManagementSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Label("全数OCR", systemImage: "rectangle.stack.badge.play")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                Spacer(minLength: 0)
+
+                Menu {
+                    Button {
+                        presentPersistentOCRStart(plan: .filteredAll(filter: currentFilterSnapshot))
+                    } label: {
+                        Label("現在の絞り込み結果すべて", systemImage: "line.3.horizontal.decrease.circle")
+                    }
+
+                    Button {
+                        presentPersistentOCRStart(
+                            plan: .smartLibrary(
+                                libraryRevision: Int64(indexService.indexedRecordCount),
+                                options: SmartOCROptions()
+                            )
+                        )
+                    } label: {
+                        Label("スマート全数OCR（推奨）", systemImage: "bolt.badge.checkmark")
+                    }
+
+                    Divider()
+
+                    Button {
+                        presentPersistentOCRStart(plan: .accuracyReview(sourceJobID: nil))
+                    } label: {
+                        Label("検索精度をさらに上げる", systemImage: "slider.horizontal.3")
+                    }
+                } label: {
+                    Label("全数OCRを管理", systemImage: "ellipsis.circle")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isBulkOCRBusy || ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob)
+            }
+
+            Text("全数OCRは専用確認画面から開始します。まとめてOCRは最大100件までで、全数OCRは開始しません。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -1148,64 +1199,60 @@ struct PhotoGridView: View {
     }
 
     private func presentOCRStart() {
-        if let quickLimit = selectedOCRScope.quickLimit {
-            selectedBulkLimit = quickLimit
-            presentBulkSafety()
-            return
-        }
-
-        Task {
-            await preparePersistentOCRStart(scope: selectedOCRScope)
-        }
+        selectedBulkLimit = selectedQuickOCRLimit.rawValue
+        #if DEBUG
+        logOCRPlan(.quick(filter: currentFilterSnapshot, limit: selectedQuickOCRLimit), candidateCount: bulkTargetCandidateCount, jobType: "quick")
+        #endif
+        presentBulkSafety()
     }
 
-    private func preparePersistentOCRStart(scope: OCRJobScope) async {
-        guard ocrJobRunner.isRunning == false,
+    private func presentPersistentOCRStart(plan: OCRExecutionPlan) {
+        guard plan.isQuick == false,
+              ocrJobRunner.isRunning == false,
               ocrJobRunner.isPreparingJob == false else {
             return
         }
 
         deviceSafety.refresh()
-        let request: PhotoIndexPageRequest
-        switch scope {
-        case .currentFilterAll:
-            request = PhotoIndexPageRequest(
-                query: effectiveSearchText,
-                displayState: selectedDisplayState,
-                includeUnwantedWhenActive: false,
-                category: selectedCategory,
-                screenshotSubcategory: selectedScreenshotSubcategory,
-                limit: 100_000,
-                offset: 0
-            )
-        case .smartFull, .fullAccurate:
-            request = PhotoIndexPageRequest(
-                query: "",
-                displayState: .active,
-                includeUnwantedWhenActive: false,
-                category: .all,
-                screenshotSubcategory: .all,
-                limit: 100_000,
-                offset: 0
-            )
-        case .visibleLimit20, .visibleLimit50, .visibleLimit100:
-            return
-        }
-
-        let identifiers = await indexService.localIdentifiersForOCRJob(matching: request)
-        let records = await indexService.recordsForOCRJob(localIdentifiers: identifiers)
-        pendingPersistentOCRScope = scope
-        pendingPersistentOCRIdentifiers = identifiers
-        pendingPersistentOCRRecords = records
+        pendingPersistentOCRPlan = plan
+        pendingPersistentOCRCandidateCount = estimatedCandidateCount(for: plan)
         showingPersistentOCRSafety = true
+
+        #if DEBUG
+        logOCRPlan(plan, candidateCount: pendingPersistentOCRCandidateCount, jobType: "persistent")
+        #endif
+    }
+
+    private func startPersistentOCR(plan: OCRExecutionPlan) {
+        Task {
+            await ocrJobRunner.startJob(plan: plan)
+        }
+    }
+
+    private func estimatedCandidateCount(for plan: OCRExecutionPlan) -> Int {
+        switch plan {
+        case .quick:
+            return pendingBulkCandidateCount
+        case .filteredAll:
+            return resultTotalCount
+        case .smartLibrary:
+            return max(indexService.indexSummary.unprocessedOCRCount, indexService.indexedRecordCount)
+        case .accuracyReview:
+            return indexService.indexedRecordCount
+        }
     }
 
     private func clearPendingPersistentOCR() {
-        pendingPersistentOCRScope = nil
-        pendingPersistentOCRIdentifiers = []
-        pendingPersistentOCRRecords = []
+        pendingPersistentOCRPlan = nil
+        pendingPersistentOCRCandidateCount = 0
         showingPersistentOCRSafety = false
     }
+
+    #if DEBUG
+    private func logOCRPlan(_ plan: OCRExecutionPlan, candidateCount: Int, jobType: String) {
+        print("OCR_PLAN kind=\(plan.debugKind) candidateCount=\(candidateCount) workloadClass=\(plan.workloadClass) thermalState=\(deviceSafety.thermalStateTitle) jobType=\(jobType)")
+    }
+    #endif
 
     private func presentBulkSafety() {
         let candidateCount = bulkTargetCandidateCount
@@ -1268,7 +1315,8 @@ struct PhotoGridView: View {
         for asset in targets {
             deviceSafety.refresh()
 
-            if let blockingReason = deviceSafety.blockingReasonForLargeWork {
+            let workloadClass: OCRWorkloadClass = bulkTotal <= QuickOCRLimit.twenty.rawValue ? .small : .medium
+            if let blockingReason = deviceSafety.blockingReason(for: workloadClass) {
                 bulkInterruptedReason = blockingReason
                 break
             }
@@ -1548,7 +1596,7 @@ private struct BulkProgressLabel: View {
 }
 
 private struct OCRPersistentJobSafetyView: View {
-    let scope: OCRJobScope
+    let plan: OCRExecutionPlan
     let candidateCount: Int
     let iCloudMode: ICloudPhotoMode
     @ObservedObject var deviceSafety: DeviceSafetyService
@@ -1557,8 +1605,49 @@ private struct OCRPersistentJobSafetyView: View {
     let onUseSmart: () -> Void
     let onStart: () -> Void
 
-    private var isHighAccuracyMode: Bool {
-        scope == .fullAccurate
+    private var isAccuracyReview: Bool {
+        if case .accuracyReview = plan {
+            return true
+        }
+        return false
+    }
+
+    private var countRows: [(String, String)] {
+        switch plan {
+        case .filteredAll:
+            [
+                ("現在の絞り込み結果", "\(candidateCount)件"),
+                ("OCR済み・処理済みを除外", "開始時に確認"),
+                ("今回の対象", "該当分を段階処理")
+            ]
+        case .smartLibrary:
+            [
+                ("検索対象の静止画", "\(candidateCount)件"),
+                ("OCR済み・処理済み", "開始時に除外"),
+                ("今回の対象", "未処理分を段階処理")
+            ]
+        case .accuracyReview:
+            [
+                ("対象候補", "\(candidateCount)件"),
+                ("処理内容", "精度不足候補を再確認"),
+                ("今回の対象", "開始時に確認")
+            ]
+        case .quick:
+            []
+        }
+    }
+
+    private var leadingDescription: String {
+        switch plan {
+        case .filteredAll:
+            "現在の検索・カテゴリ・表示状態で絞り込んだ写真を、永続ジョブとして段階的にOCRします。"
+        case .smartLibrary:
+            "スクリーンショットや書類を優先し、端末の状態に合わせて少しずつOCRします。"
+        case .accuracyReview:
+            "スマート全数OCR後に検索精度をさらに上げたい場合の上級者向け処理です。"
+        case .quick:
+            ""
+        }
     }
 
     private var blockingReason: String? {
@@ -1570,7 +1659,7 @@ private struct OCRPersistentJobSafetyView: View {
             return "OCR対象がありません。"
         }
 
-        return deviceSafety.blockingReasonForLargeWork
+        return deviceSafety.blockingReason(for: plan.workloadClass)
     }
 
     var body: some View {
@@ -1578,26 +1667,35 @@ private struct OCRPersistentJobSafetyView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Label(scope.title, systemImage: "text.viewfinder")
+                        Label(plan.title, systemImage: "text.viewfinder")
                             .font(.headline)
                             .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-                        Text("対象候補: \(candidateCount)件")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
-
-                        Text(scope.description)
-                            .font(.caption)
-                            .foregroundStyle(isHighAccuracyMode ? Color(red: 0.75, green: 0.24, blue: 0.18) : .secondary)
+                        Text(leadingDescription)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(countRows, id: \.0) { row in
+                                OCRBatchCountRow(title: row.0, value: row.1)
+                            }
+                        }
+                        .padding(10)
+                        .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8))
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        if isHighAccuracyMode {
-                            SafetyBullet("全数高精度OCRは非常に重い処理です。")
-                            SafetyBullet("すべての対象写真を高精度設定でOCRするため、長時間かかり、端末が強く発熱する場合があります。")
-                        } else {
+                        switch plan {
+                        case .smartLibrary:
                             SafetyBullet("スマート全数OCRはスクショ・書類を優先し、端末状態に合わせて少しずつOCRします。")
+                        case .filteredAll:
+                            SafetyBullet("現在の絞り込み結果だけを対象にします。")
+                        case .accuracyReview:
+                            SafetyBullet("全数高精度OCR相当の重い処理は上級者向けです。")
+                            SafetyBullet("通常はスマート全数OCRを先に実行してください。")
+                        case .quick:
+                            EmptyView()
                         }
                         SafetyBullet("全数OCRは長時間実行され、端末が発熱する場合があります。")
                         SafetyBullet("充電中かつ涼しく安定した場所での実行をおすすめします。")
@@ -1633,7 +1731,7 @@ private struct OCRPersistentJobSafetyView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    if isHighAccuracyMode {
+                    if isAccuracyReview {
                         Button {
                             onUseSmart()
                         } label: {
@@ -1655,7 +1753,7 @@ private struct OCRPersistentJobSafetyView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isHighAccuracyMode ? "全数高精度OCRを開始" : "開始", action: onStart)
+                    Button(isAccuracyReview ? "上級者向けOCRを開始" : "開始", action: onStart)
                         .disabled(blockingReason != nil)
                 }
             }
@@ -1667,18 +1765,23 @@ private struct OCRPersistentJobSafetyView: View {
 }
 
 private struct OCRBatchSafetyView: View {
+    let filter: FilterSnapshot
     let targetTitle: String
     let candidateCount: Int
     let eligibleCount: Int
-    @Binding var selectedLimit: Int
+    @Binding var selectedLimit: QuickOCRLimit
     let iCloudMode: ICloudPhotoMode
     @ObservedObject var deviceSafety: DeviceSafetyService
     let isRunningOCR: Bool
     let onCancel: () -> Void
     let onStart: () -> Void
 
+    private var executionPlan: OCRExecutionPlan {
+        .quick(filter: filter, limit: selectedLimit)
+    }
+
     private var runCount: Int {
-        min(eligibleCount, selectedLimit)
+        min(eligibleCount, selectedLimit.rawValue)
     }
 
     private var noticeTitle: String {
@@ -1710,7 +1813,7 @@ private struct OCRBatchSafetyView: View {
             return "OCR対象を確認しています"
         }
 
-        if let blockingReason = deviceSafety.blockingReasonForLargeWork {
+        if let blockingReason = deviceSafety.blockingReason(for: executionPlan.workloadClass) {
             return blockingReason
         }
 
@@ -1730,7 +1833,7 @@ private struct OCRBatchSafetyView: View {
                             .font(.title3.bold())
                             .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-                        Text("\(targetTitle)の候補から、今回は最大\(runCount)件だけ処理します。全件OCRは行いません。")
+                        Text("\(targetTitle)の候補から、今回は最大\(runCount)件だけ処理します。この画面では全数OCRは開始しません。")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1740,23 +1843,32 @@ private struct OCRBatchSafetyView: View {
                         Label("OCRする件数", systemImage: "number.circle")
                             .font(.headline)
 
-                        VStack(spacing: 8) {
-                            ForEach([20, 50, 100], id: \.self) { limit in
-                                Button {
-                                    selectedLimit = limit
-                                } label: {
-                                    HStack {
-                                        Image(systemName: selectedLimit == limit ? "largecircle.fill.circle" : "circle")
-                                            .frame(width: 20)
-                                        Text("現在の絞り込み結果から最大\(limit)件")
-                                            .font(.callout.weight(.medium))
-                                        Spacer()
+                        if eligibleCount <= QuickOCRLimit.twenty.rawValue {
+                            Text("未処理の\(eligibleCount)件をOCRします")
+                                .font(.callout.weight(.medium))
+                                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
+                        } else {
+                            VStack(spacing: 8) {
+                                ForEach(QuickOCRLimit.allCases) { limit in
+                                    Button {
+                                        selectedLimit = limit
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: selectedLimit == limit ? "largecircle.fill.circle" : "circle")
+                                                .frame(width: 20)
+                                            Text("現在の絞り込み結果から\(limit.title)")
+                                                .font(.callout.weight(.medium))
+                                            Spacer()
+                                        }
+                                        .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                                        .padding(10)
+                                        .background(.white.opacity(selectedLimit == limit ? 0.92 : 0.72), in: RoundedRectangle(cornerRadius: 8))
                                     }
-                                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
-                                    .padding(10)
-                                    .background(.white.opacity(selectedLimit == limit ? 0.92 : 0.72), in: RoundedRectangle(cornerRadius: 8))
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
 
@@ -1767,7 +1879,7 @@ private struct OCRBatchSafetyView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             OCRBatchCountRow(title: "候補", value: "\(candidateCount)件")
                             OCRBatchCountRow(title: "OCR済み/処理中を除外後", value: "\(eligibleCount)件")
-                            OCRBatchCountRow(title: "今回処理", value: "最大\(runCount)件")
+                            OCRBatchCountRow(title: "今回処理", value: "\(runCount)件")
                         }
                         .padding(10)
                         .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8))

@@ -59,6 +59,14 @@ OCRメニューは段階的に見せる。
 
 `スマート全件OCR` と `全件高精度OCR` は、強い安全確認ゲートの奥に置く。開始前に長時間実行、発熱、iCloud取得、元写真・元動画を変更しないことを明示する。全数高精度OCRでは「スマート全数OCRに変更」導線を出し、重いモードを避けやすくする。
 
+## OCRExecutionPlan
+
+OCRの選択UI、確認画面、候補件数、端末状態判定、ジョブ作成は `OCRExecutionPlan` から決定する。まとめてOCRは `quick` 計画だけを使い、20/50/100件を超えない。全数OCRは `filteredAll`、`smartLibrary`、`accuracyReview` の専用計画から開始する。
+
+クイックOCR確認画面には全数OCRの文言や大量処理向けの開始不可理由を混ぜない。Debug buildでは `OCR_PLAN kind=... workloadClass=... jobType=...` のログを出し、UI、端末状態判定、ジョブ種別が同じ計画から出ているか確認する。
+
+開始ボタン押下後、Viewは計画を渡して確認画面を閉じる。対象抽出とジョブ作成は `OCRJobRunner` 側で行い、UIを長時間ブロックしない。
+
 ## データ構造案
 
 ### OCRJob

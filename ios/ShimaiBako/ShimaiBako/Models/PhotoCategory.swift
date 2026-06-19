@@ -1,7 +1,7 @@
 import Foundation
 import Photos
 
-enum PhotoDisplayState: String, CaseIterable, Identifiable, Codable {
+enum PhotoDisplayState: String, CaseIterable, Identifiable, Codable, Sendable {
     case active
     case unwanted
     case hidden
@@ -51,7 +51,7 @@ enum PhotoDisplayState: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-enum PhotoCategory: String, CaseIterable, Identifiable, Codable {
+enum PhotoCategory: String, CaseIterable, Identifiable, Codable, Sendable {
     case all
     case uncategorized
     case screenshots
@@ -216,7 +216,7 @@ enum PhotoCategory: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-enum ScreenshotSubcategory: String, CaseIterable, Identifiable, Codable {
+enum ScreenshotSubcategory: String, CaseIterable, Identifiable, Codable, Sendable {
     case all
     case memoIdeaCandidate
     case webResearchCandidate
