@@ -35,6 +35,16 @@ actor OCRJobStore {
         databaseURL = directoryURL.appendingPathComponent("ocr_jobs.sqlite")
     }
 
+    #if DEBUG
+    nonisolated var debugIdentifier: String {
+        String(ObjectIdentifier(self).hashValue)
+    }
+
+    nonisolated var persistentStorePath: String {
+        databaseURL.path
+    }
+    #endif
+
     deinit {
         if let database {
             sqlite3_close(database)

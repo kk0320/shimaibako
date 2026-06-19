@@ -349,7 +349,7 @@ struct PhotoGridView: View {
                     candidateCount: pendingPersistentOCRCandidateCount,
                     iCloudMode: photoLibrary.iCloudMode,
                     deviceSafety: deviceSafety,
-                    isRunningOCR: ocrJobRunner.isRunning,
+                    isRunningOCR: ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob || ocrJobRunner.activeJob?.state.isActive == true,
                     onCancel: {
                         clearPendingPersistentOCR()
                     },
@@ -358,16 +358,22 @@ struct PhotoGridView: View {
                             libraryRevision: Int64(indexService.indexedRecordCount),
                             options: SmartOCROptions()
                         )
-                        clearPendingPersistentOCR()
-                        startPersistentOCR(plan: plan)
+                        let result = await startPersistentOCR(plan: plan)
+                        if case .started = result {
+                            clearPendingPersistentOCR()
+                        }
+                        return result
                     },
                     onStart: {
                         let plan = pendingPersistentOCRPlan ?? .smartLibrary(
                             libraryRevision: Int64(indexService.indexedRecordCount),
                             options: SmartOCROptions()
                         )
-                        clearPendingPersistentOCR()
-                        startPersistentOCR(plan: plan)
+                        let result = await startPersistentOCR(plan: plan)
+                        if case .started = result {
+                            clearPendingPersistentOCR()
+                        }
+                        return result
                     }
                 )
                 .presentationDetents([.medium, .large])
@@ -1105,16 +1111,34 @@ struct PhotoGridView: View {
 
                 Spacer(minLength: 0)
 
-                Menu {
-                    fullOCRManagementMenuItems
-                } label: {
-                    Label("全数OCRを管理", systemImage: "ellipsis.circle")
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                if ocrProgressStore.activeSnapshot != nil {
+                    Menu {
+                        fullOCRManagementMenuItems
+                    } label: {
+                        Label("全数OCRを管理", systemImage: "ellipsis.circle")
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(isBulkOCRBusy)
+                } else {
+                    Button {
+                        presentPersistentOCRStart(
+                            plan: .smartLibrary(
+                                libraryRevision: Int64(indexService.indexedRecordCount),
+                                options: SmartOCROptions()
+                            )
+                        )
+                    } label: {
+                        Label("スマート全数OCRを開始", systemImage: "bolt.badge.checkmark")
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(isBulkOCRBusy || ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob || ocrJobRunner.activeJob?.state.isActive == true)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(isBulkOCRBusy)
             }
 
             if isPersistentOCRBlockingBatch {
@@ -1252,7 +1276,10 @@ struct PhotoGridView: View {
                 progressStore: ocrProgressStore,
                 activeJob: ocrJobRunner.activeJob,
                 isRunning: ocrJobRunner.isRunning,
-                isPreparing: ocrJobRunner.isPreparingJob
+                isPreparing: ocrJobRunner.isPreparingJob,
+                startDiagnostics: ocrJobRunner.startDiagnostics,
+                coordinatorID: ocrJobRunner.coordinatorDebugIdentifier,
+                repositoryID: ocrJobRunner.repositoryDebugIdentifier
             )
             #endif
         }
@@ -1269,7 +1296,8 @@ struct PhotoGridView: View {
     private func presentPersistentOCRStart(plan: OCRExecutionPlan) {
         guard plan.isQuick == false,
               ocrJobRunner.isRunning == false,
-              ocrJobRunner.isPreparingJob == false else {
+              ocrJobRunner.isPreparingJob == false,
+              ocrJobRunner.activeJob?.state.isActive != true else {
             return
         }
 
@@ -1283,10 +1311,8 @@ struct PhotoGridView: View {
         #endif
     }
 
-    private func startPersistentOCR(plan: OCRExecutionPlan) {
-        Task {
-            await ocrJobRunner.startJob(plan: plan)
-        }
+    private func startPersistentOCR(plan: OCRExecutionPlan) async -> FullOCRStartResult {
+        await ocrJobRunner.startJob(plan: plan)
     }
 
     private func estimatedCandidateCount(for plan: OCRExecutionPlan) -> Int {
@@ -1662,8 +1688,10 @@ private struct OCRPersistentJobSafetyView: View {
     @ObservedObject var deviceSafety: DeviceSafetyService
     let isRunningOCR: Bool
     let onCancel: () -> Void
-    let onUseSmart: () -> Void
-    let onStart: () -> Void
+    let onUseSmart: () async -> FullOCRStartResult
+    let onStart: () async -> FullOCRStartResult
+    @State private var isStarting = false
+    @State private var startErrorMessage: String?
 
     private var isAccuracyReview: Bool {
         if case .accuracyReview = plan {
@@ -1711,6 +1739,10 @@ private struct OCRPersistentJobSafetyView: View {
     }
 
     private var blockingReason: String? {
+        if isStarting {
+            return "OCRジョブを開始しています。"
+        }
+
         if isRunningOCR {
             return "OCRジョブを実行中です。"
         }
@@ -1791,9 +1823,19 @@ private struct OCRPersistentJobSafetyView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
+                    if let startErrorMessage {
+                        Text(startErrorMessage)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                    }
+
                     if isAccuracyReview {
                         Button {
-                            onUseSmart()
+                            start(using: onUseSmart)
                         } label: {
                             Label("スマート全数OCRに変更", systemImage: "bolt.badge.checkmark")
                                 .frame(maxWidth: .infinity)
@@ -1813,12 +1855,34 @@ private struct OCRPersistentJobSafetyView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isAccuracyReview ? "上級者向けOCRを開始" : "開始", action: onStart)
+                    Button(isStarting ? "開始中" : (isAccuracyReview ? "上級者向けOCRを開始" : "開始")) {
+                        start(using: onStart)
+                    }
                         .disabled(blockingReason != nil)
                 }
             }
             .onAppear {
                 deviceSafety.refresh()
+            }
+        }
+    }
+
+    private func start(using action: @escaping () async -> FullOCRStartResult) {
+        guard isStarting == false,
+              blockingReason == nil else {
+            return
+        }
+
+        startErrorMessage = nil
+        isStarting = true
+        Task {
+            let result = await action()
+            isStarting = false
+            switch result {
+            case .started:
+                startErrorMessage = nil
+            case .blocked(let message), .failed(let message):
+                startErrorMessage = message
             }
         }
     }
@@ -2326,13 +2390,16 @@ private struct OCRProgressDebugView: View {
     let activeJob: OCRJob?
     let isRunning: Bool
     let isPreparing: Bool
+    let startDiagnostics: FullOCRStartDiagnostics
+    let coordinatorID: String
+    let repositoryID: String
 
     var body: some View {
         let snapshot = progressStore.activeSnapshot
-        Text("OCR debug: store: \(progressStore.debugIdentifier) / activeSnapshot: \(snapshot == nil ? "nil" : "present") / activeJob: \(activeJob == nil ? "none" : "true") / jobState: \(activeJob?.state.rawValue ?? "none") / observer: \(observerState) / lastHeartbeat: \(heartbeatText(snapshot))")
+        Text(debugText(snapshot))
             .font(.caption2.monospaced())
             .foregroundStyle(.secondary)
-            .lineLimit(2)
+            .lineLimit(5)
             .minimumScaleFactor(0.72)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 8)
@@ -2356,6 +2423,16 @@ private struct OCRProgressDebugView: View {
         return "idle"
     }
 
+    private func debugText(_ snapshot: OCRProgressSnapshot?) -> String {
+        [
+            "OCR debug: store: \(progressStore.debugIdentifier) / coordinator: \(coordinatorID) / repository: \(repositoryID)",
+            "activeSnapshot: \(snapshot == nil ? "nil" : "present") / activeJob: \(activeJob == nil ? "none" : "true") / jobState: \(activeJob?.state.rawValue ?? "none") / observer: \(observerState) / lastHeartbeat: \(heartbeatText(snapshot))",
+            "lastStartTappedAt: \(dateText(startDiagnostics.lastStartTappedAt)) / lastStartPlan: \(startDiagnostics.lastStartPlan ?? "-") / lastStartResult: \(startDiagnostics.lastStartResult ?? "-")",
+            "lastCreatedJobID: \(shortID(startDiagnostics.lastCreatedJobID)) / lastPersistedJobID: \(shortID(startDiagnostics.lastPersistedJobID)) / lastTerminalState: \(startDiagnostics.lastTerminalState ?? "-")",
+            "lastError: \(startDiagnostics.lastError ?? "-") / lastWorkerStartAt: \(dateText(startDiagnostics.lastWorkerStartAt))"
+        ].joined(separator: "\n")
+    }
+
     private func heartbeatText(_ snapshot: OCRProgressSnapshot?) -> String {
         guard let snapshot else {
             return "-"
@@ -2363,9 +2440,24 @@ private struct OCRProgressDebugView: View {
         return String(format: "%.1fs", snapshot.heartbeatAge)
     }
 
+    private func dateText(_ date: Date?) -> String {
+        guard let date else {
+            return "-"
+        }
+        return DateFormatter.localizedString(from: date, dateStyle: .none, timeStyle: .medium)
+    }
+
+    private func shortID(_ id: String?) -> String {
+        guard let id,
+              id.isEmpty == false else {
+            return "-"
+        }
+        return String(id.prefix(8))
+    }
+
     private func logPhotoTab(_ snapshot: OCRProgressSnapshot?) {
         let state = snapshot?.state.rawValue ?? "none"
-        print("OCR_PHOTO_TAB store=\(progressStore.debugIdentifier) activeSnapshot=\(snapshot != nil) state=\(state) activeJob=\(activeJob != nil) observer=\(observerState)")
+        print("OCR_PHOTO_TAB store=\(progressStore.debugIdentifier) coordinator=\(coordinatorID) repository=\(repositoryID) activeSnapshot=\(snapshot != nil) state=\(state) activeJob=\(activeJob != nil) observer=\(observerState)")
     }
 }
 #endif

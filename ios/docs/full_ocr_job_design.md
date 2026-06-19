@@ -65,7 +65,21 @@ OCRの選択UI、確認画面、候補件数、端末状態判定、ジョブ作
 
 クイックOCR確認画面には全数OCRの文言や大量処理向けの開始不可理由を混ぜない。Debug buildでは `OCR_PLAN kind=... workloadClass=... jobType=...` のログを出し、UI、端末状態判定、ジョブ種別が同じ計画から出ているか確認する。
 
-開始ボタン押下後、Viewは計画を渡して確認画面を閉じる。対象抽出とジョブ作成は `OCRJobRunner` 側で行い、UIを長時間ブロックしない。
+開始ボタン押下後、Viewは計画を `OCRJobRunner` へ渡し、開始結果を待つ。`started` が返るまで確認画面は閉じない。`blocked` または `failed` の場合は、確認画面に理由を表示する。
+
+開始処理の順序は次の通りに固定する。
+
+1. 開始タップごとにtraceIDを作る
+2. `OCRJob(state=preparing, totalCount=0)` を保存する
+3. 同じ `OCRJobStore` から jobID で再取得する
+4. stateが `preparing` であること、active jobとして検出できることを確認する
+5. `OCRProgressStore.activeSnapshot` に `preparing` snapshotをpublishする
+6. 確認画面を閉じる
+7. 対象抽出と `OCRJobItem` 作成をワーカー側で進める
+
+28,000件規模の対象抽出、filter、sort、JobItem作成は、`preparing` jobの保存とsnapshot publishより前に実行しない。これにより、対象抽出に時間がかかっても写真画面は「全数OCRを準備中」と表示できる。
+
+`OCRJobRunner` は全数OCRのCoordinatorとして扱う。`ContentView` で1つだけ生成し、写真画面、検索画面、設定画面、確認画面へ同じ `OCRProgressStore` と一緒に渡す。
 
 ## データ構造案
 

@@ -7,6 +7,7 @@ import UIKit
 final class OCRJobRunner: ObservableObject {
     @Published private(set) var snapshot: OCRJobSnapshot = .empty
     @Published private(set) var isPreparingJob = false
+    @Published private(set) var startDiagnostics: FullOCRStartDiagnostics = .empty
     @Published var errorMessage: String?
     let progressStore: OCRProgressStore
 
@@ -26,6 +27,7 @@ final class OCRJobRunner: ObservableObject {
     private let snapshotThrottleInterval: TimeInterval = 0.5
     private var currentPhase: OCRCurrentPhase = .selectingTargets
     private var currentAssetIdentifier: String?
+    private var activeTraceID: String?
 
     init(
         store: OCRJobStore = OCRJobStore(),
@@ -72,28 +74,95 @@ final class OCRJobRunner: ObservableObject {
         snapshot.job
     }
 
-    func startJob(plan: OCRExecutionPlan) async {
+    #if DEBUG
+    var coordinatorDebugIdentifier: String {
+        String(ObjectIdentifier(self).hashValue)
+    }
+
+    var repositoryDebugIdentifier: String {
+        store.debugIdentifier
+    }
+
+    var persistentStorePath: String {
+        store.persistentStorePath
+    }
+    #endif
+
+    private var debugCoordinatorID: String {
+        #if DEBUG
+        coordinatorDebugIdentifier
+        #else
+        "-"
+        #endif
+    }
+
+    private var debugProgressStoreID: String {
+        #if DEBUG
+        progressStore.debugIdentifier
+        #else
+        "-"
+        #endif
+    }
+
+    private var debugRepositoryID: String {
+        #if DEBUG
+        repositoryDebugIdentifier
+        #else
+        "-"
+        #endif
+    }
+
+    private var debugPersistentStoreURL: String {
+        #if DEBUG
+        persistentStorePath
+        #else
+        "-"
+        #endif
+    }
+
+    func startJob(plan: OCRExecutionPlan) async -> FullOCRStartResult {
+        let traceID = Self.shortTraceID()
+        updateStartDiagnostics {
+            $0.lastStartTappedAt = Date()
+            $0.lastStartPlan = plan.debugKind
+            $0.lastStartResult = "starting"
+            $0.lastCreatedJobID = nil
+            $0.lastPersistedJobID = nil
+            $0.lastTerminalState = nil
+            $0.lastError = nil
+            $0.lastWorkerStartAt = nil
+        }
+        trace(traceID, "tapped", "plan=\(plan.debugKind)")
+        trace(
+            traceID,
+            "coordinatorReceived",
+            "plan=\(plan.debugKind) coordinatorID=\(debugCoordinatorID) progressStoreID=\(debugProgressStoreID) repositoryID=\(debugRepositoryID) persistentStoreURL=\(debugPersistentStoreURL)"
+        )
+
         guard plan.isQuick == false else {
-            errorMessage = "クイックOCRはまとめてOCRの経路で実行してください。"
-            return
+            return blockedStart("クイックOCRはまとめてOCRの経路で実行してください。", traceID: traceID)
         }
 
-        guard isRunning == false else {
-            errorMessage = "OCRジョブを実行中です。"
-            return
+        guard isRunning == false,
+              isPreparingJob == false,
+              snapshot.job?.state.isActive != true else {
+            return blockedStart("OCRジョブを実行中です。", traceID: traceID)
+        }
+
+        do {
+            if let existingJob = try await store.activeJob(),
+               existingJob.state.isActive {
+                return blockedStart("未完了の全数OCRジョブがあります。管理メニューから再開または終了してください。", traceID: traceID)
+            }
+        } catch {
+            return failedStart("OCRジョブDBを確認できませんでした: \(error.localizedDescription)", traceID: traceID)
         }
 
         if let deviceSafety {
             deviceSafety.refresh()
             if let blockingReason = deviceSafety.blockingReason(for: plan.workloadClass) {
-                errorMessage = blockingReason
-                return
+                return blockedStart(blockingReason, traceID: traceID)
             }
-        }
-
-        guard let indexService else {
-            errorMessage = "検索インデックスを確認できませんでした。"
-            return
         }
 
         #if DEBUG
@@ -104,36 +173,147 @@ final class OCRJobRunner: ObservableObject {
 
         do {
             let preparingJob = try await store.createPreparingJob(scope: plan.jobScope, qualityMode: plan.qualityMode)
-            publish(job: preparingJob, force: true, isRunning: false)
+            updateStartDiagnostics {
+                $0.lastCreatedJobID = preparingJob.id
+            }
+            trace(traceID, "jobInserted", "jobID=\(preparingJob.id)")
+            trace(traceID, "contextSaved", "jobID=\(preparingJob.id)")
+
+            guard let verifiedJob = try await store.job(id: preparingJob.id) else {
+                isPreparingJob = false
+                return failedStart("OCRジョブを保存できませんでした。", traceID: traceID)
+            }
+            guard verifiedJob.state == .preparing else {
+                isPreparingJob = false
+                return failedStart("OCRジョブの保存状態を確認できませんでした。", traceID: traceID)
+            }
+
+            let activeJob = try await store.activeJob()
+            guard activeJob?.id == verifiedJob.id else {
+                isPreparingJob = false
+                let activeID = activeJob?.id ?? "none"
+                return failedStart("OCRジョブをactive状態として確認できませんでした。active=\(activeID)", traceID: traceID)
+            }
+
+            updateStartDiagnostics {
+                $0.lastPersistedJobID = verifiedJob.id
+                $0.lastStartResult = "started"
+            }
+            trace(traceID, "jobVerified", "jobID=\(verifiedJob.id) state=\(verifiedJob.state.rawValue) active=true")
+            publish(job: verifiedJob, force: true, isRunning: false)
+            trace(traceID, "snapshotPublished", "state=\(verifiedJob.state.rawValue) activeSnapshot=\(progressStore.activeSnapshot != nil)")
             #if DEBUG
-            print("OCR_START plan=\(plan.debugKind) jobCreated=true snapshotPublished=\(progressStore.activeSnapshot != nil) store=\(progressStore.debugIdentifier)")
+            print("OCR_START plan=\(plan.debugKind) jobCreated=true snapshotPublished=\(progressStore.activeSnapshot != nil) store=\(progressStore.debugIdentifier) coordinator=\(coordinatorDebugIdentifier) repository=\(repositoryDebugIdentifier)")
             #endif
+
             await Task.yield()
+            activeTraceID = traceID
+            Task { [weak self] in
+                await self?.preparePersistentJobItems(plan: plan, jobID: verifiedJob.id, traceID: traceID)
+            }
+            guard let uuid = UUID(uuidString: verifiedJob.id) else {
+                return .started(jobID: UUID())
+            }
+            return .started(jobID: uuid)
+        } catch {
+            isPreparingJob = false
+            return failedStart(error.localizedDescription, traceID: traceID)
+        }
+    }
+
+    private func preparePersistentJobItems(plan: OCRExecutionPlan, jobID: String, traceID: String) async {
+        updateStartDiagnostics {
+            $0.lastWorkerStartAt = Date()
+        }
+        trace(traceID, "workerStarted", "jobID=\(jobID)")
+
+        do {
+            guard let indexService else {
+                let failedJob = try await store.setJobState(
+                    .failed,
+                    jobID: jobID,
+                    pausedReason: "検索インデックスを確認できませんでした。"
+                )
+                updateStartDiagnostics {
+                    $0.lastStartResult = "failed"
+                    $0.lastTerminalState = failedJob?.state.rawValue ?? "failed"
+                    $0.lastError = "検索インデックスを確認できませんでした。"
+                }
+                publish(job: failedJob, force: true, isRunning: false)
+                errorMessage = "検索インデックスを確認できませんでした。"
+                isPreparingJob = false
+                trace(traceID, "workerFailed", "message=missingIndexService")
+                return
+            }
+
             let request = pageRequest(for: plan)
             let identifiers = await indexService.localIdentifiersForOCRJob(matching: request)
             let records = await indexService.recordsForOCRJob(localIdentifiers: identifiers)
             let inputs = jobItemInputs(scope: plan.jobScope, identifiers: identifiers, records: records)
             guard inputs.isEmpty == false else {
+                let message = "OCR対象がありません。OCR済み、文字なし判定済み、動画は対象から除外しています。"
                 let failedJob = try await store.setJobState(
                     .failed,
-                    jobID: preparingJob.id,
-                    pausedReason: "OCR対象がありません。OCR済み、文字なし判定済み、動画は対象から除外しています。"
+                    jobID: jobID,
+                    pausedReason: message
                 )
+                updateStartDiagnostics {
+                    $0.lastStartResult = "failed"
+                    $0.lastTerminalState = failedJob?.state.rawValue ?? "failed"
+                    $0.lastError = message
+                }
                 publish(job: failedJob, force: true, isRunning: false)
-                errorMessage = "OCR対象がありません。OCR済み、文字なし判定済み、動画は対象から除外しています。"
+                errorMessage = message
                 isPreparingJob = false
+                trace(traceID, "workerFailed", "message=noTargets")
                 return
             }
 
-            let job = try await store.replaceItems(jobID: preparingJob.id, items: inputs)
+            let job = try await store.replaceItems(jobID: jobID, items: inputs)
             publish(job: job, force: true, isRunning: false)
+            trace(traceID, "itemsPrepared", "jobID=\(jobID) itemCount=\(inputs.count)")
             allowsNetworkAccessForCurrentRun = false
             isPreparingJob = false
             resume()
         } catch {
             isPreparingJob = false
+            let failedJob = try? await store.setJobState(.failed, jobID: jobID, pausedReason: error.localizedDescription)
+            publish(job: failedJob ?? snapshot.job, force: true, isRunning: false)
+            updateStartDiagnostics {
+                $0.lastStartResult = "failed"
+                $0.lastTerminalState = failedJob?.state.rawValue ?? "failed"
+                $0.lastError = error.localizedDescription
+            }
             errorMessage = error.localizedDescription
+            trace(traceID, "workerFailed", "message=\(error.localizedDescription)")
         }
+    }
+
+    private func updateStartDiagnostics(_ update: (inout FullOCRStartDiagnostics) -> Void) {
+        var next = startDiagnostics
+        update(&next)
+        startDiagnostics = next
+    }
+
+    private func blockedStart(_ message: String, traceID: String) -> FullOCRStartResult {
+        errorMessage = message
+        updateStartDiagnostics {
+            $0.lastStartResult = "blocked"
+            $0.lastError = message
+        }
+        trace(traceID, "blocked", "message=\(message)")
+        return .blocked(message: message)
+    }
+
+    private func failedStart(_ message: String, traceID: String) -> FullOCRStartResult {
+        errorMessage = message
+        updateStartDiagnostics {
+            $0.lastStartResult = "failed"
+            $0.lastTerminalState = "failed"
+            $0.lastError = message
+        }
+        trace(traceID, "failed", "message=\(message)")
+        return .failed(message: message)
     }
 
     func prepare() async {
@@ -485,6 +665,18 @@ final class OCRJobRunner: ObservableObject {
 
         lastSnapshotPublishedAt = Date()
         snapshot = OCRJobSnapshot(job: job, isRunning: isRunning)
+        if let job,
+           job.state.isActive == false {
+            updateStartDiagnostics {
+                $0.lastTerminalState = job.state.rawValue
+            }
+            if job.state == .failed {
+                updateStartDiagnostics {
+                    $0.lastStartResult = "failed"
+                    $0.lastError = job.pausedReason
+                }
+            }
+        }
 
         #if DEBUG
         if let job {
@@ -526,6 +718,10 @@ final class OCRJobRunner: ObservableObject {
         do {
             let job = try await store.updateHeartbeat(jobID: jobID, phase: currentPhase, assetIdentifier: currentAssetIdentifier)
             publish(job: job, force: false, isRunning: true)
+            if let activeTraceID,
+               let job {
+                trace(activeTraceID, "heartbeat", "completed=\(job.completedCount) total=\(job.totalCount)")
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -724,5 +920,19 @@ final class OCRJobRunner: ObservableObject {
             .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "ja_JP"))
             .lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func shortTraceID() -> String {
+        String(UUID().uuidString.prefix(8))
+    }
+
+    private func trace(_ traceID: String, _ step: String, _ details: String = "") {
+        #if DEBUG
+        if details.isEmpty {
+            print("FULL_OCR trace=\(traceID) step=\(step)")
+        } else {
+            print("FULL_OCR trace=\(traceID) step=\(step) \(details)")
+        }
+        #endif
     }
 }

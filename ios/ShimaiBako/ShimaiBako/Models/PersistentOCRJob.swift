@@ -151,6 +151,45 @@ enum OCRExecutionPlan: Sendable, Equatable {
     }
 }
 
+enum FullOCRStartResult: Sendable, Equatable {
+    case started(jobID: UUID)
+    case blocked(message: String)
+    case failed(message: String)
+
+    nonisolated var message: String? {
+        switch self {
+        case .started:
+            nil
+        case .blocked(let message), .failed(let message):
+            message
+        }
+    }
+
+    nonisolated var debugTitle: String {
+        switch self {
+        case .started(let jobID):
+            "started:\(jobID.uuidString)"
+        case .blocked(let message):
+            "blocked:\(message)"
+        case .failed(let message):
+            "failed:\(message)"
+        }
+    }
+}
+
+struct FullOCRStartDiagnostics: Equatable {
+    var lastStartTappedAt: Date?
+    var lastStartPlan: String?
+    var lastStartResult: String?
+    var lastCreatedJobID: String?
+    var lastPersistedJobID: String?
+    var lastTerminalState: String?
+    var lastError: String?
+    var lastWorkerStartAt: Date?
+
+    static let empty = FullOCRStartDiagnostics()
+}
+
 enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
     case visibleLimit20
     case visibleLimit50
