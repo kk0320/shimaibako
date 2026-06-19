@@ -23,6 +23,7 @@ struct PhotoGridView: View {
     let indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var ocrProgressStore: OCRProgressStore
     @ObservedObject var ocrJobRunner: OCRJobRunner
     let mode: PhotoGridMode
     @Environment(\.scenePhase) private var scenePhase
@@ -77,6 +78,7 @@ struct PhotoGridView: View {
         indexService: PhotoIndexService,
         learningService: ManualCategoryLearningService,
         deviceSafety: DeviceSafetyService,
+        ocrProgressStore: OCRProgressStore,
         ocrJobRunner: OCRJobRunner,
         mode: PhotoGridMode
     ) {
@@ -85,6 +87,7 @@ struct PhotoGridView: View {
         self.indexService = indexService
         self.learningService = learningService
         self.deviceSafety = deviceSafety
+        self.ocrProgressStore = ocrProgressStore
         self.ocrJobRunner = ocrJobRunner
         self.mode = mode
         let initialSearchText = mode == .search ? Self.debugInitialSearchText : ""
@@ -1097,30 +1100,7 @@ struct PhotoGridView: View {
                 Spacer(minLength: 0)
 
                 Menu {
-                    Button {
-                        presentPersistentOCRStart(plan: .filteredAll(filter: currentFilterSnapshot))
-                    } label: {
-                        Label("現在の絞り込み結果すべて", systemImage: "line.3.horizontal.decrease.circle")
-                    }
-
-                    Button {
-                        presentPersistentOCRStart(
-                            plan: .smartLibrary(
-                                libraryRevision: Int64(indexService.indexedRecordCount),
-                                options: SmartOCROptions()
-                            )
-                        )
-                    } label: {
-                        Label("スマート全数OCR（推奨）", systemImage: "bolt.badge.checkmark")
-                    }
-
-                    Divider()
-
-                    Button {
-                        presentPersistentOCRStart(plan: .accuracyReview(sourceJobID: nil))
-                    } label: {
-                        Label("検索精度をさらに上げる", systemImage: "slider.horizontal.3")
-                    }
+                    fullOCRManagementMenuItems
                 } label: {
                     Label("全数OCRを管理", systemImage: "ellipsis.circle")
                         .lineLimit(1)
@@ -1128,13 +1108,74 @@ struct PhotoGridView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isBulkOCRBusy || ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob)
+                .disabled(isBulkOCRBusy)
             }
 
-            Text("全数OCRは専用確認画面から開始します。まとめてOCRは最大100件までで、全数OCRは開始しません。")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if ocrJobRunner.isRunning {
+                Text("全数OCRを実行中です。まとめてOCRは待機していますが、全数OCRの管理は続けられます。")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.75, green: 0.37, blue: 0.08))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("全数OCRは専用確認画面から開始します。まとめてOCRは最大100件までで、全数OCRは開始しません。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var fullOCRManagementMenuItems: some View {
+        if ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob {
+            Button {
+                ocrJobRunner.pause()
+            } label: {
+                Label("一時停止", systemImage: "pause.circle")
+            }
+        } else if let job = ocrJobRunner.activeJob,
+                  job.state.isActive {
+            Button {
+                ocrJobRunner.resume()
+            } label: {
+                Label("続きから再開", systemImage: "play.circle")
+            }
+        } else {
+            Button {
+                presentPersistentOCRStart(plan: .filteredAll(filter: currentFilterSnapshot))
+            } label: {
+                Label("現在の絞り込み結果すべて", systemImage: "line.3.horizontal.decrease.circle")
+            }
+
+            Button {
+                presentPersistentOCRStart(
+                    plan: .smartLibrary(
+                        libraryRevision: Int64(indexService.indexedRecordCount),
+                        options: SmartOCROptions()
+                    )
+                )
+            } label: {
+                Label("スマート全数OCR（推奨）", systemImage: "bolt.badge.checkmark")
+            }
+
+            Divider()
+
+            Button {
+                presentPersistentOCRStart(plan: .accuracyReview(sourceJobID: nil))
+            } label: {
+                Label("検索精度をさらに上げる", systemImage: "slider.horizontal.3")
+            }
+        }
+
+        if let job = ocrJobRunner.activeJob,
+           job.state.isActive || job.state == .failed {
+            Divider()
+
+            Button(role: .destructive) {
+                ocrJobRunner.cancel()
+            } label: {
+                Label("残りの処理を終了", systemImage: "stop.circle")
+            }
         }
     }
 
@@ -1175,27 +1216,24 @@ struct PhotoGridView: View {
 
     @ViewBuilder
     private var persistentOCRProgressSection: some View {
-        if let job = ocrJobRunner.snapshot.job {
-            OCRJobProgressCard(
-                job: job,
-                isRunning: ocrJobRunner.snapshot.isRunning,
-                onPause: {
-                    ocrJobRunner.pause()
-                },
-                onResume: {
-                    ocrJobRunner.resume()
-                },
-                onCancel: {
-                    ocrJobRunner.cancel()
-                },
-                onRetryFailures: {
-                    ocrJobRunner.retryFailures()
-                },
-                onResumeCloudPending: {
-                    ocrJobRunner.resumeCloudPendingWithNetworkAccess()
-                }
-            )
-        }
+        FullOCRProgressCard(
+            progressStore: ocrProgressStore,
+            onPause: {
+                ocrJobRunner.pause()
+            },
+            onResume: {
+                ocrJobRunner.resume()
+            },
+            onCancel: {
+                ocrJobRunner.cancel()
+            },
+            onRetryFailures: {
+                ocrJobRunner.retryFailures()
+            },
+            onResumeCloudPending: {
+                ocrJobRunner.resumeCloudPendingWithNetworkAccess()
+            }
+        )
     }
 
     private func presentOCRStart() {
@@ -2026,9 +2064,8 @@ private struct SafetyBullet: View {
     }
 }
 
-private struct OCRJobProgressCard: View {
-    let job: OCRJob
-    let isRunning: Bool
+private struct FullOCRProgressCard: View {
+    @ObservedObject var progressStore: OCRProgressStore
     let onPause: () -> Void
     let onResume: () -> Void
     let onCancel: () -> Void
@@ -2036,46 +2073,83 @@ private struct OCRJobProgressCard: View {
     let onResumeCloudPending: () -> Void
 
     var body: some View {
+        if let snapshot = progressStore.snapshot {
+            progressContent(snapshot)
+        }
+    }
+
+    private func progressContent(_ snapshot: OCRProgressSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 8) {
-                Label(isRunning ? "OCR実行中" : job.state.title, systemImage: isRunning ? "text.viewfinder" : "clock.arrow.circlepath")
+                Label(snapshot.stateTitle, systemImage: icon(for: snapshot.state))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
                     .lineLimit(1)
 
                 Spacer(minLength: 0)
 
-                Text(job.scope.compactTitle)
+                Text(snapshot.scopeTitle)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
 
-            ProgressView(value: job.progress)
+            ProgressView(value: snapshot.fractionCompleted)
                 .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
 
             HStack(spacing: 8) {
-                OCRJobMetric(title: "対象", value: job.totalCount)
-                OCRJobMetric(title: "完了", value: job.completedCount)
-                OCRJobMetric(title: "文字", value: job.textFoundCount)
-                OCRJobMetric(title: "文字なし", value: job.noTextCount)
+                Text("\(snapshot.completed) / \(snapshot.total)件")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                Text(snapshot.percentText)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
             }
 
             HStack(spacing: 8) {
-                OCRJobMetric(title: "iCloud待ち", value: job.cloudPendingCount)
-                OCRJobMetric(title: "失敗", value: job.failedCount)
-                OCRJobMetric(title: "スキップ", value: job.skippedCount)
-                OCRJobMetric(title: "進捗", value: Int((job.progress * 100).rounded()), suffix: "%")
+                OCRJobMetric(title: "文字あり", value: snapshot.textFound)
+                OCRJobMetric(title: "文字なし", value: snapshot.noText)
+                OCRJobMetric(title: "失敗", value: snapshot.failed)
             }
 
-            if let pausedReason = job.pausedReason, pausedReason.isEmpty == false {
+            HStack(spacing: 8) {
+                OCRJobMetric(title: "iCloud待ち", value: snapshot.cloudPending)
+                OCRJobMetric(title: "スキップ", value: snapshot.skipped)
+                OCRJobTextMetric(title: "速度", value: speedText(snapshot.itemsPerMinute))
+                OCRJobTextMetric(title: "残り", value: remainingText(snapshot.estimatedRemainingSeconds))
+            }
+
+            HStack(spacing: 8) {
+                Label("現在: \(snapshot.phaseTitle)", systemImage: "waveform.path.ecg")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer(minLength: 0)
+            }
+
+            Label(snapshot.heartbeatStatusText, systemImage: heartbeatIcon(for: snapshot.heartbeatAge))
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(snapshot.heartbeatAge > 30 ? Color(red: 0.75, green: 0.24, blue: 0.18) : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if snapshot.heartbeatAge > 30 {
+                Text("完了済みの結果は保存されています。処理を再接続するか、いったん停止できます。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let pausedReason = snapshot.pausedReason, pausedReason.isEmpty == false {
                 Text(pausedReason)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(Color(red: 0.75, green: 0.37, blue: 0.08))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if job.state == .paused {
+            if snapshot.state == .pausedThermal || snapshot.state == .pausedUser {
                 Text("完了済みのOCR結果は保存されています。端末状態が落ち着いたら続きから再開できます。")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -2088,28 +2162,31 @@ private struct OCRJobProgressCard: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 8) {
-                if isRunning {
+                switch snapshot.state {
+                case .running, .throttled:
                     Button("一時停止", role: .cancel, action: onPause)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                } else if job.state == .paused || job.state == .pending {
+                case .preparing, .pausedThermal, .pausedUser, .failed:
                     Button("再開", action: onResume)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
+                case .cancelling, .completed:
+                    EmptyView()
                 }
 
                 Button("このまま終了", role: .destructive, action: onCancel)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .disabled(job.state == .completed || job.state == .cancelled)
+                    .disabled(snapshot.state == .completed || snapshot.state == .cancelling)
 
-                if job.failedCount > 0 && isRunning == false {
+                if snapshot.failed > 0 && snapshot.state != .running && snapshot.state != .throttled {
                     Button("失敗分を再試行", action: onRetryFailures)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                 }
 
-                if job.cloudPendingCount > 0 && isRunning == false {
+                if snapshot.cloudPending > 0 && snapshot.state != .running && snapshot.state != .throttled {
                     Button("iCloud取得を許可して再開", action: onResumeCloudPending)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -2120,6 +2197,51 @@ private struct OCRJobProgressCard: View {
         }
         .padding(12)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func icon(for state: OCRProgressSnapshot.State) -> String {
+        switch state {
+        case .preparing:
+            "clock.arrow.circlepath"
+        case .running:
+            "text.viewfinder"
+        case .throttled:
+            "tortoise.fill"
+        case .pausedThermal:
+            "thermometer.medium"
+        case .pausedUser:
+            "pause.circle"
+        case .cancelling:
+            "stop.circle"
+        case .completed:
+            "checkmark.circle.fill"
+        case .failed:
+            "exclamationmark.triangle.fill"
+        }
+    }
+
+    private func heartbeatIcon(for age: TimeInterval) -> String {
+        age > 30 ? "exclamationmark.triangle.fill" : "dot.radiowaves.left.and.right"
+    }
+
+    private func speedText(_ itemsPerMinute: Double?) -> String {
+        guard let itemsPerMinute else {
+            return "計測中"
+        }
+        return String(format: "%.1f件/分", itemsPerMinute)
+    }
+
+    private func remainingText(_ seconds: TimeInterval?) -> String {
+        guard let seconds else {
+            return "計測中"
+        }
+        if seconds < 60 {
+            return "\(Int(seconds.rounded()))秒"
+        }
+        if seconds < 3600 {
+            return "\(Int((seconds / 60).rounded()))分"
+        }
+        return "\(Int((seconds / 3600).rounded()))時間"
     }
 }
 
@@ -2136,6 +2258,27 @@ private struct OCRJobMetric: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text("\(value)\(suffix)")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct OCRJobTextMetric: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(value)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
                 .lineLimit(1)

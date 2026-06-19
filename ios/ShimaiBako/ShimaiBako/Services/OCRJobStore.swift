@@ -55,12 +55,16 @@ actor OCRJobStore {
 
         try execute("""
         UPDATE ocr_jobs
-        SET state = ?, paused_reason = ?, updated_at = ?
-        WHERE state = ?
+        SET state = ?, paused_reason = ?, current_phase = ?, last_heartbeat_at = ?, updated_at = ?
+        WHERE state IN (?, ?, ?)
         """, bindings: [
             .text(OCRJobState.paused.rawValue),
             .text("前回のOCR処理が中断されました。続きから再開できます。"),
+            .text(OCRCurrentPhase.selectingTargets.rawValue),
             .date(Date()),
+            .date(Date()),
+            .text(OCRJobState.preparing.rawValue),
+            .text(OCRJobState.throttled.rawValue),
             .text(OCRJobState.running.rawValue)
         ])
     }
@@ -68,27 +72,50 @@ actor OCRJobStore {
     func activeJob() async throws -> OCRJob? {
         try openIfNeeded()
         return try jobs(
-            whereClause: "state IN (?, ?, ?)",
+            whereClause: "state IN (?, ?, ?, ?, ?, ?, ?, ?)",
             bindings: [
+                .text(OCRJobState.preparing.rawValue),
                 .text(OCRJobState.pending.rawValue),
                 .text(OCRJobState.running.rawValue),
-                .text(OCRJobState.paused.rawValue)
+                .text(OCRJobState.paused.rawValue),
+                .text(OCRJobState.throttled.rawValue),
+                .text(OCRJobState.pausedThermal.rawValue),
+                .text(OCRJobState.pausedUser.rawValue),
+                .text(OCRJobState.cancelling.rawValue)
             ],
             orderAndLimit: "ORDER BY updated_at DESC LIMIT 1"
         ).first
     }
 
     func createJob(scope: OCRJobScope, qualityMode: OCRJobQualityMode, items: [OCRJobItemInput]) async throws -> OCRJob {
+        try await createJob(scope: scope, qualityMode: qualityMode, items: items, initialState: .pending, plannedCount: items.count)
+    }
+
+    func createPreparingJob(scope: OCRJobScope, qualityMode: OCRJobQualityMode) async throws -> OCRJob {
+        try await createJob(scope: scope, qualityMode: qualityMode, items: [], initialState: .preparing, plannedCount: 0)
+    }
+
+    private func createJob(
+        scope: OCRJobScope,
+        qualityMode: OCRJobQualityMode,
+        items: [OCRJobItemInput],
+        initialState: OCRJobState,
+        plannedCount: Int
+    ) async throws -> OCRJob {
         try openIfNeeded()
         let now = Date()
         let job = OCRJob(
             id: UUID().uuidString,
             scope: scope,
             qualityMode: qualityMode,
-            state: .pending,
+            state: initialState,
             createdAt: now,
             updatedAt: now,
-            totalCount: items.count,
+            currentPhase: .selectingTargets,
+            currentAssetIdentifier: nil,
+            startedAt: nil,
+            lastHeartbeatAt: now,
+            totalCount: plannedCount,
             completedCount: 0,
             textFoundCount: 0,
             noTextCount: 0,
@@ -125,6 +152,48 @@ actor OCRJobStore {
         return job
     }
 
+    func replaceItems(jobID: String, items: [OCRJobItemInput]) async throws -> OCRJob? {
+        try openIfNeeded()
+        let now = Date()
+        try execute("BEGIN IMMEDIATE TRANSACTION")
+        do {
+            try execute("DELETE FROM ocr_job_items WHERE job_identifier = ?", bindings: [.text(jobID)])
+            for input in items {
+                let item = OCRJobItem(
+                    jobID: jobID,
+                    assetIdentifier: input.assetIdentifier,
+                    priority: input.priority,
+                    state: .pending,
+                    attemptCount: 0,
+                    nextRetryAt: nil,
+                    sourceFingerprint: input.sourceFingerprint,
+                    lastErrorCode: nil,
+                    startedAt: nil,
+                    completedAt: nil
+                )
+                try upsertItem(item)
+            }
+            try execute("""
+            UPDATE ocr_jobs
+            SET state = ?, total_count = ?, current_phase = ?, last_heartbeat_at = ?, updated_at = ?
+            WHERE job_identifier = ?
+            """, bindings: [
+                .text(OCRJobState.pending.rawValue),
+                .int(items.count),
+                .text(OCRCurrentPhase.selectingTargets.rawValue),
+                .date(now),
+                .date(now),
+                .text(jobID)
+            ])
+            let job = try recomputeJobCounts(jobID: jobID, forcedState: .pending, pausedReason: nil)
+            try execute("COMMIT")
+            return job
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+
     func job(id: String) async throws -> OCRJob? {
         try openIfNeeded()
         return try jobs(whereClause: "job_identifier = ?", bindings: [.text(id)], orderAndLimit: "LIMIT 1").first
@@ -145,16 +214,53 @@ actor OCRJobStore {
 
     func setJobState(_ state: OCRJobState, jobID: String, pausedReason: String? = nil) async throws -> OCRJob? {
         try openIfNeeded()
+        let now = Date()
+        let startedAtAssignment = state == .running || state == .throttled ? ", started_at = COALESCE(started_at, ?)" : ""
+        let startedAtBindings: [BindingValue] = state == .running || state == .throttled ? [.date(now)] : []
         try execute("""
         UPDATE ocr_jobs
-        SET state = ?, paused_reason = ?, updated_at = ?
+        SET state = ?, paused_reason = ?, updated_at = ?\(startedAtAssignment)
         WHERE job_identifier = ?
         """, bindings: [
             .text(state.rawValue),
             .nullableText(pausedReason),
-            .date(Date()),
+            .date(now)
+        ] + startedAtBindings + [
             .text(jobID)
         ])
+        return try await job(id: jobID)
+    }
+
+    func updateHeartbeat(
+        jobID: String,
+        phase: OCRCurrentPhase,
+        assetIdentifier: String? = nil,
+        state: OCRJobState? = nil,
+        pausedReason: String? = nil
+    ) async throws -> OCRJob? {
+        try openIfNeeded()
+        let now = Date()
+        var assignments = "current_phase = ?, current_asset_identifier = ?, last_heartbeat_at = ?, updated_at = ?"
+        var bindings: [BindingValue] = [
+            .text(phase.rawValue),
+            .nullableText(assetIdentifier),
+            .date(now),
+            .date(now)
+        ]
+        if let state {
+            assignments += ", state = ?"
+            bindings.append(.text(state.rawValue))
+        }
+        if let pausedReason {
+            assignments += ", paused_reason = ?"
+            bindings.append(.nullableText(pausedReason))
+        }
+        bindings.append(.text(jobID))
+        try execute("""
+        UPDATE ocr_jobs
+        SET \(assignments)
+        WHERE job_identifier = ?
+        """, bindings: bindings)
         return try await job(id: jobID)
     }
 
@@ -362,6 +468,10 @@ actor OCRJobStore {
             state TEXT NOT NULL,
             created_at REAL NOT NULL,
             updated_at REAL NOT NULL,
+            current_phase TEXT,
+            current_asset_identifier TEXT,
+            started_at REAL,
+            last_heartbeat_at REAL,
             total_count INTEGER NOT NULL,
             completed_count INTEGER NOT NULL,
             text_found_count INTEGER NOT NULL,
@@ -405,6 +515,11 @@ actor OCRJobStore {
         try execute("CREATE INDEX IF NOT EXISTS idx_ocr_jobs_state ON ocr_jobs(state, updated_at)")
         try execute("CREATE INDEX IF NOT EXISTS idx_ocr_items_state ON ocr_job_items(job_identifier, state, priority)")
         try execute("CREATE INDEX IF NOT EXISTS idx_ocr_results_state ON ocr_results(result_state)")
+
+        try addColumnIfMissing(table: "ocr_jobs", column: "current_phase", definition: "TEXT")
+        try addColumnIfMissing(table: "ocr_jobs", column: "current_asset_identifier", definition: "TEXT")
+        try addColumnIfMissing(table: "ocr_jobs", column: "started_at", definition: "REAL")
+        try addColumnIfMissing(table: "ocr_jobs", column: "last_heartbeat_at", definition: "REAL")
     }
 
     private func upsertJob(_ job: OCRJob) throws {
@@ -416,6 +531,10 @@ actor OCRJobStore {
             state,
             created_at,
             updated_at,
+            current_phase,
+            current_asset_identifier,
+            started_at,
+            last_heartbeat_at,
             total_count,
             completed_count,
             text_found_count,
@@ -424,7 +543,7 @@ actor OCRJobStore {
             cloud_pending_count,
             failed_count,
             paused_reason
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """) { statement in
             try bindText(statement, 1, job.id)
             try bindText(statement, 2, job.scope.rawValue)
@@ -432,14 +551,18 @@ actor OCRJobStore {
             try bindText(statement, 4, job.state.rawValue)
             try bindDate(statement, 5, job.createdAt)
             try bindDate(statement, 6, job.updatedAt)
-            try bindInt(statement, 7, job.totalCount)
-            try bindInt(statement, 8, job.completedCount)
-            try bindInt(statement, 9, job.textFoundCount)
-            try bindInt(statement, 10, job.noTextCount)
-            try bindInt(statement, 11, job.skippedCount)
-            try bindInt(statement, 12, job.cloudPendingCount)
-            try bindInt(statement, 13, job.failedCount)
-            try bindNullableText(statement, 14, job.pausedReason)
+            try bindNullableText(statement, 7, job.currentPhase?.rawValue)
+            try bindNullableText(statement, 8, job.currentAssetIdentifier)
+            try bindNullableDate(statement, 9, job.startedAt)
+            try bindDate(statement, 10, job.lastHeartbeatAt)
+            try bindInt(statement, 11, job.totalCount)
+            try bindInt(statement, 12, job.completedCount)
+            try bindInt(statement, 13, job.textFoundCount)
+            try bindInt(statement, 14, job.noTextCount)
+            try bindInt(statement, 15, job.skippedCount)
+            try bindInt(statement, 16, job.cloudPendingCount)
+            try bindInt(statement, 17, job.failedCount)
+            try bindNullableText(statement, 18, job.pausedReason)
             try stepDone(statement)
         }
     }
@@ -474,7 +597,7 @@ actor OCRJobStore {
     }
 
     private func jobs(whereClause: String?, bindings: [BindingValue], orderAndLimit: String) throws -> [OCRJob] {
-        var sql = "SELECT job_identifier, scope, quality_mode, state, created_at, updated_at, total_count, completed_count, text_found_count, no_text_count, skipped_count, cloud_pending_count, failed_count, paused_reason FROM ocr_jobs"
+        var sql = "SELECT job_identifier, scope, quality_mode, state, created_at, updated_at, current_phase, current_asset_identifier, started_at, last_heartbeat_at, total_count, completed_count, text_found_count, no_text_count, skipped_count, cloud_pending_count, failed_count, paused_reason FROM ocr_jobs"
         if let whereClause {
             sql += " WHERE \(whereClause)"
         }
@@ -498,14 +621,18 @@ actor OCRJobStore {
                     state: state,
                     createdAt: date(statement, 4) ?? Date(),
                     updatedAt: date(statement, 5) ?? Date(),
-                    totalCount: int(statement, 6),
-                    completedCount: int(statement, 7),
-                    textFoundCount: int(statement, 8),
-                    noTextCount: int(statement, 9),
-                    skippedCount: int(statement, 10),
-                    cloudPendingCount: int(statement, 11),
-                    failedCount: int(statement, 12),
-                    pausedReason: text(statement, 13)
+                    currentPhase: text(statement, 6).flatMap(OCRCurrentPhase.init(rawValue:)),
+                    currentAssetIdentifier: text(statement, 7),
+                    startedAt: date(statement, 8),
+                    lastHeartbeatAt: date(statement, 9) ?? date(statement, 5) ?? Date(),
+                    totalCount: int(statement, 10),
+                    completedCount: int(statement, 11),
+                    textFoundCount: int(statement, 12),
+                    noTextCount: int(statement, 13),
+                    skippedCount: int(statement, 14),
+                    cloudPendingCount: int(statement, 15),
+                    failedCount: int(statement, 16),
+                    pausedReason: text(statement, 17)
                 ))
             }
         }
@@ -553,6 +680,26 @@ actor OCRJobStore {
         case int(Int)
         case date(Date)
         case nullableDate(Date?)
+    }
+
+    private func addColumnIfMissing(table: String, column: String, definition: String) throws {
+        let columns = try tableColumns(table)
+        guard columns.contains(column) == false else {
+            return
+        }
+        try execute("ALTER TABLE \(table) ADD COLUMN \(column) \(definition)")
+    }
+
+    private func tableColumns(_ table: String) throws -> Set<String> {
+        var columns = Set<String>()
+        try withStatement("PRAGMA table_info(\(table))") { statement in
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if let rawPointer = sqlite3_column_text(statement, 1) {
+                    columns.insert(String(cString: rawPointer))
+                }
+            }
+        }
+        return columns
     }
 
     private func execute(_ sql: String, bindings: [BindingValue] = []) throws {

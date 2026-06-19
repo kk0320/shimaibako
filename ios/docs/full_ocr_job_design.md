@@ -83,14 +83,23 @@ OCRジョブ全体の状態を保存する。
   - `fullAccurate`
 - `qualityMode`
 - `state`
+  - `preparing`
   - `pending`
   - `running`
+  - `throttled`
   - `paused`
+  - `pausedThermal`
+  - `pausedUser`
+  - `cancelling`
   - `completed`
   - `cancelled`
   - `failed`
 - `createdAt`
 - `updatedAt`
+- `currentPhase`
+- `currentAssetIdentifier`
+- `startedAt`
+- `lastHeartbeatAt`
 - `totalCount`
 - `completedCount`
 - `textFoundCount`
@@ -99,6 +108,30 @@ OCRジョブ全体の状態を保存する。
 - `cloudPendingCount`
 - `failedCount`
 - `pausedReason`
+
+`currentAssetIdentifier` はワーカー生存確認用の内部IDであり、UIには写真名やパスを表示しない。写真本体やサムネイルは保存しない。
+
+### OCRProgressSnapshot
+
+UIへはDBレコードを直接渡さず、`OCRProgressSnapshot` へ変換して渡す。
+
+- `jobID`
+- `state`
+- `phase`
+- `completed`
+- `total`
+- `textFound`
+- `noText`
+- `failed`
+- `cloudPending`
+- `skipped`
+- `startedAt`
+- `updatedAt`
+- `lastHeartbeatAt`
+- `itemsPerMinute`
+- `estimatedRemainingSeconds`
+
+分母の `total` はジョブ作成時点の対象件数で固定する。途中で写真が追加されても、実行中ジョブの分母は動かさない。
 
 ### OCRJobItem
 
@@ -243,15 +276,41 @@ OCR結果保存と検索文書更新は、同じ写真ID単位で小さく実行
 
 OCRジョブ進捗は専用のジョブ状態として表示する。
 
+- 状態
 - 完了件数
+- `completed / total`
+- ProgressView
+- パーセント
 - 文字あり件数
 - 文字なし件数
 - iCloud待ち件数
 - 失敗件数
+- スキップ件数
+- 現在のphase
+- 処理速度
+- 推定残り時間
+- ワーカー生存状態
 - 一時停止理由
 - 最終更新時刻
 
 写真グリッドは、現在表示中セルのOCRバッジだけ必要に応じて更新する。OCR進捗が進むたびに、写真一覧ページ、件数チップ、カテゴリチップを全更新しない。
+
+OCR進捗は `OCRProgressStore` に小さな値型スナップショットとして流す。`PhotoGridView` の写真配列、件数チップ、カテゴリチップ、サムネイルパイプラインとは分離し、進捗カードだけが購読する。SwiftUIへのpublishは最大500msに1回程度に間引く。
+
+## Heartbeatと停止検出
+
+OCRワーカーは数秒ごとに `lastHeartbeatAt`、`currentPhase`、`currentAssetIdentifier` を更新する。個人情報に近い写真名、写真パス、OCR本文、サムネイルはログやUIに出さない。
+
+UI側の判定は次の通り。
+
+- 5秒以内: 正常
+- 5〜15秒: 現在の1件を処理中
+- 15〜30秒: 処理状況を確認中
+- 30秒以上: 進捗更新停止として表示
+
+進捗更新停止時も完了済み結果は保存済みであり、元写真・元動画は削除・変更しない。ユーザーは再開、またはいったん終了を選べる。
+
+Debug buildでは個人情報を含まない `OCR_JOB state=... completed=... total=... phase=... heartbeat=...` ログを出す。
 
 設定画面ではOCR仕様と現在の全数OCRジョブ状態を確認できるようにする。
 
@@ -262,6 +321,12 @@ OCRジョブ進捗は専用のジョブ状態として表示する。
 - 全数OCRは長時間処理で、thermal fairでは減速し、thermal serious/critical、低電力モード、メモリ警告、空き容量不足では一時停止する
 - OCR結果は端末内で扱い、元写真・元動画は削除・変更しない
 - iCloud写真は、画像が端末上にない場合にiOSがAppleのiCloudから取得することがある
+
+## 起動時復元
+
+アプリ起動時に未完了ジョブを読み込み、古い `fetchingImage` / `recognizing` 相当のアイテムを `pending` に戻す。前回 `preparing` / `running` / `throttled` のまま終了したジョブは一時停止扱いにし、進捗カードで続きから再開できるようにする。
+
+復元処理では写真本体、OCR結果、手動分類、不要候補、メモ、タグを削除しない。
 
 ## やってはいけない実装
 

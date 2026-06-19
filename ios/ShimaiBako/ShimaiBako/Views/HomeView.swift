@@ -14,6 +14,7 @@ struct HomeView: View {
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var ocrProgressStore: OCRProgressStore
     @ObservedObject var ocrJobRunner: OCRJobRunner
     @State private var selectedTab = HomeTab.initialSelection
 
@@ -25,6 +26,7 @@ struct HomeView: View {
                 indexService: indexService,
                 learningService: learningService,
                 deviceSafety: deviceSafety,
+                ocrProgressStore: ocrProgressStore,
                 ocrJobRunner: ocrJobRunner
             )
                 .tabItem {
@@ -38,6 +40,7 @@ struct HomeView: View {
                 indexService: indexService,
                 learningService: learningService,
                 deviceSafety: deviceSafety,
+                ocrProgressStore: ocrProgressStore,
                 ocrJobRunner: ocrJobRunner,
                 mode: .search
             )
@@ -53,6 +56,7 @@ struct HomeView: View {
                 learningService: learningService,
                 accuracyImprovementService: accuracyImprovementService,
                 deviceSafety: deviceSafety,
+                ocrProgressStore: ocrProgressStore,
                 ocrJobRunner: ocrJobRunner
             )
                 .tabItem {
@@ -89,6 +93,7 @@ private struct PhotoAccessRootView: View {
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var ocrProgressStore: OCRProgressStore
     @ObservedObject var ocrJobRunner: OCRJobRunner
 
     var body: some View {
@@ -100,6 +105,7 @@ private struct PhotoAccessRootView: View {
                 indexService: indexService,
                 learningService: learningService,
                 deviceSafety: deviceSafety,
+                ocrProgressStore: ocrProgressStore,
                 ocrJobRunner: ocrJobRunner,
                 mode: .library
             )

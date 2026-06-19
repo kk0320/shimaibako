@@ -9,6 +9,7 @@ struct SettingsView: View {
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var ocrProgressStore: OCRProgressStore
     @ObservedObject var ocrJobRunner: OCRJobRunner
     @Environment(\.openURL) private var openURL
     @State private var pendingReadMode: PhotoReadMode?
@@ -36,6 +37,10 @@ struct SettingsView: View {
     }
 
     private var currentOCRJobStateTitle: String {
+        if let progress = ocrProgressStore.snapshot {
+            return progress.stateTitle
+        }
+
         guard let job = ocrJobRunner.snapshot.job else {
             return "未実行"
         }
@@ -440,17 +445,20 @@ struct SettingsView: View {
 
         DetailInfoRow(title: "全数OCR状態", value: currentOCRJobStateTitle)
 
-        if let job = ocrJobRunner.snapshot.job {
-            DetailInfoRow(title: "対象", value: "\(job.totalCount)件")
-            DetailInfoRow(title: "完了", value: "\(job.completedCount)件")
-            DetailInfoRow(title: "文字あり", value: "\(job.textFoundCount)件")
-            DetailInfoRow(title: "文字なし", value: "\(job.noTextCount)件")
-            DetailInfoRow(title: "iCloud待ち", value: "\(job.cloudPendingCount)件")
-            DetailInfoRow(title: "失敗", value: "\(job.failedCount)件")
-            DetailInfoRow(title: "スキップ", value: "\(job.skippedCount)件")
-            DetailInfoRow(title: "最終更新", value: job.updatedAtLabel)
+        if let progress = ocrProgressStore.snapshot {
+            DetailInfoRow(title: "対象", value: "\(progress.total)件")
+            DetailInfoRow(title: "完了", value: "\(progress.completed)件")
+            DetailInfoRow(title: "進捗", value: progress.percentText)
+            DetailInfoRow(title: "文字あり", value: "\(progress.textFound)件")
+            DetailInfoRow(title: "文字なし", value: "\(progress.noText)件")
+            DetailInfoRow(title: "iCloud待ち", value: "\(progress.cloudPending)件")
+            DetailInfoRow(title: "失敗", value: "\(progress.failed)件")
+            DetailInfoRow(title: "スキップ", value: "\(progress.skipped)件")
+            DetailInfoRow(title: "現在", value: progress.phaseTitle)
+            DetailInfoRow(title: "ワーカー", value: progress.heartbeatStatusText)
+            DetailInfoRow(title: "最終更新", value: DateFormatter.localizedString(from: progress.updatedAt, dateStyle: .none, timeStyle: .short))
 
-            if let pausedReason = job.pausedReason, pausedReason.isEmpty == false {
+            if let pausedReason = progress.pausedReason, pausedReason.isEmpty == false {
                 Text(pausedReason)
                     .font(.caption)
                     .foregroundStyle(Color(red: 0.75, green: 0.37, blue: 0.08))

@@ -8,6 +8,7 @@ final class OCRJobRunner: ObservableObject {
     @Published private(set) var snapshot: OCRJobSnapshot = .empty
     @Published private(set) var isPreparingJob = false
     @Published var errorMessage: String?
+    let progressStore: OCRProgressStore
 
     private let store: OCRJobStore
     private weak var photoLibrary: PhotoLibraryService?
@@ -15,6 +16,7 @@ final class OCRJobRunner: ObservableObject {
     private weak var indexService: PhotoIndexService?
     private weak var deviceSafety: DeviceSafetyService?
     private var runTask: Task<Void, Never>?
+    private var heartbeatTask: Task<Void, Never>?
     private var pauseRequestedReason: String?
     private var cancelRequested = false
     private var memoryWarningObserver: NSObjectProtocol?
@@ -22,19 +24,23 @@ final class OCRJobRunner: ObservableObject {
     private var allowsNetworkAccessForCurrentRun = false
     private var lastSnapshotPublishedAt = Date.distantPast
     private let snapshotThrottleInterval: TimeInterval = 0.5
+    private var currentPhase: OCRCurrentPhase = .selectingTargets
+    private var currentAssetIdentifier: String?
 
     init(
         store: OCRJobStore = OCRJobStore(),
         photoLibrary: PhotoLibraryService,
         ocrService: OCRService,
         indexService: PhotoIndexService,
-        deviceSafety: DeviceSafetyService
+        deviceSafety: DeviceSafetyService,
+        progressStore: OCRProgressStore
     ) {
         self.store = store
         self.photoLibrary = photoLibrary
         self.ocrService = ocrService
         self.indexService = indexService
         self.deviceSafety = deviceSafety
+        self.progressStore = progressStore
 
         memoryWarningObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
@@ -95,28 +101,42 @@ final class OCRJobRunner: ObservableObject {
         #endif
 
         isPreparingJob = true
-        defer {
+
+        do {
+            let preparingJob = try await store.createPreparingJob(scope: plan.jobScope, qualityMode: plan.qualityMode)
+            publish(job: preparingJob, force: true, isRunning: false)
+            let request = pageRequest(for: plan)
+            let identifiers = await indexService.localIdentifiersForOCRJob(matching: request)
+            let records = await indexService.recordsForOCRJob(localIdentifiers: identifiers)
+            let inputs = jobItemInputs(scope: plan.jobScope, identifiers: identifiers, records: records)
+            guard inputs.isEmpty == false else {
+                let failedJob = try await store.setJobState(
+                    .failed,
+                    jobID: preparingJob.id,
+                    pausedReason: "OCR対象がありません。OCR済み、文字なし判定済み、動画は対象から除外しています。"
+                )
+                publish(job: failedJob, force: true, isRunning: false)
+                errorMessage = "OCR対象がありません。OCR済み、文字なし判定済み、動画は対象から除外しています。"
+                isPreparingJob = false
+                return
+            }
+
+            let job = try await store.replaceItems(jobID: preparingJob.id, items: inputs)
+            publish(job: job, force: true, isRunning: false)
+            allowsNetworkAccessForCurrentRun = false
             isPreparingJob = false
+            resume()
+        } catch {
+            isPreparingJob = false
+            errorMessage = error.localizedDescription
         }
-
-        let request = pageRequest(for: plan)
-        let identifiers = await indexService.localIdentifiersForOCRJob(matching: request)
-        let records = await indexService.recordsForOCRJob(localIdentifiers: identifiers)
-
-        await startJob(
-            scope: plan.jobScope,
-            qualityMode: plan.qualityMode,
-            identifiers: identifiers,
-            records: records,
-            managesPreparingState: false
-        )
     }
 
     func prepare() async {
         do {
             try await store.recoverInterruptedItems()
             let job = try await store.activeJob()
-            snapshot = OCRJobSnapshot(job: job, isRunning: false)
+            publish(job: job, force: true, isRunning: false)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -225,7 +245,7 @@ final class OCRJobRunner: ObservableObject {
         Task {
             do {
                 let updatedJob = try await store.cancelJob(jobID: job.id)
-                snapshot = OCRJobSnapshot(job: updatedJob, isRunning: false)
+                publish(job: updatedJob, force: true, isRunning: false)
                 runTask = nil
             } catch {
                 errorMessage = error.localizedDescription
@@ -242,7 +262,7 @@ final class OCRJobRunner: ObservableObject {
         Task {
             do {
                 let updated = try await store.retryFailures(jobID: job.id)
-                snapshot = OCRJobSnapshot(job: updated, isRunning: false)
+                publish(job: updated, force: true, isRunning: false)
                 resume()
             } catch {
                 errorMessage = error.localizedDescription
@@ -260,7 +280,7 @@ final class OCRJobRunner: ObservableObject {
         Task {
             do {
                 let updated = try await store.retryCloudPending(jobID: job.id)
-                snapshot = OCRJobSnapshot(job: updated, isRunning: false)
+                publish(job: updated, force: true, isRunning: false)
                 resume(allowNetworkAccess: true)
             } catch {
                 errorMessage = error.localizedDescription
@@ -276,11 +296,20 @@ final class OCRJobRunner: ObservableObject {
         do {
             let runningJob = try await store.setJobState(.running, jobID: jobID, pausedReason: nil)
             publish(job: runningJob, force: true, isRunning: true)
+            startHeartbeat(jobID: jobID)
 
             while Task.isCancelled == false && cancelRequested == false {
                 if let pauseReason = blockingPauseReason() ?? pauseRequestedReason {
-                    let pausedJob = try await store.setJobState(.paused, jobID: jobID, pausedReason: pauseReason)
+                    let pausedState: OCRJobState = pauseReason == pauseRequestedReason ? .pausedUser : .pausedThermal
+                    let pausedJob = try await store.updateHeartbeat(
+                        jobID: jobID,
+                        phase: pauseReason == pauseRequestedReason ? currentPhase : .waitingForTemperature,
+                        assetIdentifier: currentAssetIdentifier,
+                        state: pausedState,
+                        pausedReason: pauseReason
+                    )
                     publish(job: pausedJob, force: true, isRunning: false)
+                    stopHeartbeat()
                     runTask = nil
                     return
                 }
@@ -288,6 +317,7 @@ final class OCRJobRunner: ObservableObject {
                 guard let item = try await store.pendingItem(jobID: jobID) else {
                     let completedJob = try await store.setJobState(.completed, jobID: jobID, pausedReason: nil)
                     publish(job: completedJob, force: true, isRunning: false)
+                    stopHeartbeat()
                     runTask = nil
                     return
                 }
@@ -301,9 +331,17 @@ final class OCRJobRunner: ObservableObject {
             }
 
             if let pauseRequestedReason {
-                let pausedJob = try await store.setJobState(.paused, jobID: jobID, pausedReason: pauseRequestedReason)
+                let pausedJob = try await store.updateHeartbeat(
+                    jobID: jobID,
+                    phase: currentPhase,
+                    assetIdentifier: currentAssetIdentifier,
+                    state: .pausedUser,
+                    pausedReason: pauseRequestedReason
+                )
                 publish(job: pausedJob, force: true, isRunning: false)
             } else if cancelRequested {
+                let cancellingJob = try? await store.setJobState(.cancelling, jobID: jobID, pausedReason: "終了処理中です。")
+                publish(job: cancellingJob, force: true, isRunning: false)
                 let cancelledJob = try await store.cancelJob(jobID: jobID)
                 publish(job: cancelledJob, force: true, isRunning: false)
             } else {
@@ -322,6 +360,7 @@ final class OCRJobRunner: ObservableObject {
             }
         }
 
+        stopHeartbeat()
         runTask = nil
     }
 
@@ -338,8 +377,10 @@ final class OCRJobRunner: ObservableObject {
             return
         }
 
+        try await setPhase(.requestingImage, jobID: item.jobID, assetIdentifier: item.assetIdentifier)
         try await store.startItem(item, state: .fetchingImage)
         guard let asset = photoLibrary.asset(for: item.assetIdentifier) else {
+            try await setPhase(.savingResult, jobID: item.jobID, assetIdentifier: item.assetIdentifier)
             _ = try await store.finishItem(
                 jobID: item.jobID,
                 assetIdentifier: item.assetIdentifier,
@@ -351,6 +392,7 @@ final class OCRJobRunner: ObservableObject {
 
         guard asset.mediaType == .image else {
             await ocrService.markSkipped(asset: asset, message: "動画はOCR対象外です。")
+            try await setPhase(.savingResult, jobID: item.jobID, assetIdentifier: item.assetIdentifier)
             await indexService.persistOCRJobResult(for: asset, ocrService: ocrService)
             _ = try await store.finishItem(
                 jobID: item.jobID,
@@ -362,6 +404,7 @@ final class OCRJobRunner: ObservableObject {
         }
 
         if ocrService.status(for: asset).isOCRTerminal {
+            try await setPhase(.savingResult, jobID: item.jobID, assetIdentifier: item.assetIdentifier)
             _ = try await store.finishItem(
                 jobID: item.jobID,
                 assetIdentifier: item.assetIdentifier,
@@ -373,8 +416,10 @@ final class OCRJobRunner: ObservableObject {
 
         switch await photoLibrary.requestOCRImage(for: asset, allowsNetworkAccess: allowsNetworkAccessForCurrentRun) {
         case .image(let image):
+            try await setPhase(.recognizingText, jobID: item.jobID, assetIdentifier: item.assetIdentifier)
             try await store.startItem(item, state: .recognizing)
             let result = await ocrService.recognize(asset: asset, image: image)
+            try await setPhase(.savingResult, jobID: item.jobID, assetIdentifier: item.assetIdentifier)
             await indexService.persistOCRJobResult(for: asset, ocrService: ocrService)
             let itemState = itemState(for: result, attemptCount: item.attemptCount + 1)
             try await store.upsertResult(persistentResult(for: asset, result: result, itemState: itemState, fingerprint: item.sourceFingerprint))
@@ -385,6 +430,7 @@ final class OCRJobRunner: ObservableObject {
                 errorCode: result?.errorMessage
             )
         case .cloudPending:
+            try await setPhase(.waitingForICloud, jobID: item.jobID, assetIdentifier: item.assetIdentifier)
             let result = await ocrService.markCloudPending(
                 asset: asset,
                 message: "iCloud上の写真です。iCloud取得を許可すると再試行できます。"
@@ -398,6 +444,7 @@ final class OCRJobRunner: ObservableObject {
                 errorCode: "iCloud上の写真です。"
             )
         case .failed(let message):
+            try await setPhase(.savingResult, jobID: item.jobID, assetIdentifier: item.assetIdentifier)
             let result = await ocrService.markFailure(asset: asset, message: message)
             await indexService.persistOCRJobResult(for: asset, ocrService: ocrService)
             let state: OCRJobItemState = item.attemptCount >= 1 ? .permanentFailure : .retryableFailure
@@ -412,13 +459,63 @@ final class OCRJobRunner: ObservableObject {
     }
 
     private func publish(job: OCRJob?, force: Bool, isRunning: Bool) {
-        let now = Date()
-        guard force || now.timeIntervalSince(lastSnapshotPublishedAt) > snapshotThrottleInterval else {
+        progressStore.publish(job: job, isRunning: isRunning, force: force)
+
+        let shouldPublishRunnerSnapshot = force ||
+            snapshot.job?.id != job?.id ||
+            snapshot.job?.state != job?.state ||
+            snapshot.job?.pausedReason != job?.pausedReason ||
+            snapshot.isRunning != isRunning
+        guard shouldPublishRunnerSnapshot else {
             return
         }
 
-        lastSnapshotPublishedAt = now
+        lastSnapshotPublishedAt = Date()
         snapshot = OCRJobSnapshot(job: job, isRunning: isRunning)
+
+        #if DEBUG
+        if let job {
+            let phase = job.currentPhase?.rawValue ?? "none"
+            let heartbeat = ISO8601DateFormatter().string(from: job.lastHeartbeatAt)
+            print("OCR_JOB state=\(job.state.rawValue) completed=\(job.completedCount) total=\(job.totalCount) phase=\(phase) heartbeat=\(heartbeat) failed=\(job.failedCount) skipped=\(job.skippedCount) cloudPending=\(job.cloudPendingCount)")
+        }
+        #endif
+    }
+
+    private func setPhase(_ phase: OCRCurrentPhase, jobID: String, assetIdentifier: String?) async throws {
+        currentPhase = phase
+        currentAssetIdentifier = assetIdentifier
+        let job = try await store.updateHeartbeat(jobID: jobID, phase: phase, assetIdentifier: assetIdentifier)
+        publish(job: job, force: false, isRunning: true)
+    }
+
+    private func startHeartbeat(jobID: String) {
+        stopHeartbeat()
+        currentPhase = snapshot.job?.currentPhase ?? .selectingTargets
+        currentAssetIdentifier = snapshot.job?.currentAssetIdentifier
+        heartbeatTask = Task { [weak self] in
+            while Task.isCancelled == false {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                guard Task.isCancelled == false else {
+                    return
+                }
+                await self?.sendHeartbeat(jobID: jobID)
+            }
+        }
+    }
+
+    private func stopHeartbeat() {
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+    }
+
+    private func sendHeartbeat(jobID: String) async {
+        do {
+            let job = try await store.updateHeartbeat(jobID: jobID, phase: currentPhase, assetIdentifier: currentAssetIdentifier)
+            publish(job: job, force: false, isRunning: true)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     private func blockingPauseReason() -> String? {
@@ -478,7 +575,13 @@ final class OCRJobRunner: ObservableObject {
         }
 
         let message = "端末の温度を見ながらゆっくり処理しています"
-        let job = try await store.setJobState(.running, jobID: jobID, pausedReason: message)
+        let job = try await store.updateHeartbeat(
+            jobID: jobID,
+            phase: .waitingForTemperature,
+            assetIdentifier: currentAssetIdentifier,
+            state: .throttled,
+            pausedReason: message
+        )
         publish(job: job, force: true, isRunning: true)
 
         let scope = job?.scope ?? snapshot.job?.scope

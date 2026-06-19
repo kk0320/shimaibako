@@ -248,21 +248,36 @@ enum OCRJobQualityMode: String, Codable {
 }
 
 enum OCRJobState: String, Codable {
+    case preparing
     case pending
     case running
+    case throttled
     case paused
+    case pausedThermal
+    case pausedUser
+    case cancelling
     case completed
     case cancelled
     case failed
 
     nonisolated var title: String {
         switch self {
+        case .preparing:
+            "準備中"
         case .pending:
             "待機中"
         case .running:
             "OCR実行中"
+        case .throttled:
+            "ゆっくり処理中"
         case .paused:
             "一時停止"
+        case .pausedThermal:
+            "温度上昇で一時停止"
+        case .pausedUser:
+            "ユーザー操作で一時停止"
+        case .cancelling:
+            "終了処理中"
         case .completed:
             "完了"
         case .cancelled:
@@ -273,7 +288,38 @@ enum OCRJobState: String, Codable {
     }
 
     nonisolated var isActive: Bool {
-        self == .pending || self == .running || self == .paused
+        switch self {
+        case .preparing, .pending, .running, .throttled, .paused, .pausedThermal, .pausedUser, .cancelling:
+            true
+        case .completed, .cancelled, .failed:
+            false
+        }
+    }
+}
+
+enum OCRCurrentPhase: String, Codable, Sendable, Equatable {
+    case selectingTargets
+    case requestingImage
+    case recognizingText
+    case savingResult
+    case waitingForTemperature
+    case waitingForICloud
+
+    nonisolated var title: String {
+        switch self {
+        case .selectingTargets:
+            "対象を確認中"
+        case .requestingImage:
+            "画像を読み込み中"
+        case .recognizingText:
+            "文字を認識中"
+        case .savingResult:
+            "結果を保存中"
+        case .waitingForTemperature:
+            "温度低下を待機中"
+        case .waitingForICloud:
+            "iCloud取得待ち"
+        }
     }
 }
 
@@ -331,6 +377,10 @@ struct OCRJob: Codable, Equatable, Identifiable {
     var state: OCRJobState
     var createdAt: Date
     var updatedAt: Date
+    var currentPhase: OCRCurrentPhase?
+    var currentAssetIdentifier: String?
+    var startedAt: Date?
+    var lastHeartbeatAt: Date
     var totalCount: Int
     var completedCount: Int
     var textFoundCount: Int
@@ -354,6 +404,152 @@ struct OCRJob: Codable, Equatable, Identifiable {
 
     nonisolated var updatedAtLabel: String {
         DateFormatter.localizedString(from: updatedAt, dateStyle: .none, timeStyle: .short)
+    }
+}
+
+struct OCRProgressSnapshot: Equatable, Sendable {
+    enum State: String, Sendable {
+        case preparing
+        case running
+        case throttled
+        case pausedThermal
+        case pausedUser
+        case cancelling
+        case completed
+        case failed
+    }
+
+    let jobID: UUID
+    let scopeTitle: String
+    let state: State
+    let phase: OCRCurrentPhase?
+    let completed: Int
+    let total: Int
+    let textFound: Int
+    let noText: Int
+    let failed: Int
+    let cloudPending: Int
+    let skipped: Int
+    let startedAt: Date
+    let updatedAt: Date
+    let lastHeartbeatAt: Date
+    let pausedReason: String?
+    let itemsPerMinute: Double?
+    let estimatedRemainingSeconds: TimeInterval?
+
+    var fractionCompleted: Double {
+        guard total > 0 else {
+            return 0
+        }
+        return min(max(Double(completed) / Double(total), 0), 1)
+    }
+
+    var percentText: String {
+        "\(Int((fractionCompleted * 100).rounded()))%"
+    }
+
+    var heartbeatAge: TimeInterval {
+        Date().timeIntervalSince(lastHeartbeatAt)
+    }
+
+    var heartbeatStatusText: String {
+        let age = heartbeatAge
+        if age <= 5 {
+            return "ワーカー正常"
+        }
+        if age <= 15 {
+            return "現在の1件を処理しています"
+        }
+        if age <= 30 {
+            return "処理状況を確認しています"
+        }
+        return "進捗更新が停止しています"
+    }
+
+    var stateTitle: String {
+        switch state {
+        case .preparing:
+            "準備中"
+        case .running:
+            "OCR実行中"
+        case .throttled:
+            "温度を見ながらゆっくり処理中"
+        case .pausedThermal:
+            "端末を冷ますため一時停止中"
+        case .pausedUser:
+            "ユーザー操作で一時停止中"
+        case .cancelling:
+            "終了処理中"
+        case .completed:
+            "完了"
+        case .failed:
+            "失敗"
+        }
+    }
+
+    var phaseTitle: String {
+        phase?.title ?? "待機中"
+    }
+
+    init?(job: OCRJob, isRunning: Bool) {
+        guard let uuid = UUID(uuidString: job.id) else {
+            return nil
+        }
+
+        jobID = uuid
+        scopeTitle = job.scope.compactTitle
+        state = Self.snapshotState(for: job, isRunning: isRunning)
+        phase = job.currentPhase
+        completed = job.completedCount
+        total = job.totalCount
+        textFound = job.textFoundCount
+        noText = job.noTextCount
+        failed = job.failedCount
+        cloudPending = job.cloudPendingCount
+        skipped = job.skippedCount
+        startedAt = job.startedAt ?? job.createdAt
+        updatedAt = job.updatedAt
+        lastHeartbeatAt = job.lastHeartbeatAt
+        pausedReason = job.pausedReason
+
+        let processed = job.processedCount
+        let elapsed = max(job.updatedAt.timeIntervalSince(startedAt), 1)
+        if processed > 0 {
+            let perSecond = Double(processed) / elapsed
+            itemsPerMinute = perSecond * 60
+            let remaining = max(job.totalCount - processed, 0)
+            estimatedRemainingSeconds = perSecond > 0 ? Double(remaining) / perSecond : nil
+        } else {
+            itemsPerMinute = nil
+            estimatedRemainingSeconds = nil
+        }
+    }
+
+    private static func snapshotState(for job: OCRJob, isRunning: Bool) -> State {
+        switch job.state {
+        case .preparing, .pending:
+            return isRunning ? .running : .preparing
+        case .running:
+            return isRunning ? .running : .preparing
+        case .throttled:
+            return .throttled
+        case .pausedThermal:
+            return .pausedThermal
+        case .pausedUser:
+            return .pausedUser
+        case .paused:
+            if let reason = job.pausedReason,
+               reason.contains("温度") || reason.contains("低電力") || reason.contains("メモリ") {
+                return .pausedThermal
+            }
+            return .pausedUser
+        case .cancelling:
+            return .cancelling
+        case .completed:
+            return .completed
+        case .cancelled, .failed:
+            return .failed
+        }
     }
 }
 

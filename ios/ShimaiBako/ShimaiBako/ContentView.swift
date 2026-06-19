@@ -8,6 +8,7 @@ struct ContentView: View {
     @StateObject private var learningService: ManualCategoryLearningService
     @StateObject private var accuracyImprovementService: AccuracyImprovementService
     @StateObject private var deviceSafety: DeviceSafetyService
+    @StateObject private var ocrProgressStore: OCRProgressStore
     @StateObject private var ocrJobRunner: OCRJobRunner
 
     init() {
@@ -16,17 +17,20 @@ struct ContentView: View {
         let ocrService = OCRService()
         let indexService = PhotoIndexService(learningService: learningService)
         let deviceSafety = DeviceSafetyService()
+        let ocrProgressStore = OCRProgressStore()
         _photoLibrary = StateObject(wrappedValue: photoLibrary)
         _ocrService = StateObject(wrappedValue: ocrService)
         _learningService = StateObject(wrappedValue: learningService)
         _indexService = StateObject(wrappedValue: indexService)
         _accuracyImprovementService = StateObject(wrappedValue: AccuracyImprovementService())
         _deviceSafety = StateObject(wrappedValue: deviceSafety)
+        _ocrProgressStore = StateObject(wrappedValue: ocrProgressStore)
         _ocrJobRunner = StateObject(wrappedValue: OCRJobRunner(
             photoLibrary: photoLibrary,
             ocrService: ocrService,
             indexService: indexService,
-            deviceSafety: deviceSafety
+            deviceSafety: deviceSafety,
+            progressStore: ocrProgressStore
         ))
     }
 
@@ -38,6 +42,7 @@ struct ContentView: View {
             learningService: learningService,
             accuracyImprovementService: accuracyImprovementService,
             deviceSafety: deviceSafety,
+            ocrProgressStore: ocrProgressStore,
             ocrJobRunner: ocrJobRunner
         )
             .task {
