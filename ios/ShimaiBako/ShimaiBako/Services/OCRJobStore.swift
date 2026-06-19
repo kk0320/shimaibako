@@ -45,6 +45,12 @@ actor OCRJobStore {
     nonisolated var persistentStorePath: String {
         databaseURL.path
     }
+
+    struct DebugItemUpdate: Sendable {
+        var assetIdentifier: String
+        var state: OCRJobItemState
+        var errorCode: String?
+    }
     #endif
 
     deinit {
@@ -364,6 +370,39 @@ actor OCRJobStore {
 
         return try recomputeJobCounts(jobID: jobID)
     }
+
+    #if DEBUG
+    func finishDebugItems(jobID: String, updates: [DebugItemUpdate]) async throws -> OCRJob? {
+        try openIfNeeded()
+        guard updates.isEmpty == false else {
+            return try await job(id: jobID)
+        }
+
+        let completedAt = Date()
+        try execute("BEGIN IMMEDIATE TRANSACTION")
+        do {
+            for update in updates {
+                try execute("""
+                UPDATE ocr_job_items
+                SET state = ?, last_error = ?, next_retry_at = NULL, completed_at = ?
+                WHERE job_identifier = ? AND asset_identifier = ?
+                """, bindings: [
+                    .text(update.state.rawValue),
+                    .nullableText(update.errorCode),
+                    .date(completedAt),
+                    .text(jobID),
+                    .text(update.assetIdentifier)
+                ])
+            }
+            let job = try recomputeJobCounts(jobID: jobID)
+            try execute("COMMIT")
+            return job
+        } catch {
+            try? execute("ROLLBACK")
+            throw error
+        }
+    }
+    #endif
 
     func upsertResult(_ result: PersistentOCRResult) async throws {
         try openIfNeeded()

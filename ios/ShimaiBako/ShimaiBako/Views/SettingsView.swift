@@ -19,6 +19,9 @@ struct SettingsView: View {
     @State private var showingClearAccuracyDataConfirmation = false
     @State private var showingResetLoadingConfirmation = false
     @State private var isResettingLoadingState = false
+    #if DEBUG
+    @AppStorage("shimaibako.showsOCRDebugDiagnostics") private var showsOCRDebugDiagnostics = false
+    #endif
 
     private var indexSummary: PhotoIndexSummary {
         indexService.indexSummary
@@ -232,6 +235,10 @@ struct SettingsView: View {
             }
 
             VStack(spacing: 8) {
+                Toggle("全数OCR診断行を表示", isOn: $showsOCRDebugDiagnostics)
+                    .font(.caption.weight(.semibold))
+                    .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
+
                 Button {
                     Task {
                         await indexService.createDebugLargeLibraryFixture(totalCount: 30_000)

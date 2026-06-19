@@ -34,7 +34,7 @@ Simulator自動確認では次の起動引数を使える。
 -ShimaiBakoLargeLibraryFixtureCount 30000
 -ShimaiBakoStartDummyFullOCR
 -ShimaiBakoDummyFullOCRCount 30000
--ShimaiBakoDummyFullOCRDelayMilliseconds 2
+-ShimaiBakoDummyFullOCRDelayMilliseconds 25
 ```
 
 `-ShimaiBakoAssumePhotosAuthorized` はDebug検証用に写真権限を擬似的に許可扱いにする。PhotoKitへ書き込まない。
@@ -48,6 +48,17 @@ Simulator自動確認では次の起動引数を使える。
 - 結果比率: 文字あり約75%、文字なし約24.9%、失敗約0.1%
 - 進捗publish: 既存の進捗間引きに従う
 - 写真一覧の実画像や元写真・元動画には触れない
+
+## 進捗停止検出
+
+Simulator検証では `ocr_jobs.sqlite` の処理済み件数を直接確認する。heartbeatだけでは正常とみなさず、`processedCount` が60秒以上増えない場合は停止として扱う。
+
+- ワーカー応答: `last_heartbeat_at` で確認する
+- 進捗更新: `completed_count + failed_count` の増加で確認する
+- 5% / 20% / 50% / 100% 到達時にスクリーンショットを保存する
+- 完了状態と完了カード表示を別途確認する
+
+写真画面のDebug診断行は通常のSimulator検証では非表示にする。必要な時だけ設定画面のDebugメニューから表示する。
 
 ## Simulatorで確認すること
 
@@ -71,4 +82,4 @@ Simulator自動確認では次の起動引数を使える。
 
 Simulatorスナップショットは `evidence/full_ocr_simulator_snapshots/` に保存する。
 
-2026-06-19時点では、30,000件Debugデータ作成、写真タブのプレースホルダー表示、全数OCRダミー進捗カード、約9%進行状態を確認した。タブ操作の完全自動化はこの環境の `simctl` だけでは未実施のため、手動またはUI test追加で補完する。
+検証スクリプトは `ios/scripts/full_ocr_simulator_validation.sh` を使う。30,000件Debugデータ作成、ダミー全数OCRの5% / 20% / 50% / 100%到達、完了カード、検索インデックス再起動抑止をPASS/FAILで記録する。

@@ -39,6 +39,9 @@ struct PhotoGridView: View {
     @AppStorage("shimaibako.ocrBatchLimit") private var selectedBulkLimit = 20
     @AppStorage("shimaibako.photoGridShowsCategoryFilters") private var showsCategoryFilters = false
     @AppStorage("shimaibako.photoGridShowsOCRDetails") private var showsOCRDetails = false
+    #if DEBUG
+    @AppStorage("shimaibako.showsOCRDebugDiagnostics") private var showsOCRDebugDiagnostics = false
+    #endif
     @State private var effectiveSearchText: String
     @State private var searchDebounceTask: Task<Void, Never>?
     @State private var pageFetchTask: Task<Void, Never>?
@@ -1345,16 +1348,18 @@ struct PhotoGridView: View {
             )
 
             #if DEBUG
-            OCRProgressDebugView(
-                progressStore: ocrProgressStore,
-                activeJob: ocrJobRunner.activeJob,
-                isRunning: ocrJobRunner.isRunning,
-                isPreparing: ocrJobRunner.isPreparingJob,
-                startDiagnostics: ocrJobRunner.startDiagnostics,
-                databaseDiagnostics: ocrJobRunner.databaseDiagnostics,
-                coordinatorID: ocrJobRunner.coordinatorDebugIdentifier,
-                repositoryID: ocrJobRunner.repositoryDebugIdentifier
-            )
+            if showsOCRDebugDiagnostics {
+                OCRProgressDebugView(
+                    progressStore: ocrProgressStore,
+                    activeJob: ocrJobRunner.activeJob,
+                    isRunning: ocrJobRunner.isRunning,
+                    isPreparing: ocrJobRunner.isPreparingJob,
+                    startDiagnostics: ocrJobRunner.startDiagnostics,
+                    databaseDiagnostics: ocrJobRunner.databaseDiagnostics,
+                    coordinatorID: ocrJobRunner.coordinatorDebugIdentifier,
+                    repositoryID: ocrJobRunner.repositoryDebugIdentifier
+                )
+            }
             #endif
         }
     }
@@ -2439,20 +2444,28 @@ private struct CompactFullOCRProgressView: View {
             }
 
             if snapshot.state != .completed {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Label("現在: \(snapshot.phaseTitle)", systemImage: "waveform.path.ecg")
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
-                    Spacer(minLength: 0)
+                    HStack(spacing: 8) {
+                        Label("ワーカー応答: \(snapshot.workerResponseText)", systemImage: heartbeatIcon(for: snapshot))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(snapshot.showsStaleHeartbeatWarning ? Color(red: 0.75, green: 0.24, blue: 0.18) : .secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
 
-                    Label(snapshot.heartbeatStatusText, systemImage: heartbeatIcon(for: snapshot))
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(snapshot.showsStaleHeartbeatWarning ? Color(red: 0.75, green: 0.24, blue: 0.18) : .secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
+                        Spacer(minLength: 0)
+
+                        Label("進捗更新: \(snapshot.progressStatusText)", systemImage: progressIcon(for: snapshot))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(snapshot.showsStaleProgressWarning ? Color(red: 0.75, green: 0.24, blue: 0.18) : .secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                    }
                 }
             }
 
@@ -2460,6 +2473,13 @@ private struct CompactFullOCRProgressView: View {
                 Text("完了済みの結果は保存されています。処理を再接続するか、いったん停止できます。")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if snapshot.showsStaleProgressWarning {
+                Text("進捗が停止している可能性があります。最終進捗: \(snapshot.lastProcessedCount)件、最終進捗更新: \(Int(snapshot.progressStalledSeconds.rounded()))秒前。")
+                    .font(.caption2)
+                    .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -2593,6 +2613,10 @@ private struct CompactFullOCRProgressView: View {
 
     private func heartbeatIcon(for snapshot: OCRProgressSnapshot) -> String {
         snapshot.showsStaleHeartbeatWarning ? "exclamationmark.triangle.fill" : "dot.radiowaves.left.and.right"
+    }
+
+    private func progressIcon(for snapshot: OCRProgressSnapshot) -> String {
+        snapshot.showsStaleProgressWarning ? "exclamationmark.triangle.fill" : "chart.line.uptrend.xyaxis"
     }
 
     private func speedSummary(_ snapshot: OCRProgressSnapshot) -> String {

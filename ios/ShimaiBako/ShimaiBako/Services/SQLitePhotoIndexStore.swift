@@ -522,7 +522,16 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
 
     private func reconcileSearchIndexPreparationState(totalCount: Int, forceSearchBackfill: Bool) throws {
         let searchDocumentCount = try scalarInt("SELECT COUNT(*) FROM search_documents")
+        var state = try currentSearchIndexPreparationState()
         if searchDocumentCount >= totalCount {
+            if state.state == .completed,
+               state.totalCount == totalCount,
+               state.completedCount >= totalCount,
+               state.schemaVersion == Self.schemaVersion,
+               state.indexVersion == Self.searchIndexVersion {
+                return
+            }
+
             try updateSearchIndexPreparationState(
                 totalCount: totalCount,
                 completedCount: totalCount,
@@ -534,7 +543,6 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
             return
         }
 
-        var state = try currentSearchIndexPreparationState()
         if state.isStale() {
             state.state = .paused
             state.updatedAt = Date()

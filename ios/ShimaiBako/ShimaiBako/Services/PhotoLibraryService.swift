@@ -23,9 +23,10 @@ final class PhotoLibraryService: ObservableObject {
     @Published private(set) var importProgress: PhotoImportProgress
     @Published var errorMessage: String?
 
-    private let imageManager = PHCachingImageManager()
+    private lazy var imageManager = PHCachingImageManager()
     private let userDefaults: UserDefaults
     private let assumesAuthorizedForDebugRun: Bool
+    private let skipsPhotoKitReadsForDebugRun: Bool
     private let readModeKey = "shimaibako.photoReadMode"
     private let iCloudModeKey = "shimaibako.iCloudPhotoMode"
     private let importProgressKey = "shimaibako.photoImportProgress"
@@ -45,9 +46,12 @@ final class PhotoLibraryService: ObservableObject {
         self.userDefaults = userDefaults
 
         #if DEBUG
-        assumesAuthorizedForDebugRun = ProcessInfo.processInfo.arguments.contains("-ShimaiBakoAssumePhotosAuthorized")
+        let launchArguments = ProcessInfo.processInfo.arguments
+        assumesAuthorizedForDebugRun = launchArguments.contains("-ShimaiBakoAssumePhotosAuthorized")
+        skipsPhotoKitReadsForDebugRun = launchArguments.contains("-ShimaiBakoSkipPhotoKitReads")
         #else
         assumesAuthorizedForDebugRun = false
+        skipsPhotoKitReadsForDebugRun = false
         #endif
 
         let storedReadMode = userDefaults.string(forKey: readModeKey)
@@ -152,6 +156,11 @@ final class PhotoLibraryService: ObservableObject {
     }
 
     func requestAuthorization() async {
+        guard assumesAuthorizedForDebugRun == false else {
+            authorizationStatus = .authorized
+            return
+        }
+
         let status = await withCheckedContinuation { continuation in
             PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
                 continuation.resume(returning: status)
@@ -177,6 +186,10 @@ final class PhotoLibraryService: ObservableObject {
 
     func assets(for localIdentifiers: [String]) -> [PhotoAsset] {
         guard localIdentifiers.isEmpty == false else {
+            return []
+        }
+
+        guard skipsPhotoKitReadsForDebugRun == false else {
             return []
         }
 
@@ -229,6 +242,11 @@ final class PhotoLibraryService: ObservableObject {
     }
 
     private func startLoading(resume: Bool) {
+        if skipsPhotoKitReadsForDebugRun {
+            completeDebugImportWithoutPhotoKit()
+            return
+        }
+
         recoverStaleImportIfNeeded()
 
         guard resume || importProgress.phase != .stale else {
@@ -267,6 +285,41 @@ final class PhotoLibraryService: ObservableObject {
         importTask = Task { [weak self] in
             await self?.runImport(generation: generation, resume: resume)
         }
+    }
+
+    private func completeDebugImportWithoutPhotoKit() {
+        loadGeneration += 1
+        cancellationRequested = false
+        importTask?.cancel()
+        importTask = nil
+        isLoading = false
+        errorMessage = nil
+        latestLoadedBatch = []
+        assets = []
+        totalAssetCount = 0
+        loadedAssetCount = 0
+        clearThumbnailPipeline()
+        endBackgroundTaskIfNeeded()
+        let now = Date()
+        updateImportProgress(
+            phase: .completed,
+            readMode: readMode,
+            loadedCount: 0,
+            totalCount: 0,
+            startedAt: now,
+            finishedAt: now,
+            message: "検証用インデックスを表示しています",
+            interruptionReason: nil,
+            latestLoadedIdentifiers: [],
+            lastSuccessfulBatchEnd: 0,
+            lastPhase: "debugFixture",
+            lastExitReasonCandidate: nil,
+            batchStart: nil,
+            batchEnd: nil,
+            batchSize: nil,
+            elapsedMilliseconds: 0,
+            memoryWarningCount: memoryWarningCount
+        )
     }
 
     func cancelLoading() {

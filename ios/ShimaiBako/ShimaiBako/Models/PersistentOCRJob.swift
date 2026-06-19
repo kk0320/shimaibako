@@ -554,6 +554,9 @@ struct OCRProgressSnapshot: Equatable, Sendable {
     let pausedReason: String?
     let itemsPerMinute: Double?
     let estimatedRemainingSeconds: TimeInterval?
+    let lastProgressAt: Date
+    let lastProcessedCount: Int
+    let progressDelta: Int
 
     var fractionCompleted: Double {
         guard total > 0 else {
@@ -571,6 +574,10 @@ struct OCRProgressSnapshot: Equatable, Sendable {
     }
 
     var heartbeatStatusText: String {
+        workerResponseText
+    }
+
+    var workerResponseText: String {
         guard expectsWorkerHeartbeat else {
             switch state {
             case .completed:
@@ -586,7 +593,7 @@ struct OCRProgressSnapshot: Equatable, Sendable {
 
         let age = heartbeatAge
         if age <= 5 {
-            return "ワーカー正常"
+            return "正常"
         }
         if age <= 15 {
             return "現在の1件を処理しています"
@@ -599,6 +606,40 @@ struct OCRProgressSnapshot: Equatable, Sendable {
 
     var showsStaleHeartbeatWarning: Bool {
         expectsWorkerHeartbeat && heartbeatAge > 30
+    }
+
+    var progressStalledSeconds: TimeInterval {
+        max(Date().timeIntervalSince(lastProgressAt), 0)
+    }
+
+    var progressStatusText: String {
+        guard expectsWorkerHeartbeat else {
+            switch state {
+            case .completed:
+                return "完了"
+            case .pausedThermal, .pausedUser:
+                return "一時停止中"
+            case .failed:
+                return "停止中"
+            default:
+                return "待機中"
+            }
+        }
+
+        if progressDelta > 0 || progressStalledSeconds <= 10 {
+            return "正常"
+        }
+        if progressStalledSeconds <= 30 {
+            return "確認中"
+        }
+        if progressStalledSeconds <= 60 {
+            return "進捗待ち"
+        }
+        return "停止中"
+    }
+
+    var showsStaleProgressWarning: Bool {
+        expectsWorkerHeartbeat && progressStalledSeconds > 60
     }
 
     var stateTitle: String {
@@ -637,16 +678,23 @@ struct OCRProgressSnapshot: Equatable, Sendable {
         }
     }
 
-    init?(job: OCRJob, isRunning: Bool) {
+    init?(
+        job: OCRJob,
+        isRunning: Bool,
+        lastProgressAt: Date? = nil,
+        lastProcessedCount: Int? = nil,
+        progressDelta: Int = 0
+    ) {
         guard let uuid = UUID(uuidString: job.id) else {
             return nil
         }
 
+        let processed = job.processedCount
         jobID = uuid
         scopeTitle = job.scope.compactTitle
         state = Self.snapshotState(for: job, isRunning: isRunning)
         phase = job.currentPhase
-        completed = min(job.processedCount, job.totalCount)
+        completed = min(processed, job.totalCount)
         succeeded = job.succeededCount
         remaining = job.remainingCount
         total = job.totalCount
@@ -659,8 +707,10 @@ struct OCRProgressSnapshot: Equatable, Sendable {
         updatedAt = job.updatedAt
         lastHeartbeatAt = job.lastHeartbeatAt
         pausedReason = job.pausedReason
+        self.lastProcessedCount = lastProcessedCount ?? processed
+        self.lastProgressAt = lastProgressAt ?? job.updatedAt
+        self.progressDelta = max(progressDelta, 0)
 
-        let processed = job.processedCount
         let elapsed = max(job.updatedAt.timeIntervalSince(startedAt), 1)
         if processed > 0 {
             let perSecond = Double(processed) / elapsed

@@ -549,39 +549,66 @@ final class OCRJobRunner: ObservableObject {
 
         do {
             let job = try await store.createJob(scope: .smartFull, qualityMode: .standard, items: inputs)
+            print("DUMMY_OCR step=start jobID=\(job.id) total=\(totalCount)")
             publish(job: job, force: true, isRunning: true)
+            print("DUMMY_OCR step=publishSnapshot completed=0 total=\(totalCount)")
             startHeartbeat(jobID: job.id)
             lastPeriodicRestAt = Date()
             lastThermalBackoffState = nil
+            var nextProgressLog = max(totalCount / 20, 1)
+            let batchSize = 100
 
-            for input in inputs {
+            for batchStart in stride(from: 0, to: inputs.count, by: batchSize) {
                 guard Task.isCancelled == false,
                       cancelRequested == false,
                       pauseRequestedReason == nil else {
                     break
                 }
 
+                let batchEnd = min(batchStart + batchSize, inputs.count)
+                let batch = Array(inputs[batchStart..<batchEnd])
+                guard let firstInput = batch.first else {
+                    continue
+                }
+
                 _ = try await store.updateHeartbeat(
                     jobID: job.id,
-                    phase: debugPhase(for: input.priority),
-                    assetIdentifier: input.assetIdentifier,
+                    phase: debugPhase(for: firstInput.priority),
+                    assetIdentifier: firstInput.assetIdentifier,
                     state: .running,
                     pausedReason: nil
                 )
-                try? await Task.sleep(nanoseconds: itemDelayNanoseconds)
-                let updated = try await store.finishItem(
+                if itemDelayNanoseconds > 0 {
+                    try? await Task.sleep(nanoseconds: itemDelayNanoseconds)
+                }
+                let updates = batch.map { input in
+                    let state = debugResultState(for: input.priority)
+                    return OCRJobStore.DebugItemUpdate(
+                        assetIdentifier: input.assetIdentifier,
+                        state: state,
+                        errorCode: state == .permanentFailure ? "debug-failure" : nil
+                    )
+                }
+                let updated = try await store.finishDebugItems(
                     jobID: job.id,
-                    assetIdentifier: input.assetIdentifier,
-                    state: debugResultState(for: input.priority),
-                    errorCode: debugResultState(for: input.priority) == .permanentFailure ? "debug-failure" : nil
+                    updates: updates
                 )
-                publish(job: updated, force: true, isRunning: true)
+                let completed = updated?.processedCount ?? batchEnd
+                print("DUMMY_OCR step=saveProgress completed=\(completed)")
+                if completed >= nextProgressLog || completed >= totalCount {
+                    print("DUMMY_OCR step=progress completed=\(completed) total=\(totalCount)")
+                    nextProgressLog += max(totalCount / 20, 1)
+                }
+                publish(job: updated, force: false, isRunning: true)
+                print("DUMMY_OCR step=publishSnapshot completed=\(completed)")
             }
 
             if cancelRequested || Task.isCancelled {
+                print("DUMMY_OCR step=cancelled reason=userOrTaskCancelled")
                 let cancelledJob = try await store.cancelJob(jobID: job.id)
                 publish(job: cancelledJob, force: true, isRunning: false)
             } else if let pauseRequestedReason {
+                print("DUMMY_OCR step=cancelled reason=\(pauseRequestedReason)")
                 let pausedJob = try await store.setJobState(.pausedUser, jobID: job.id, pausedReason: pauseRequestedReason)
                 publish(job: pausedJob, force: true, isRunning: false)
             } else {
@@ -595,8 +622,10 @@ final class OCRJobRunner: ObservableObject {
                 publish(job: finalizingJob, force: true, isRunning: true)
                 let completedJob = try await store.completeJob(jobID: job.id)
                 publish(job: completedJob, force: true, isRunning: false)
+                print("DUMMY_OCR step=completed jobID=\(job.id)")
             }
         } catch {
+            print("DUMMY_OCR step=failed error=\(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
 
