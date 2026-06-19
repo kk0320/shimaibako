@@ -350,8 +350,12 @@ struct PhotoGridView: View {
                     iCloudMode: photoLibrary.iCloudMode,
                     deviceSafety: deviceSafety,
                     isRunningOCR: ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob || ocrJobRunner.activeJob?.state.isActive == true,
+                    jobDatabaseDiagnostics: ocrJobRunner.databaseDiagnostics,
                     onCancel: {
                         clearPendingPersistentOCR()
+                    },
+                    onPrepareDatabase: {
+                        await ocrJobRunner.prepareDatabaseForUI()
                     },
                     onUseSmart: {
                         let plan = OCRExecutionPlan.smartLibrary(
@@ -1278,6 +1282,7 @@ struct PhotoGridView: View {
                 isRunning: ocrJobRunner.isRunning,
                 isPreparing: ocrJobRunner.isPreparingJob,
                 startDiagnostics: ocrJobRunner.startDiagnostics,
+                databaseDiagnostics: ocrJobRunner.databaseDiagnostics,
                 coordinatorID: ocrJobRunner.coordinatorDebugIdentifier,
                 repositoryID: ocrJobRunner.repositoryDebugIdentifier
             )
@@ -1687,11 +1692,15 @@ private struct OCRPersistentJobSafetyView: View {
     let iCloudMode: ICloudPhotoMode
     @ObservedObject var deviceSafety: DeviceSafetyService
     let isRunningOCR: Bool
+    let jobDatabaseDiagnostics: OCRJobDatabaseDiagnostics
     let onCancel: () -> Void
+    let onPrepareDatabase: () async -> OCRJobDatabaseDiagnostics
     let onUseSmart: () async -> FullOCRStartResult
     let onStart: () async -> FullOCRStartResult
     @State private var isStarting = false
     @State private var startErrorMessage: String?
+    @State private var currentDatabaseDiagnostics: OCRJobDatabaseDiagnostics = .unknown
+    @State private var isPreparingDatabase = false
 
     private var isAccuracyReview: Bool {
         if case .accuracyReview = plan {
@@ -1741,6 +1750,25 @@ private struct OCRPersistentJobSafetyView: View {
     private var blockingReason: String? {
         if isStarting {
             return "OCRジョブを開始しています。"
+        }
+
+        return startBlockingReason
+    }
+
+    private var startBlockingReason: String? {
+        if isPreparingDatabase || currentDatabaseDiagnostics.status == .preparing {
+            return "OCRジョブDBを準備しています…"
+        }
+
+        if currentDatabaseDiagnostics.status != .ready {
+            switch currentDatabaseDiagnostics.status {
+            case .unknown:
+                return "OCRジョブDBを確認しています。"
+            case .missingTable, .repairFailed:
+                return "OCRジョブDBを準備できませんでした。"
+            case .preparing, .ready:
+                break
+            }
         }
 
         if isRunningOCR {
@@ -1816,6 +1844,8 @@ private struct OCRPersistentJobSafetyView: View {
                     .padding(12)
                     .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
 
+                    databaseStatusView
+
                     if let blockingReason {
                         Text(blockingReason)
                             .font(.caption.weight(.semibold))
@@ -1863,19 +1893,40 @@ private struct OCRPersistentJobSafetyView: View {
             }
             .onAppear {
                 deviceSafety.refresh()
+                currentDatabaseDiagnostics = jobDatabaseDiagnostics
+                Task {
+                    await prepareDatabase()
+                }
+            }
+            .onChange(of: jobDatabaseDiagnostics) { _, newValue in
+                currentDatabaseDiagnostics = newValue
             }
         }
     }
 
     private func start(using action: @escaping () async -> FullOCRStartResult) {
-        guard isStarting == false,
-              blockingReason == nil else {
+        guard isStarting == false else {
             return
         }
 
         startErrorMessage = nil
         isStarting = true
         Task {
+            if currentDatabaseDiagnostics.status != .ready {
+                let diagnostics = await prepareDatabase()
+                guard diagnostics.status == .ready else {
+                    isStarting = false
+                    startErrorMessage = diagnostics.lastError ?? "OCRジョブDBを準備できませんでした。"
+                    return
+                }
+            }
+
+            guard startBlockingReason == nil else {
+                isStarting = false
+                startErrorMessage = startBlockingReason
+                return
+            }
+
             let result = await action()
             isStarting = false
             switch result {
@@ -1884,6 +1935,106 @@ private struct OCRPersistentJobSafetyView: View {
             case .blocked(let message), .failed(let message):
                 startErrorMessage = message
             }
+        }
+    }
+
+    @discardableResult
+    private func prepareDatabase() async -> OCRJobDatabaseDiagnostics {
+        guard isPreparingDatabase == false else {
+            return currentDatabaseDiagnostics
+        }
+
+        isPreparingDatabase = true
+        currentDatabaseDiagnostics = .preparing(previous: currentDatabaseDiagnostics)
+        let diagnostics = await onPrepareDatabase()
+        currentDatabaseDiagnostics = diagnostics
+        isPreparingDatabase = false
+        if diagnostics.status == .ready {
+            startErrorMessage = nil
+        } else if let message = diagnostics.lastError {
+            startErrorMessage = "OCRジョブDBを準備できませんでした: \(message)"
+        }
+        return diagnostics
+    }
+
+    @ViewBuilder
+    private var databaseStatusView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(databaseStatusTitle, systemImage: databaseStatusIcon)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(databaseStatusColor)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 12) {
+                OCRBatchCountRow(title: "ocr_jobs", value: currentDatabaseDiagnostics.ocrJobsTableExists ? "あり" : "未作成")
+                OCRBatchCountRow(title: "ocr_job_items", value: currentDatabaseDiagnostics.ocrJobItemsTableExists ? "あり" : "未作成")
+            }
+
+            if let lastMigrationAt = currentDatabaseDiagnostics.lastMigrationAt {
+                Text("最終準備: \(DateFormatter.localizedString(from: lastMigrationAt, dateStyle: .none, timeStyle: .short))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let lastError = currentDatabaseDiagnostics.lastError,
+               currentDatabaseDiagnostics.status != .ready {
+                Text(lastError)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if currentDatabaseDiagnostics.status == .missingTable || currentDatabaseDiagnostics.status == .repairFailed {
+                Button {
+                    Task {
+                        await prepareDatabase()
+                    }
+                } label: {
+                    Label("再試行", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isPreparingDatabase)
+            }
+        }
+        .padding(12)
+        .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var databaseStatusTitle: String {
+        switch currentDatabaseDiagnostics.status {
+        case .unknown:
+            "OCRジョブDBを確認しています"
+        case .preparing:
+            "OCRジョブDBを準備しています…"
+        case .ready:
+            "OCRジョブDBは準備済みです"
+        case .missingTable:
+            "OCRジョブDBのテーブルを作成できませんでした"
+        case .repairFailed:
+            "OCRジョブDBを準備できませんでした"
+        }
+    }
+
+    private var databaseStatusIcon: String {
+        switch currentDatabaseDiagnostics.status {
+        case .unknown, .preparing:
+            "hourglass"
+        case .ready:
+            "checkmark.seal"
+        case .missingTable, .repairFailed:
+            "exclamationmark.triangle"
+        }
+    }
+
+    private var databaseStatusColor: Color {
+        switch currentDatabaseDiagnostics.status {
+        case .unknown, .preparing:
+            .secondary
+        case .ready:
+            Color(red: 0.08, green: 0.38, blue: 0.27)
+        case .missingTable, .repairFailed:
+            .red
         }
     }
 }
@@ -2391,6 +2542,7 @@ private struct OCRProgressDebugView: View {
     let isRunning: Bool
     let isPreparing: Bool
     let startDiagnostics: FullOCRStartDiagnostics
+    let databaseDiagnostics: OCRJobDatabaseDiagnostics
     let coordinatorID: String
     let repositoryID: String
 
@@ -2399,7 +2551,7 @@ private struct OCRProgressDebugView: View {
         Text(debugText(snapshot))
             .font(.caption2.monospaced())
             .foregroundStyle(.secondary)
-            .lineLimit(5)
+            .lineLimit(8)
             .minimumScaleFactor(0.72)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 8)
@@ -2426,9 +2578,11 @@ private struct OCRProgressDebugView: View {
     private func debugText(_ snapshot: OCRProgressSnapshot?) -> String {
         [
             "OCR debug: store: \(progressStore.debugIdentifier) / coordinator: \(coordinatorID) / repository: \(repositoryID)",
+            "jobDB: \(databaseDiagnostics.status.rawValue) / ocr_jobs: \(boolText(databaseDiagnostics.ocrJobsTableExists)) / ocr_job_items: \(boolText(databaseDiagnostics.ocrJobItemsTableExists)) / lastMigrationAt: \(dateText(databaseDiagnostics.lastMigrationAt))",
             "activeSnapshot: \(snapshot == nil ? "nil" : "present") / activeJob: \(activeJob == nil ? "none" : "true") / jobState: \(activeJob?.state.rawValue ?? "none") / observer: \(observerState) / lastHeartbeat: \(heartbeatText(snapshot))",
             "lastStartTappedAt: \(dateText(startDiagnostics.lastStartTappedAt)) / lastStartPlan: \(startDiagnostics.lastStartPlan ?? "-") / lastStartResult: \(startDiagnostics.lastStartResult ?? "-")",
             "lastCreatedJobID: \(shortID(startDiagnostics.lastCreatedJobID)) / lastPersistedJobID: \(shortID(startDiagnostics.lastPersistedJobID)) / lastTerminalState: \(startDiagnostics.lastTerminalState ?? "-")",
+            "lastDBError: \(databaseDiagnostics.lastError ?? "-")",
             "lastError: \(startDiagnostics.lastError ?? "-") / lastWorkerStartAt: \(dateText(startDiagnostics.lastWorkerStartAt))"
         ].joined(separator: "\n")
     }
@@ -2455,9 +2609,13 @@ private struct OCRProgressDebugView: View {
         return String(id.prefix(8))
     }
 
+    private func boolText(_ value: Bool) -> String {
+        value ? "yes" : "no"
+    }
+
     private func logPhotoTab(_ snapshot: OCRProgressSnapshot?) {
         let state = snapshot?.state.rawValue ?? "none"
-        print("OCR_PHOTO_TAB store=\(progressStore.debugIdentifier) coordinator=\(coordinatorID) repository=\(repositoryID) activeSnapshot=\(snapshot != nil) state=\(state) activeJob=\(activeJob != nil) observer=\(observerState)")
+        print("OCR_PHOTO_TAB store=\(progressStore.debugIdentifier) coordinator=\(coordinatorID) repository=\(repositoryID) jobDB=\(databaseDiagnostics.status.rawValue) ocr_jobs=\(databaseDiagnostics.ocrJobsTableExists) ocr_job_items=\(databaseDiagnostics.ocrJobItemsTableExists) activeSnapshot=\(snapshot != nil) state=\(state) activeJob=\(activeJob != nil) observer=\(observerState)")
     }
 }
 #endif

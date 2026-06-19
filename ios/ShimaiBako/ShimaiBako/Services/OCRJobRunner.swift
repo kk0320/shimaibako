@@ -8,6 +8,7 @@ final class OCRJobRunner: ObservableObject {
     @Published private(set) var snapshot: OCRJobSnapshot = .empty
     @Published private(set) var isPreparingJob = false
     @Published private(set) var startDiagnostics: FullOCRStartDiagnostics = .empty
+    @Published private(set) var databaseDiagnostics: OCRJobDatabaseDiagnostics = .unknown
     @Published var errorMessage: String?
     let progressStore: OCRProgressStore
 
@@ -138,6 +139,15 @@ final class OCRJobRunner: ObservableObject {
             "coordinatorReceived",
             "plan=\(plan.debugKind) coordinatorID=\(debugCoordinatorID) progressStoreID=\(debugProgressStoreID) repositoryID=\(debugRepositoryID) persistentStoreURL=\(debugPersistentStoreURL)"
         )
+
+        trace(traceID, "prepareDatabaseStarted")
+        let databaseState = await prepareDatabaseForUI()
+        guard databaseState.status == .ready else {
+            let message = databaseState.lastError ?? "OCRジョブDBを準備できませんでした。"
+            trace(traceID, "prepareDatabaseFailed", "error=\(message)")
+            return failedStart("OCRジョブDBを準備できませんでした: \(message)", traceID: traceID)
+        }
+        trace(traceID, "prepareDatabaseSucceeded", "ocr_jobs=\(databaseState.ocrJobsTableExists) ocr_job_items=\(databaseState.ocrJobItemsTableExists)")
 
         guard plan.isQuick == false else {
             return blockedStart("クイックOCRはまとめてOCRの経路で実行してください。", traceID: traceID)
@@ -316,8 +326,35 @@ final class OCRJobRunner: ObservableObject {
         return .failed(message: message)
     }
 
+    @discardableResult
+    func prepareDatabaseForUI() async -> OCRJobDatabaseDiagnostics {
+        databaseDiagnostics = .preparing(previous: databaseDiagnostics)
+        do {
+            let diagnostics = try await store.prepareDatabaseIfNeeded()
+            databaseDiagnostics = diagnostics
+            return diagnostics
+        } catch {
+            let fallback = await store.databaseDiagnostics()
+            let diagnostics = OCRJobDatabaseDiagnostics(
+                status: fallback.ocrJobsTableExists == false || fallback.ocrJobItemsTableExists == false ? .missingTable : .repairFailed,
+                lastError: error.localizedDescription,
+                lastMigrationAt: fallback.lastMigrationAt,
+                ocrJobsTableExists: fallback.ocrJobsTableExists,
+                ocrJobItemsTableExists: fallback.ocrJobItemsTableExists
+            )
+            databaseDiagnostics = diagnostics
+            errorMessage = error.localizedDescription
+            return diagnostics
+        }
+    }
+
     func prepare() async {
         do {
+            let databaseState = await prepareDatabaseForUI()
+            guard databaseState.status == .ready else {
+                errorMessage = databaseState.lastError ?? "OCRジョブDBを準備できませんでした。"
+                return
+            }
             try await store.recoverInterruptedItems()
             let job = try await store.activeJob()
             publish(job: job, force: true, isRunning: false)

@@ -70,16 +70,38 @@ OCRの選択UI、確認画面、候補件数、端末状態判定、ジョブ作
 開始処理の順序は次の通りに固定する。
 
 1. 開始タップごとにtraceIDを作る
-2. `OCRJob(state=preparing, totalCount=0)` を保存する
-3. 同じ `OCRJobStore` から jobID で再取得する
-4. stateが `preparing` であること、active jobとして検出できることを確認する
-5. `OCRProgressStore.activeSnapshot` に `preparing` snapshotをpublishする
-6. 確認画面を閉じる
-7. 対象抽出と `OCRJobItem` 作成をワーカー側で進める
+2. `OCRJobStore.prepareDatabaseIfNeeded()` で `ocr_jobs` / `ocr_job_items` を作成または移行する
+3. DB準備が成功した場合だけ `OCRJob(state=preparing, totalCount=0)` を保存する
+4. 同じ `OCRJobStore` から jobID で再取得する
+5. stateが `preparing` であること、active jobとして検出できることを確認する
+6. `OCRProgressStore.activeSnapshot` に `preparing` snapshotをpublishする
+7. 確認画面を閉じる
+8. 対象抽出と `OCRJobItem` 作成をワーカー側で進める
 
 28,000件規模の対象抽出、filter、sort、JobItem作成は、`preparing` jobの保存とsnapshot publishより前に実行しない。これにより、対象抽出に時間がかかっても写真画面は「全数OCRを準備中」と表示できる。
 
 `OCRJobRunner` は全数OCRのCoordinatorとして扱う。`ContentView` で1つだけ生成し、写真画面、検索画面、設定画面、確認画面へ同じ `OCRProgressStore` と一緒に渡す。
+
+## OCRジョブDBの準備と移行
+
+全数OCRジョブは `Application Support/ShimaiBako/ocr_jobs.sqlite` に保存する。既存インストールでは、アプリ更新前にこのDBファイルが存在していても `ocr_jobs` / `ocr_job_items` がまだ無い場合がある。そのため、アプリ起動時、全数OCR確認画面表示時、全数OCR開始時、active job復元前に `prepareDatabaseIfNeeded()` を通す。
+
+`prepareDatabaseIfNeeded()` は冪等で、次だけを行う。
+
+- `ocr_jobs`、`ocr_job_items`、`ocr_results` を `CREATE TABLE IF NOT EXISTS` で作成する
+- 既存テーブルに不足列がある場合は `ALTER TABLE ... ADD COLUMN` で補う
+- `idx_ocr_jobs_state`、`idx_ocr_items_state`、`idx_ocr_job_items_asset`、`idx_ocr_results_state` を `CREATE INDEX IF NOT EXISTS` で作成する
+- 準備後に `ocr_jobs` と `ocr_job_items` が存在することを検証する
+
+DB準備や修復では、写真インデックス全体、OCR結果、手動分類、不要候補、メモ、タグを削除しない。写真アプリ側の元写真・元動画にも触れない。`no such table: ocr_jobs` が出た場合は、ジョブなしとして握りつぶさず、DB準備を再試行してからactive jobを確認する。
+
+全数OCR確認画面ではDB状態を表示する。
+
+- 準備中: `OCRジョブDBを準備しています…`、開始ボタンは無効
+- 準備完了: 開始可能
+- 失敗: `OCRジョブDBを準備できませんでした` と詳細エラー、再試行ボタンを表示
+
+Debug buildでは `jobDB: ready / missingTable / repairFailed`、`ocr_jobs`、`ocr_job_items`、`lastDBError`、`lastMigrationAt` を表示する。`activeJob: none` は、DBがreadyである場合だけ「未完了ジョブがない」状態として扱う。
 
 ## データ構造案
 

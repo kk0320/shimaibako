@@ -190,6 +190,55 @@ struct FullOCRStartDiagnostics: Equatable {
     static let empty = FullOCRStartDiagnostics()
 }
 
+enum OCRJobDatabaseStatus: String, Equatable {
+    case unknown
+    case preparing
+    case ready
+    case missingTable
+    case repairFailed
+
+    nonisolated var title: String {
+        switch self {
+        case .unknown:
+            "未確認"
+        case .preparing:
+            "準備中"
+        case .ready:
+            "ready"
+        case .missingTable:
+            "missingTable"
+        case .repairFailed:
+            "repairFailed"
+        }
+    }
+}
+
+struct OCRJobDatabaseDiagnostics: Equatable {
+    var status: OCRJobDatabaseStatus
+    var lastError: String?
+    var lastMigrationAt: Date?
+    var ocrJobsTableExists: Bool
+    var ocrJobItemsTableExists: Bool
+
+    static let unknown = OCRJobDatabaseDiagnostics(
+        status: .unknown,
+        lastError: nil,
+        lastMigrationAt: nil,
+        ocrJobsTableExists: false,
+        ocrJobItemsTableExists: false
+    )
+
+    static func preparing(previous: OCRJobDatabaseDiagnostics) -> OCRJobDatabaseDiagnostics {
+        OCRJobDatabaseDiagnostics(
+            status: .preparing,
+            lastError: previous.lastError,
+            lastMigrationAt: previous.lastMigrationAt,
+            ocrJobsTableExists: previous.ocrJobsTableExists,
+            ocrJobItemsTableExists: previous.ocrJobItemsTableExists
+        )
+    }
+}
+
 enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
     case visibleLimit20
     case visibleLimit50

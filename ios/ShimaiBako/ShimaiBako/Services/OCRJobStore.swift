@@ -26,6 +26,8 @@ actor OCRJobStore {
     private let fileManager: FileManager
     private var database: OpaquePointer?
     private var didOpen = false
+    private var didPrepareDatabase = false
+    private var lastMigrationAt: Date?
 
     init(fileManager: FileManager = .default) {
         self.fileManager = fileManager
@@ -48,6 +50,36 @@ actor OCRJobStore {
     deinit {
         if let database {
             sqlite3_close(database)
+        }
+    }
+
+    func prepareDatabaseIfNeeded() async throws -> OCRJobDatabaseDiagnostics {
+        try prepareDatabaseIfNeededSync()
+        return try databaseDiagnosticsSync(status: .ready, lastError: nil)
+    }
+
+    func databaseDiagnostics() async -> OCRJobDatabaseDiagnostics {
+        do {
+            try openConnectionIfNeeded()
+            let jobsExists = try tableExists("ocr_jobs")
+            let itemsExists = try tableExists("ocr_job_items")
+            let status: OCRJobDatabaseStatus
+            if didPrepareDatabase, jobsExists, itemsExists {
+                status = .ready
+            } else if jobsExists == false || itemsExists == false {
+                status = .missingTable
+            } else {
+                status = .unknown
+            }
+            return try databaseDiagnosticsSync(status: status, lastError: nil)
+        } catch {
+            return OCRJobDatabaseDiagnostics(
+                status: isMissingTableError(error) ? .missingTable : .repairFailed,
+                lastError: error.localizedDescription,
+                lastMigrationAt: lastMigrationAt,
+                ocrJobsTableExists: false,
+                ocrJobItemsTableExists: false
+            )
         }
     }
 
@@ -448,6 +480,10 @@ actor OCRJobStore {
     }
 
     private func openIfNeeded() throws {
+        try prepareDatabaseIfNeededSync()
+    }
+
+    private func openConnectionIfNeeded() throws {
         guard didOpen == false else {
             return
         }
@@ -466,7 +502,53 @@ actor OCRJobStore {
         didOpen = true
         try execute("PRAGMA journal_mode = WAL")
         try execute("PRAGMA synchronous = NORMAL")
-        try createSchema()
+    }
+
+    private func prepareDatabaseIfNeededSync() throws {
+        try openConnectionIfNeeded()
+
+        if didPrepareDatabase {
+            let jobsExists = try tableExists("ocr_jobs")
+            let itemsExists = try tableExists("ocr_job_items")
+            if jobsExists, itemsExists {
+                return
+            }
+            didPrepareDatabase = false
+        }
+
+        do {
+            try createSchema()
+            let jobsExists = try tableExists("ocr_jobs")
+            let itemsExists = try tableExists("ocr_job_items")
+            guard jobsExists, itemsExists else {
+                throw StoreError.prepareFailed("required tables missing: ocr_jobs=\(jobsExists), ocr_job_items=\(itemsExists)")
+            }
+            didPrepareDatabase = true
+            lastMigrationAt = Date()
+        } catch {
+            didPrepareDatabase = false
+            throw error
+        }
+    }
+
+    private func databaseDiagnosticsSync(status: OCRJobDatabaseStatus, lastError: String?) throws -> OCRJobDatabaseDiagnostics {
+        let jobsExists = try tableExists("ocr_jobs")
+        let itemsExists = try tableExists("ocr_job_items")
+        let resolvedStatus: OCRJobDatabaseStatus
+        if status == .repairFailed {
+            resolvedStatus = .repairFailed
+        } else if jobsExists, itemsExists {
+            resolvedStatus = status
+        } else {
+            resolvedStatus = .missingTable
+        }
+        return OCRJobDatabaseDiagnostics(
+            status: resolvedStatus,
+            lastError: lastError,
+            lastMigrationAt: lastMigrationAt,
+            ocrJobsTableExists: jobsExists,
+            ocrJobItemsTableExists: itemsExists
+        )
     }
 
     private func createSchema() throws {
@@ -522,14 +604,53 @@ actor OCRJobStore {
         )
         """)
 
+        try migrateExistingSchema()
+
         try execute("CREATE INDEX IF NOT EXISTS idx_ocr_jobs_state ON ocr_jobs(state, updated_at)")
         try execute("CREATE INDEX IF NOT EXISTS idx_ocr_items_state ON ocr_job_items(job_identifier, state, priority)")
+        try execute("CREATE INDEX IF NOT EXISTS idx_ocr_job_items_asset ON ocr_job_items(asset_identifier)")
         try execute("CREATE INDEX IF NOT EXISTS idx_ocr_results_state ON ocr_results(result_state)")
+    }
 
+    private func migrateExistingSchema() throws {
+        try addColumnIfMissing(table: "ocr_jobs", column: "job_identifier", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_jobs", column: "scope", definition: "TEXT NOT NULL DEFAULT '\(OCRJobScope.smartFull.rawValue)'")
+        try addColumnIfMissing(table: "ocr_jobs", column: "quality_mode", definition: "TEXT NOT NULL DEFAULT '\(OCRJobQualityMode.standard.rawValue)'")
+        try addColumnIfMissing(table: "ocr_jobs", column: "state", definition: "TEXT NOT NULL DEFAULT '\(OCRJobState.pending.rawValue)'")
+        try addColumnIfMissing(table: "ocr_jobs", column: "created_at", definition: "REAL NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_jobs", column: "updated_at", definition: "REAL NOT NULL DEFAULT 0")
         try addColumnIfMissing(table: "ocr_jobs", column: "current_phase", definition: "TEXT")
         try addColumnIfMissing(table: "ocr_jobs", column: "current_asset_identifier", definition: "TEXT")
         try addColumnIfMissing(table: "ocr_jobs", column: "started_at", definition: "REAL")
         try addColumnIfMissing(table: "ocr_jobs", column: "last_heartbeat_at", definition: "REAL")
+        try addColumnIfMissing(table: "ocr_jobs", column: "total_count", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_jobs", column: "completed_count", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_jobs", column: "text_found_count", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_jobs", column: "no_text_count", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_jobs", column: "skipped_count", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_jobs", column: "cloud_pending_count", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_jobs", column: "failed_count", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_jobs", column: "paused_reason", definition: "TEXT")
+
+        try addColumnIfMissing(table: "ocr_job_items", column: "job_identifier", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_job_items", column: "asset_identifier", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_job_items", column: "priority", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_job_items", column: "state", definition: "TEXT NOT NULL DEFAULT '\(OCRJobItemState.pending.rawValue)'")
+        try addColumnIfMissing(table: "ocr_job_items", column: "attempt_count", definition: "INTEGER NOT NULL DEFAULT 0")
+        try addColumnIfMissing(table: "ocr_job_items", column: "next_retry_at", definition: "REAL")
+        try addColumnIfMissing(table: "ocr_job_items", column: "source_fingerprint", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_job_items", column: "last_error", definition: "TEXT")
+        try addColumnIfMissing(table: "ocr_job_items", column: "started_at", definition: "REAL")
+        try addColumnIfMissing(table: "ocr_job_items", column: "completed_at", definition: "REAL")
+
+        try addColumnIfMissing(table: "ocr_results", column: "asset_identifier", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_results", column: "raw_text", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_results", column: "normalized_text", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_results", column: "result_state", definition: "TEXT NOT NULL DEFAULT '\(OCRJobItemState.completedText.rawValue)'")
+        try addColumnIfMissing(table: "ocr_results", column: "engine_version", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_results", column: "recognition_profile_version", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_results", column: "source_fingerprint", definition: "TEXT NOT NULL DEFAULT ''")
+        try addColumnIfMissing(table: "ocr_results", column: "updated_at", definition: "REAL NOT NULL DEFAULT 0")
     }
 
     private func upsertJob(_ job: OCRJob) throws {
@@ -710,6 +831,23 @@ actor OCRJobStore {
             }
         }
         return columns
+    }
+
+    private func tableExists(_ table: String) throws -> Bool {
+        var exists = false
+        try withStatement("""
+        SELECT name FROM sqlite_master
+        WHERE type = 'table' AND name = ?
+        LIMIT 1
+        """) { statement in
+            try bindText(statement, 1, table)
+            exists = sqlite3_step(statement) == SQLITE_ROW
+        }
+        return exists
+    }
+
+    private func isMissingTableError(_ error: Error) -> Bool {
+        error.localizedDescription.localizedCaseInsensitiveContains("no such table")
     }
 
     private func execute(_ sql: String, bindings: [BindingValue] = []) throws {
