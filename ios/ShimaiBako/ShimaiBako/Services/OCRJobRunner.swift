@@ -29,6 +29,8 @@ final class OCRJobRunner: ObservableObject {
     private var currentPhase: OCRCurrentPhase = .selectingTargets
     private var currentAssetIdentifier: String?
     private var activeTraceID: String?
+    private var lastPeriodicRestAt = Date()
+    private var lastThermalBackoffState: ProcessInfo.ThermalState?
 
     init(
         store: OCRJobStore = OCRJobStore(),
@@ -518,6 +520,88 @@ final class OCRJobRunner: ObservableObject {
         }
     }
 
+    #if DEBUG
+    func startDebugDummyFullOCRProgress(totalCount: Int = 120) {
+        guard isRunning == false,
+              isPreparingJob == false,
+              snapshot.job?.state.isActive != true else {
+            return
+        }
+
+        cancelRequested = false
+        pauseRequestedReason = nil
+        runTask = Task { [weak self] in
+            await self?.runDebugDummyFullOCRProgress(totalCount: totalCount)
+        }
+    }
+
+    private func runDebugDummyFullOCRProgress(totalCount: Int) async {
+        let inputs = (0..<totalCount).map { index in
+            OCRJobItemInput(
+                assetIdentifier: "debug-dummy-full-ocr-\(index)",
+                priority: index,
+                sourceFingerprint: "debug-\(index)"
+            )
+        }
+
+        do {
+            let job = try await store.createJob(scope: .smartFull, qualityMode: .standard, items: inputs)
+            publish(job: job, force: true, isRunning: true)
+            startHeartbeat(jobID: job.id)
+            lastPeriodicRestAt = Date()
+            lastThermalBackoffState = nil
+
+            for input in inputs {
+                guard Task.isCancelled == false,
+                      cancelRequested == false,
+                      pauseRequestedReason == nil else {
+                    break
+                }
+
+                _ = try await store.updateHeartbeat(
+                    jobID: job.id,
+                    phase: .recognizingText,
+                    assetIdentifier: input.assetIdentifier,
+                    state: .running,
+                    pausedReason: nil
+                )
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                let updated = try await store.finishItem(
+                    jobID: job.id,
+                    assetIdentifier: input.assetIdentifier,
+                    state: .completedNoText,
+                    errorCode: nil
+                )
+                publish(job: updated, force: true, isRunning: true)
+            }
+
+            if cancelRequested || Task.isCancelled {
+                let cancelledJob = try await store.cancelJob(jobID: job.id)
+                publish(job: cancelledJob, force: true, isRunning: false)
+            } else if let pauseRequestedReason {
+                let pausedJob = try await store.setJobState(.pausedUser, jobID: job.id, pausedReason: pauseRequestedReason)
+                publish(job: pausedJob, force: true, isRunning: false)
+            } else {
+                let finalizingJob = try await store.updateHeartbeat(
+                    jobID: job.id,
+                    phase: .finalizingResults,
+                    assetIdentifier: nil,
+                    state: .finalizing,
+                    pausedReason: nil
+                )
+                publish(job: finalizingJob, force: true, isRunning: true)
+                let completedJob = try await store.completeJob(jobID: job.id)
+                publish(job: completedJob, force: true, isRunning: false)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        stopHeartbeat()
+        runTask = nil
+    }
+    #endif
+
     func applicationDidEnterBackground() {
         pause(reason: "アプリの状態変化により一時停止しました")
     }
@@ -527,6 +611,8 @@ final class OCRJobRunner: ObservableObject {
             let runningJob = try await store.setJobState(.running, jobID: jobID, pausedReason: nil)
             publish(job: runningJob, force: true, isRunning: true)
             startHeartbeat(jobID: jobID)
+            lastPeriodicRestAt = Date()
+            lastThermalBackoffState = nil
 
             while Task.isCancelled == false && cancelRequested == false {
                 if let pauseReason = blockingPauseReason() ?? pauseRequestedReason {
@@ -545,18 +631,28 @@ final class OCRJobRunner: ObservableObject {
                 }
 
                 guard let item = try await store.pendingItem(jobID: jobID) else {
-                    let completedJob = try await store.setJobState(.completed, jobID: jobID, pausedReason: nil)
+                    let finalizingJob = try await store.updateHeartbeat(
+                        jobID: jobID,
+                        phase: .finalizingResults,
+                        assetIdentifier: nil,
+                        state: .finalizing,
+                        pausedReason: nil
+                    )
+                    publish(job: finalizingJob, force: true, isRunning: true)
+                    let completedJob = try await store.completeJob(jobID: jobID)
                     publish(job: completedJob, force: true, isRunning: false)
                     stopHeartbeat()
                     runTask = nil
                     return
                 }
 
+                let workStartedAt = Date()
                 try await process(item: item)
+                let workDuration = max(Date().timeIntervalSince(workStartedAt), 0.2)
                 if let updatedJob = try await store.job(id: jobID) {
                     publish(job: updatedJob, force: false, isRunning: true)
                 }
-                try await applyThermalBackoffIfNeeded(jobID: jobID)
+                try await applyThermalBackoffIfNeeded(jobID: jobID, workDuration: workDuration)
                 await Task.yield()
             }
 
@@ -810,29 +906,107 @@ final class OCRJobRunner: ObservableObject {
         }
     }
 
-    private func applyThermalBackoffIfNeeded(jobID: String) async throws {
+    private func applyThermalBackoffIfNeeded(jobID: String, workDuration: TimeInterval) async throws {
         guard let deviceSafety else {
             return
         }
 
         deviceSafety.refresh()
-        guard deviceSafety.thermalState == .fair else {
+
+        let scope = snapshot.job?.scope
+        let now = Date()
+        if now.timeIntervalSince(lastPeriodicRestAt) >= 600 {
+            let message = "端末を休ませるため短く待機しています"
+            let job = try await store.updateHeartbeat(
+                jobID: jobID,
+                phase: .waitingForTemperature,
+                assetIdentifier: nil,
+                state: .throttled,
+                pausedReason: message
+            )
+            publish(job: job, force: true, isRunning: true)
+            lastThermalBackoffState = deviceSafety.thermalState
+            try? await Task.sleep(nanoseconds: 120_000_000_000)
+            lastPeriodicRestAt = Date()
             return
         }
 
-        let message = "端末の温度を見ながらゆっくり処理しています"
+        guard let targetDutyCycle = targetDutyCycle(for: scope, thermalState: deviceSafety.thermalState) else {
+            if lastThermalBackoffState != nil {
+                let job = try await store.setJobState(.running, jobID: jobID, pausedReason: nil)
+                publish(job: job, force: true, isRunning: true)
+            }
+            lastThermalBackoffState = nil
+            return
+        }
+
+        let delay = max(
+            workDuration * ((1 / targetDutyCycle) - 1),
+            minimumBackoffDelay(for: deviceSafety.thermalState)
+        )
+        let cappedDelay = min(delay, 12)
+
+        guard deviceSafety.thermalState != .nominal else {
+            if lastThermalBackoffState != nil {
+                let job = try await store.setJobState(.running, jobID: jobID, pausedReason: nil)
+                publish(job: job, force: true, isRunning: true)
+            }
+            lastThermalBackoffState = nil
+            try? await Task.sleep(nanoseconds: UInt64(cappedDelay * 1_000_000_000))
+            return
+        }
+
+        let message = deviceSafety.thermalState == .fair
+            ? "端末の温度を見ながらゆっくり処理しています"
+            : "端末を休ませながらOCRを続けています"
         let job = try await store.updateHeartbeat(
             jobID: jobID,
             phase: .waitingForTemperature,
-            assetIdentifier: currentAssetIdentifier,
+            assetIdentifier: nil,
             state: .throttled,
             pausedReason: message
         )
-        publish(job: job, force: true, isRunning: true)
+        publish(job: job, force: lastThermalBackoffState != deviceSafety.thermalState, isRunning: true)
+        lastThermalBackoffState = deviceSafety.thermalState
 
-        let scope = job?.scope ?? snapshot.job?.scope
-        let delay: UInt64 = scope == .fullAccurate ? 3_000_000_000 : 1_500_000_000
-        try? await Task.sleep(nanoseconds: delay)
+        try? await Task.sleep(nanoseconds: UInt64(cappedDelay * 1_000_000_000))
+    }
+
+    private func targetDutyCycle(for scope: OCRJobScope?, thermalState: ProcessInfo.ThermalState) -> TimeInterval? {
+        let baseDutyCycle: TimeInterval
+        switch thermalState {
+        case .nominal:
+            baseDutyCycle = scope == .fullAccurate ? 0.28 : 0.40
+        case .fair:
+            baseDutyCycle = scope == .fullAccurate ? 0.14 : 0.20
+        case .serious, .critical:
+            return nil
+        @unknown default:
+            baseDutyCycle = 0.20
+        }
+
+        guard let deviceSafety else {
+            return baseDutyCycle
+        }
+
+        if deviceSafety.batteryState == .charging || deviceSafety.batteryState == .full {
+            return max(baseDutyCycle * 0.85, 0.10)
+        }
+
+        return baseDutyCycle
+    }
+
+    private func minimumBackoffDelay(for thermalState: ProcessInfo.ThermalState) -> TimeInterval {
+        switch thermalState {
+        case .nominal:
+            0.6
+        case .fair:
+            1.5
+        case .serious, .critical:
+            0
+        @unknown default:
+            1.5
+        }
     }
 
     private func itemState(for result: OCRResultRecord?, attemptCount: Int) -> OCRJobItemState {

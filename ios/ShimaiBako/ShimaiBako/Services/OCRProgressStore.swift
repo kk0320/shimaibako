@@ -16,7 +16,7 @@ final class OCRProgressStore: ObservableObject {
     }
 
     private var lastPublishedAt = Date.distantPast
-    private let publishInterval: TimeInterval = 0.5
+    private let publishInterval: TimeInterval = 1.0
 
     func publish(job: OCRJob?, isRunning: Bool, force: Bool = false) {
         guard let job,

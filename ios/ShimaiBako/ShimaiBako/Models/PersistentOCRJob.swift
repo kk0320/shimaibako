@@ -340,6 +340,7 @@ enum OCRJobState: String, Codable {
     case pending
     case running
     case throttled
+    case finalizing
     case paused
     case pausedThermal
     case pausedUser
@@ -358,6 +359,8 @@ enum OCRJobState: String, Codable {
             "OCR実行中"
         case .throttled:
             "ゆっくり処理中"
+        case .finalizing:
+            "検索へ反映中"
         case .paused:
             "一時停止"
         case .pausedThermal:
@@ -377,9 +380,18 @@ enum OCRJobState: String, Codable {
 
     nonisolated var isActive: Bool {
         switch self {
-        case .preparing, .pending, .running, .throttled, .paused, .pausedThermal, .pausedUser, .cancelling:
+        case .preparing, .pending, .running, .throttled, .finalizing, .paused, .pausedThermal, .pausedUser, .cancelling:
             true
         case .completed, .cancelled, .failed:
+            false
+        }
+    }
+
+    nonisolated var expectsWorkerHeartbeat: Bool {
+        switch self {
+        case .preparing, .pending, .running, .throttled, .finalizing, .cancelling:
+            true
+        case .paused, .pausedThermal, .pausedUser, .completed, .cancelled, .failed:
             false
         }
     }
@@ -390,6 +402,7 @@ enum OCRCurrentPhase: String, Codable, Sendable, Equatable {
     case requestingImage
     case recognizingText
     case savingResult
+    case finalizingResults
     case waitingForTemperature
     case waitingForICloud
 
@@ -403,6 +416,8 @@ enum OCRCurrentPhase: String, Codable, Sendable, Equatable {
             "文字を認識中"
         case .savingResult:
             "結果を保存中"
+        case .finalizingResults:
+            "OCR結果を検索に反映しています"
         case .waitingForTemperature:
             "温度低下を待機中"
         case .waitingForICloud:
@@ -478,8 +493,20 @@ struct OCRJob: Codable, Equatable, Identifiable {
     var failedCount: Int
     var pausedReason: String?
 
+    nonisolated var succeededCount: Int {
+        textFoundCount + noTextCount
+    }
+
     nonisolated var processedCount: Int {
-        completedCount + skippedCount + cloudPendingCount + failedCount
+        succeededCount + failedCount
+    }
+
+    nonisolated var terminalCount: Int {
+        succeededCount + skippedCount + cloudPendingCount + failedCount
+    }
+
+    nonisolated var remainingCount: Int {
+        max(totalCount - processedCount, 0)
     }
 
     nonisolated var progress: Double {
@@ -500,6 +527,7 @@ struct OCRProgressSnapshot: Equatable, Sendable {
         case preparing
         case running
         case throttled
+        case finalizing
         case pausedThermal
         case pausedUser
         case cancelling
@@ -512,6 +540,8 @@ struct OCRProgressSnapshot: Equatable, Sendable {
     let state: State
     let phase: OCRCurrentPhase?
     let completed: Int
+    let succeeded: Int
+    let remaining: Int
     let total: Int
     let textFound: Int
     let noText: Int
@@ -541,6 +571,19 @@ struct OCRProgressSnapshot: Equatable, Sendable {
     }
 
     var heartbeatStatusText: String {
+        guard expectsWorkerHeartbeat else {
+            switch state {
+            case .completed:
+                return "OCR完了"
+            case .pausedThermal, .pausedUser:
+                return "一時停止中"
+            case .failed:
+                return "停止中"
+            default:
+                return "待機中"
+            }
+        }
+
         let age = heartbeatAge
         if age <= 5 {
             return "ワーカー正常"
@@ -554,6 +597,10 @@ struct OCRProgressSnapshot: Equatable, Sendable {
         return "進捗更新が停止しています"
     }
 
+    var showsStaleHeartbeatWarning: Bool {
+        expectsWorkerHeartbeat && heartbeatAge > 30
+    }
+
     var stateTitle: String {
         switch state {
         case .preparing:
@@ -562,6 +609,8 @@ struct OCRProgressSnapshot: Equatable, Sendable {
             "OCR実行中"
         case .throttled:
             "温度を見ながらゆっくり処理中"
+        case .finalizing:
+            "OCR結果を検索に反映中"
         case .pausedThermal:
             "端末を冷ますため一時停止中"
         case .pausedUser:
@@ -579,6 +628,15 @@ struct OCRProgressSnapshot: Equatable, Sendable {
         phase?.title ?? "待機中"
     }
 
+    private var expectsWorkerHeartbeat: Bool {
+        switch state {
+        case .preparing, .running, .throttled, .finalizing, .cancelling:
+            true
+        case .pausedThermal, .pausedUser, .completed, .failed:
+            false
+        }
+    }
+
     init?(job: OCRJob, isRunning: Bool) {
         guard let uuid = UUID(uuidString: job.id) else {
             return nil
@@ -588,7 +646,9 @@ struct OCRProgressSnapshot: Equatable, Sendable {
         scopeTitle = job.scope.compactTitle
         state = Self.snapshotState(for: job, isRunning: isRunning)
         phase = job.currentPhase
-        completed = job.completedCount
+        completed = min(job.processedCount, job.totalCount)
+        succeeded = job.succeededCount
+        remaining = job.remainingCount
         total = job.totalCount
         textFound = job.textFoundCount
         noText = job.noTextCount
@@ -621,6 +681,8 @@ struct OCRProgressSnapshot: Equatable, Sendable {
             return isRunning ? .running : .preparing
         case .throttled:
             return .throttled
+        case .finalizing:
+            return .finalizing
         case .pausedThermal:
             return .pausedThermal
         case .pausedUser:

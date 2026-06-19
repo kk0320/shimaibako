@@ -98,7 +98,7 @@ actor OCRJobStore {
         try execute("""
         UPDATE ocr_jobs
         SET state = ?, paused_reason = ?, current_phase = ?, last_heartbeat_at = ?, updated_at = ?
-        WHERE state IN (?, ?, ?)
+        WHERE state IN (?, ?, ?, ?)
         """, bindings: [
             .text(OCRJobState.paused.rawValue),
             .text("前回のOCR処理が中断されました。続きから再開できます。"),
@@ -107,20 +107,22 @@ actor OCRJobStore {
             .date(Date()),
             .text(OCRJobState.preparing.rawValue),
             .text(OCRJobState.throttled.rawValue),
-            .text(OCRJobState.running.rawValue)
+            .text(OCRJobState.running.rawValue),
+            .text(OCRJobState.finalizing.rawValue)
         ])
     }
 
     func activeJob() async throws -> OCRJob? {
         try openIfNeeded()
         return try jobs(
-            whereClause: "state IN (?, ?, ?, ?, ?, ?, ?, ?)",
+            whereClause: "state IN (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             bindings: [
                 .text(OCRJobState.preparing.rawValue),
                 .text(OCRJobState.pending.rawValue),
                 .text(OCRJobState.running.rawValue),
                 .text(OCRJobState.paused.rawValue),
                 .text(OCRJobState.throttled.rawValue),
+                .text(OCRJobState.finalizing.rawValue),
                 .text(OCRJobState.pausedThermal.rawValue),
                 .text(OCRJobState.pausedUser.rawValue),
                 .text(OCRJobState.cancelling.rawValue)
@@ -259,18 +261,37 @@ actor OCRJobStore {
         let now = Date()
         let startedAtAssignment = state == .running || state == .throttled ? ", started_at = COALESCE(started_at, ?)" : ""
         let startedAtBindings: [BindingValue] = state == .running || state == .throttled ? [.date(now)] : []
+        let clearsWorkerState = state == .completed || state == .cancelled || state == .failed
+        let workerStateAssignment = clearsWorkerState ? ", current_phase = NULL, current_asset_identifier = NULL" : ""
         try execute("""
         UPDATE ocr_jobs
-        SET state = ?, paused_reason = ?, updated_at = ?\(startedAtAssignment)
+        SET state = ?, paused_reason = ?, updated_at = ?, last_heartbeat_at = ?\(startedAtAssignment)\(workerStateAssignment)
         WHERE job_identifier = ?
         """, bindings: [
             .text(state.rawValue),
             .nullableText(pausedReason),
+            .date(now),
             .date(now)
         ] + startedAtBindings + [
             .text(jobID)
         ])
         return try await job(id: jobID)
+    }
+
+    func completeJob(jobID: String) async throws -> OCRJob? {
+        try openIfNeeded()
+        let now = Date()
+        try execute("""
+        UPDATE ocr_jobs
+        SET state = ?, paused_reason = NULL, current_phase = NULL, current_asset_identifier = NULL, last_heartbeat_at = ?, updated_at = ?
+        WHERE job_identifier = ?
+        """, bindings: [
+            .text(OCRJobState.completed.rawValue),
+            .date(now),
+            .date(now),
+            .text(jobID)
+        ])
+        return try recomputeJobCounts(jobID: jobID, forcedState: .completed, pausedReason: nil)
     }
 
     func updateHeartbeat(
@@ -442,15 +463,21 @@ actor OCRJobStore {
         job.skippedCount = counts[.skipped, default: 0]
         job.cloudPendingCount = counts[.cloudPending, default: 0]
         job.failedCount = counts[.retryableFailure, default: 0] + counts[.permanentFailure, default: 0]
-        job.completedCount = job.textFoundCount + job.noTextCount
+        job.completedCount = job.succeededCount
         job.updatedAt = Date()
         job.pausedReason = pausedReason
 
         if let forcedState {
             job.state = forcedState
-        } else if job.processedCount >= job.totalCount {
+            if forcedState.isActive == false {
+                job.currentPhase = nil
+                job.currentAssetIdentifier = nil
+            }
+        } else if job.terminalCount >= job.totalCount {
             job.state = .completed
             job.pausedReason = nil
+            job.currentPhase = nil
+            job.currentAssetIdentifier = nil
         } else if job.state == .pending {
             job.state = .running
         }

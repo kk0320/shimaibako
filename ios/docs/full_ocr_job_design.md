@@ -313,8 +313,8 @@ OCR結果保存と検索文書更新は、同じ写真ID単位で小さく実行
 OCRジョブ進捗は専用のジョブ状態として表示する。
 
 - 状態
-- 完了件数
-- `completed / total`
+- 処理済み件数
+- `処理済み / total`
 - ProgressView
 - パーセント
 - 文字あり件数
@@ -331,9 +331,21 @@ OCRジョブ進捗は専用のジョブ状態として表示する。
 
 写真グリッドは、現在表示中セルのOCRバッジだけ必要に応じて更新する。OCR進捗が進むたびに、写真一覧ページ、件数チップ、カテゴリチップを全更新しない。
 
-OCR進捗は `OCRProgressStore` に小さな値型スナップショットとして流す。`PhotoGridView` の写真配列、件数チップ、カテゴリチップ、サムネイルパイプラインとは分離し、進捗カードだけが購読する。SwiftUIへのpublishは最大500msに1回程度に間引く。
+OCR進捗は `OCRProgressStore` に小さな値型スナップショットとして流す。`PhotoGridView` の写真配列、件数チップ、カテゴリチップ、サムネイルパイプラインとは分離し、進捗カードだけが購読する。SwiftUIへのpublishは最大1秒に1回程度に間引く。
 
-写真画面では `OCRProgressStore.activeSnapshot` がある場合にコンパクト進捗カードを表示する。カードには状態、`completed / total`、ProgressView、パーセント、現在phase、Heartbeat、速度、残り時間、最低限の操作だけを出し、詳細は管理導線へ逃がす。`PhotoGridView` 本体は進捗storeを直接監視せず、OCRカードだけが進捗を購読する。
+写真画面では `OCRProgressStore.activeSnapshot` がある場合にコンパクト進捗カードを表示する。カードには状態、`処理済み / total`、ProgressView、パーセント、現在phase、Heartbeat、速度、残り時間、最低限の操作だけを出し、詳細は管理導線へ逃がす。`PhotoGridView` 本体は進捗storeを直接監視せず、OCRカードだけが進捗を購読する。
+
+実機での完走後表示は、成功件数と失敗込みの処理済み件数を混同しない。進捗率は次の定義を使う。
+
+- 成功件数: `文字あり + 文字なし`
+- 処理済み件数: `文字あり + 文字なし + 失敗`
+- 残り件数: `対象件数 - 処理済み件数`
+
+完了カードでは `処理済み n / total件` を表示し、文字あり、文字なし、失敗を別行で出す。完走後は速度、推定残り時間、現在phase、Heartbeatの警告を表示しない。
+
+ジョブ終端は `running -> finalizing -> completed` に分ける。`finalizing` では `OCR結果を検索に反映しています` を表示し、`completed` へ入った時点で `currentPhase`、`currentAssetIdentifier`、一時停止理由を消す。完了済みジョブはHeartbeat停止検出の対象外にする。
+
+進捗カードの購読は専用Viewへ閉じ込め、写真グリッド、検索バー、カテゴリチップが進捗更新のたびに再評価されないようにする。進捗publishは最大1秒に1回程度へ間引く。
 
 開始直後は、対象抽出より先に永続ジョブを `preparing` として作成し、`activeSnapshot` へpublishする。`totalCount` が0でもカードを表示し、「対象写真を確認しています」と出す。重い対象抽出やJobItem作成は、その後に進める。
 
@@ -350,7 +362,7 @@ UI側の判定は次の通り。
 - 15〜30秒: 処理状況を確認中
 - 30秒以上: 進捗更新停止として表示
 
-進捗更新停止時も完了済み結果は保存済みであり、元写真・元動画は削除・変更しない。ユーザーは再開、またはいったん終了を選べる。
+進捗更新停止時も完了済み結果は保存済みであり、元写真・元動画は削除・変更しない。ユーザーは再開、またはいったん終了を選べる。Heartbeat停止検出は `preparing`、`running`、`throttled`、`finalizing`、`cancelling` などワーカーが動くべき状態だけに限定し、`paused`、`completed`、`failed`、`cancelled` では古いHeartbeatを警告扱いしない。
 
 Debug buildでは個人情報を含まない `OCR_JOB state=... completed=... total=... phase=... heartbeat=...` ログを出す。
 
@@ -378,6 +390,7 @@ Debug buildでは個人情報を含まない `OCR_JOB state=... completed=... to
 - 全写真のPHAssetやUIImageをメモリに保持する
 - 全件分のOCR対象をSwiftUI配列として公開する
 - OCR進捗ごとにPhotoGrid全体を再描画する
+- 完了済みジョブでHeartbeat停止警告や「結果を保存中」を出し続ける
 - OCR全文を毎回全件正規化し直す
 - 全件を一括トランザクションで保存する
 - iCloud写真を無断で大量取得する
