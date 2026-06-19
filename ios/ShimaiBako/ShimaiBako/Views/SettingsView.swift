@@ -409,7 +409,17 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("全数OCRは長時間実行され、端末が発熱する場合があります。充電中かつ涼しく安定した場所での実行をおすすめします。端末の温度が高い場合、処理は自動的に一時停止します。")
+            Text("スマート全数OCRを推奨します。スクショ・書類を優先し、端末状態に合わせて少しずつOCRします。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("全数高精度OCRは上級者向けです。長時間かかり、発熱やバッテリー消費が大きくなる場合があります。充電中かつ涼しく安定した場所での実行をおすすめします。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("端末が熱い場合は自動で減速または一時停止します。完了済みのOCR結果は端末内に保存され、続きから再開できます。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

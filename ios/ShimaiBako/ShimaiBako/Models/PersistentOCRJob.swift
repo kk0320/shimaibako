@@ -23,9 +23,9 @@ enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
         case .currentFilterAll:
             "現在の絞り込み結果すべて"
         case .smartFull:
-            "スマート全数OCR"
+            "スマート全数OCR（推奨）"
         case .fullAccurate:
-            "全数高精度OCR"
+            "全数高精度OCR（上級者向け）"
         }
     }
 
@@ -40,9 +40,22 @@ enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
         case .currentFilterAll:
             "絞り込み全件"
         case .smartFull:
-            "スマート全数"
+            "推奨全数"
         case .fullAccurate:
             "高精度全数"
+        }
+    }
+
+    nonisolated var description: String {
+        switch self {
+        case .visibleLimit20, .visibleLimit50, .visibleLimit100:
+            "表示中の候補を少しだけOCRします"
+        case .currentFilterAll:
+            "現在の検索・カテゴリで絞り込んだ写真を段階的にOCRします"
+        case .smartFull:
+            "スクショ・書類を優先し、端末状態に合わせて少しずつOCRします"
+        case .fullAccurate:
+            "非常に時間がかかり、発熱・バッテリー消費が大きくなります"
         }
     }
 

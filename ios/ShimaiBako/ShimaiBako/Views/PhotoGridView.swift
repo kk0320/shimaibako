@@ -330,6 +330,19 @@ struct PhotoGridView: View {
                     onCancel: {
                         clearPendingPersistentOCR()
                     },
+                    onUseSmart: {
+                        let identifiers = pendingPersistentOCRIdentifiers
+                        let records = pendingPersistentOCRRecords
+                        clearPendingPersistentOCR()
+                        Task {
+                            await ocrJobRunner.startJob(
+                                scope: .smartFull,
+                                qualityMode: .standard,
+                                identifiers: identifiers,
+                                records: records
+                            )
+                        }
+                    },
                     onStart: {
                         let scope = pendingPersistentOCRScope ?? .smartFull
                         let identifiers = pendingPersistentOCRIdentifiers
@@ -1541,7 +1554,12 @@ private struct OCRPersistentJobSafetyView: View {
     @ObservedObject var deviceSafety: DeviceSafetyService
     let isRunningOCR: Bool
     let onCancel: () -> Void
+    let onUseSmart: () -> Void
     let onStart: () -> Void
+
+    private var isHighAccuracyMode: Bool {
+        scope == .fullAccurate
+    }
 
     private var blockingReason: String? {
         if isRunningOCR {
@@ -1567,12 +1585,23 @@ private struct OCRPersistentJobSafetyView: View {
                         Text("対象候補: \(candidateCount)件")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                        Text(scope.description)
+                            .font(.caption)
+                            .foregroundStyle(isHighAccuracyMode ? Color(red: 0.75, green: 0.24, blue: 0.18) : .secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
+                        if isHighAccuracyMode {
+                            SafetyBullet("全数高精度OCRは非常に重い処理です。")
+                            SafetyBullet("すべての対象写真を高精度設定でOCRするため、長時間かかり、端末が強く発熱する場合があります。")
+                        } else {
+                            SafetyBullet("スマート全数OCRはスクショ・書類を優先し、端末状態に合わせて少しずつOCRします。")
+                        }
                         SafetyBullet("全数OCRは長時間実行され、端末が発熱する場合があります。")
                         SafetyBullet("充電中かつ涼しく安定した場所での実行をおすすめします。")
-                        SafetyBullet("端末の温度が高い場合、処理は自動的に一時停止します。")
+                        SafetyBullet("端末の温度が高い場合、処理は自動的に減速または一時停止します。")
                         SafetyBullet("OCR結果は端末内で扱います。")
                         SafetyBullet("元写真・元動画は削除・変更されません。")
                         SafetyBullet("最初は端末内にある画像を優先し、iCloud上の写真は待機扱いにします。")
@@ -1603,6 +1632,17 @@ private struct OCRPersistentJobSafetyView: View {
                             .foregroundStyle(.red)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+
+                    if isHighAccuracyMode {
+                        Button {
+                            onUseSmart()
+                        } label: {
+                            Label("スマート全数OCRに変更", systemImage: "bolt.badge.checkmark")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(blockingReason != nil)
+                    }
                 }
                 .padding(16)
             }
@@ -1615,7 +1655,7 @@ private struct OCRPersistentJobSafetyView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("開始", action: onStart)
+                    Button(isHighAccuracyMode ? "全数高精度OCRを開始" : "開始", action: onStart)
                         .disabled(blockingReason != nil)
                 }
             }
@@ -1923,7 +1963,14 @@ private struct OCRJobProgressCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Text("OCR結果は端末内で扱います。元写真・元動画は削除・変更しません。端末が熱くなった場合は自動的に一時停止します。")
+            if job.state == .paused {
+                Text("完了済みのOCR結果は保存されています。端末状態が落ち着いたら続きから再開できます。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text("OCR結果は端末内で扱います。元写真・元動画は削除・変更しません。端末が熱くなった場合は自動的に減速または一時停止します。")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1939,7 +1986,7 @@ private struct OCRJobProgressCard: View {
                         .controlSize(.small)
                 }
 
-                Button("終了", role: .destructive, action: onCancel)
+                Button("このまま終了", role: .destructive, action: onCancel)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(job.state == .completed || job.state == .cancelled)

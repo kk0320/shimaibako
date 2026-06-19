@@ -21,6 +21,7 @@ final class OCRJobRunner: ObservableObject {
     private var didReceiveMemoryWarning = false
     private var allowsNetworkAccessForCurrentRun = false
     private var lastSnapshotPublishedAt = Date.distantPast
+    private let snapshotThrottleInterval: TimeInterval = 0.5
 
     init(
         store: OCRJobStore = OCRJobStore(),
@@ -209,6 +210,7 @@ final class OCRJobRunner: ObservableObject {
                 if let updatedJob = try await store.job(id: jobID) {
                     publish(job: updatedJob, force: false, isRunning: true)
                 }
+                try await applyThermalBackoffIfNeeded(jobID: jobID)
                 await Task.yield()
             }
 
@@ -325,7 +327,7 @@ final class OCRJobRunner: ObservableObject {
 
     private func publish(job: OCRJob?, force: Bool, isRunning: Bool) {
         let now = Date()
-        guard force || now.timeIntervalSince(lastSnapshotPublishedAt) > 0.35 else {
+        guard force || now.timeIntervalSince(lastSnapshotPublishedAt) > snapshotThrottleInterval else {
             return
         }
 
@@ -348,14 +350,38 @@ final class OCRJobRunner: ObservableObject {
             return "低電力モードのためOCRを一時停止しています"
         }
 
+        if deviceSafety.thermalState == .critical {
+            return "端末保護のためOCRを停止しました。続きから再開できます。"
+        }
+
+        if deviceSafety.thermalState == .serious {
+            return "端末の温度が高いため一時停止しています。続きから再開できます。"
+        }
+
         if let blockingReason = deviceSafety.blockingReasonForLargeWork {
-            if deviceSafety.thermalState == .serious || deviceSafety.thermalState == .critical {
-                return "端末の温度が高いため一時停止しました"
-            }
             return blockingReason
         }
 
         return nil
+    }
+
+    private func applyThermalBackoffIfNeeded(jobID: String) async throws {
+        guard let deviceSafety else {
+            return
+        }
+
+        deviceSafety.refresh()
+        guard deviceSafety.thermalState == .fair else {
+            return
+        }
+
+        let message = "端末の温度を見ながらゆっくり処理しています"
+        let job = try await store.setJobState(.running, jobID: jobID, pausedReason: message)
+        publish(job: job, force: true, isRunning: true)
+
+        let scope = job?.scope ?? snapshot.job?.scope
+        let delay: UInt64 = scope == .fullAccurate ? 3_000_000_000 : 1_500_000_000
+        try? await Task.sleep(nanoseconds: delay)
     }
 
     private func itemState(for result: OCRResultRecord?, attemptCount: Int) -> OCRJobItemState {
