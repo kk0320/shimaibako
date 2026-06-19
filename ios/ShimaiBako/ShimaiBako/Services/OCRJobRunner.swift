@@ -155,6 +155,10 @@ final class OCRJobRunner: ObservableObject {
             return blockedStart("クイックOCRはまとめてOCRの経路で実行してください。", traceID: traceID)
         }
 
+        if plan.jobScope.isPersistentFullScope {
+            return blockedStart("ライブラリ全体を対象にしたOCRは通常UIでは使用しません。まとめてOCR（最大2,000件）を使ってください。", traceID: traceID)
+        }
+
         do {
             try await store.repairInvalidJobStates()
             let repairedJob = try await store.activeJob()
@@ -172,7 +176,7 @@ final class OCRJobRunner: ObservableObject {
         do {
             if let existingJob = try await store.activeJob(),
                existingJob.state.isActive {
-                return blockedStart("未完了の全数OCRジョブがあります。管理メニューから再開または終了してください。", traceID: traceID)
+                return blockedStart("未完了のOCRジョブがあります。通常UIでは新しいOCRを開始できません。", traceID: traceID)
             }
         } catch {
             return failedStart("OCRジョブDBを確認できませんでした: \(error.localizedDescription)", traceID: traceID)
@@ -972,7 +976,7 @@ final class OCRJobRunner: ObservableObject {
         switch scope {
         case .visibleLimit20:
             .small
-        case .visibleLimit50, .visibleLimit100:
+        case .visibleLimit50, .visibleLimit100, .currentFilterLimit500, .currentFilterLimit2000:
             .medium
         case .currentFilterAll:
             .large

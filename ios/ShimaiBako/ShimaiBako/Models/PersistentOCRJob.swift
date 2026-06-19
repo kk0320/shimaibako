@@ -4,6 +4,8 @@ enum QuickOCRLimit: Int, CaseIterable, Identifiable, Sendable, Equatable {
     case twenty = 20
     case fifty = 50
     case oneHundred = 100
+    case fiveHundred = 500
+    case twoThousand = 2000
 
     nonisolated var id: Int {
         rawValue
@@ -17,6 +19,10 @@ enum QuickOCRLimit: Int, CaseIterable, Identifiable, Sendable, Equatable {
             "最大50件"
         case .oneHundred:
             "最大100件"
+        case .fiveHundred:
+            "最大500件"
+        case .twoThousand:
+            "最大2,000件"
         }
     }
 
@@ -28,6 +34,28 @@ enum QuickOCRLimit: Int, CaseIterable, Identifiable, Sendable, Equatable {
             "50件"
         case .oneHundred:
             "100件"
+        case .fiveHundred:
+            "500件"
+        case .twoThousand:
+            "2,000件"
+        }
+    }
+
+    nonisolated var sourceTitle: String {
+        switch self {
+        case .twenty, .fifty, .oneHundred:
+            "表示中から"
+        case .fiveHundred, .twoThousand:
+            "現在の絞り込み結果から"
+        }
+    }
+
+    nonisolated var usesCurrentFilterResults: Bool {
+        switch self {
+        case .twenty, .fifty, .oneHundred:
+            false
+        case .fiveHundred, .twoThousand:
+            true
         }
     }
 
@@ -39,6 +67,10 @@ enum QuickOCRLimit: Int, CaseIterable, Identifiable, Sendable, Equatable {
             .visibleLimit50
         case .oneHundred:
             .visibleLimit100
+        case .fiveHundred:
+            .currentFilterLimit500
+        case .twoThousand:
+            .currentFilterLimit2000
         }
     }
 }
@@ -85,11 +117,11 @@ enum OCRExecutionPlan: Sendable, Equatable {
     nonisolated var title: String {
         switch self {
         case .quick(_, let limit):
-            "表示中の候補からOCR（\(limit.compactTitle)）"
+            "\(limit.sourceTitle)OCR（\(limit.compactTitle)）"
         case .filteredAll:
             "現在の絞り込み結果すべて"
         case .smartLibrary:
-            "スマート全数OCR（推奨）"
+            "旧ライブラリOCR（無効）"
         case .accuracyReview:
             "検索精度をさらに上げる"
         }
@@ -243,6 +275,8 @@ enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
     case visibleLimit20
     case visibleLimit50
     case visibleLimit100
+    case currentFilterLimit500
+    case currentFilterLimit2000
     case currentFilterAll
     case smartFull
     case fullAccurate
@@ -259,12 +293,16 @@ enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
             "表示中から最大50件"
         case .visibleLimit100:
             "表示中から最大100件"
+        case .currentFilterLimit500:
+            "現在の絞り込み結果から最大500件"
+        case .currentFilterLimit2000:
+            "現在の絞り込み結果から最大2,000件"
         case .currentFilterAll:
             "現在の絞り込み結果すべて"
         case .smartFull:
-            "スマート全数OCR（推奨）"
+            "旧ライブラリOCR（無効）"
         case .fullAccurate:
-            "全数高精度OCR（上級者向け）"
+            "旧高負荷OCR（無効）"
         }
     }
 
@@ -276,6 +314,10 @@ enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
             "50件"
         case .visibleLimit100:
             "100件"
+        case .currentFilterLimit500:
+            "500件"
+        case .currentFilterLimit2000:
+            "2,000件"
         case .currentFilterAll:
             "絞り込み全件"
         case .smartFull:
@@ -289,6 +331,8 @@ enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .visibleLimit20, .visibleLimit50, .visibleLimit100:
             "表示中の候補を少しだけOCRします"
+        case .currentFilterLimit500, .currentFilterLimit2000:
+            "現在の検索・カテゴリで絞り込んだ写真を上限つきでOCRします"
         case .currentFilterAll:
             "現在の検索・カテゴリで絞り込んだ写真を段階的にOCRします"
         case .smartFull:
@@ -300,7 +344,7 @@ enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
 
     nonisolated var isPersistentFullScope: Bool {
         switch self {
-        case .visibleLimit20, .visibleLimit50, .visibleLimit100:
+        case .visibleLimit20, .visibleLimit50, .visibleLimit100, .currentFilterLimit500, .currentFilterLimit2000:
             false
         case .currentFilterAll, .smartFull, .fullAccurate:
             true
@@ -315,6 +359,10 @@ enum OCRJobScope: String, Codable, CaseIterable, Identifiable {
             50
         case .visibleLimit100:
             100
+        case .currentFilterLimit500:
+            500
+        case .currentFilterLimit2000:
+            2000
         case .currentFilterAll, .smartFull, .fullAccurate:
             nil
         }

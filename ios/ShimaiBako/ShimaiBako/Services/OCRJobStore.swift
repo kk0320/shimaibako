@@ -144,6 +144,30 @@ actor OCRJobStore {
         try execute("""
         UPDATE ocr_jobs
         SET state = ?, paused_reason = ?, current_phase = NULL, current_asset_identifier = NULL, updated_at = ?, last_heartbeat_at = ?
+        WHERE scope IN (?, ?, ?)
+          AND state IN (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, bindings: [
+            .text(OCRJobState.cancelled.rawValue),
+            .text("disabledFullOCRJob"),
+            .date(now),
+            .date(now),
+            .text(OCRJobScope.currentFilterAll.rawValue),
+            .text(OCRJobScope.smartFull.rawValue),
+            .text(OCRJobScope.fullAccurate.rawValue),
+            .text(OCRJobState.preparing.rawValue),
+            .text(OCRJobState.pending.rawValue),
+            .text(OCRJobState.running.rawValue),
+            .text(OCRJobState.throttled.rawValue),
+            .text(OCRJobState.finalizing.rawValue),
+            .text(OCRJobState.paused.rawValue),
+            .text(OCRJobState.pausedThermal.rawValue),
+            .text(OCRJobState.pausedUser.rawValue),
+            .text(OCRJobState.cancelling.rawValue)
+        ])
+
+        try execute("""
+        UPDATE ocr_jobs
+        SET state = ?, paused_reason = ?, current_phase = NULL, current_asset_identifier = NULL, updated_at = ?, last_heartbeat_at = ?
         WHERE state IN (?, ?, ?, ?, ?, ?, ?, ?, ?)
           AND total_count = 0
           AND updated_at <= ?
@@ -172,7 +196,7 @@ actor OCRJobStore {
           AND last_heartbeat_at <= ?
         """, bindings: [
             .text(OCRJobState.pausedUser.rawValue),
-            .text("前回の全数OCRが途中で止まりました。続きから再開できます。"),
+            .text("前回のOCRジョブが途中で止まりました。続きから再開できます。"),
             .text(OCRCurrentPhase.selectingTargets.rawValue),
             .date(now),
             .text(OCRJobState.preparing.rawValue),
@@ -203,7 +227,9 @@ actor OCRJobStore {
         )
 
         return candidates.first { job in
-            job.isDisplayableProgressJob() && (job.totalCount > 0 || job.state == .preparing || job.state == .pending)
+            job.scope.isPersistentFullScope == false &&
+            job.isDisplayableProgressJob() &&
+            (job.totalCount > 0 || job.state == .preparing || job.state == .pending)
         }
     }
 

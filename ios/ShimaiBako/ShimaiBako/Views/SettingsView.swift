@@ -243,7 +243,7 @@ struct SettingsView: View {
             }
 
             VStack(spacing: 8) {
-                Toggle("全数OCR診断行を表示", isOn: $showsOCRDebugDiagnostics)
+                Toggle("OCR診断行を表示", isOn: $showsOCRDebugDiagnostics)
                     .font(.caption.weight(.semibold))
                     .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
 
@@ -270,7 +270,7 @@ struct SettingsView: View {
                 Button {
                     ocrJobRunner.startDebugDummyFullOCRProgress(totalCount: 30_000, itemDelayNanoseconds: 2_000_000)
                 } label: {
-                    Label("ダミー全数OCRを開始", systemImage: "timer")
+                    Label("開発用ダミーOCRを開始", systemImage: "timer")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -278,7 +278,7 @@ struct SettingsView: View {
                 Button {
                     ocrJobRunner.repairJobStateForUI()
                 } label: {
-                    Label("全数OCRジョブ状態を整理", systemImage: "wrench.and.screwdriver")
+                    Label("OCRジョブ状態を整理", systemImage: "wrench.and.screwdriver")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -299,7 +299,7 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("全数OCRジョブ状態の整理は、壊れたジョブ制御状態だけを整理します。OCR結果、検索インデックス、手動分類、不要候補、メモ、タグは削除しません。")
+            Text("OCRジョブ状態の整理は、壊れたジョブ制御状態だけを整理します。OCR結果、検索インデックス、手動分類、不要候補、メモ、タグは削除しません。")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -497,33 +497,30 @@ struct SettingsView: View {
 
             DetailInfoRow(title: "OCR言語", value: OCRConfiguration.recognitionLanguageTitle)
             DetailInfoRow(title: "OCR精度", value: OCRConfiguration.recognitionQualityTitle)
-            DetailInfoRow(title: "クイックOCR", value: OCRConfiguration.quickBatchLimitTitle)
-            DetailInfoRow(title: "絞り込み結果OCR", value: "対応済み")
-            DetailInfoRow(title: "スマート全数OCR", value: "推奨")
-            DetailInfoRow(title: "全数高精度OCR", value: "上級者向け")
+            DetailInfoRow(title: "まとめてOCR", value: OCRConfiguration.quickBatchLimitTitle)
+            DetailInfoRow(title: "最大処理件数", value: "2,000件")
+            DetailInfoRow(title: "実行範囲", value: "表示中 / 現在の絞り込み結果")
             DetailInfoRow(title: "OCR画像サイズ", value: OCRConfiguration.maxRecognitionImageLongSideTitle)
             DetailInfoRow(title: "OCR済み写真", value: "\(indexSummary.completedOCRCount)件")
             DetailInfoRow(title: "インデックス保存先", value: "端末内")
             DetailInfoRow(title: "保存内容", value: "OCR結果・検索インデックス")
-
-            ocrJobStatusRows
 
             Text("OCR結果、分類結果、検索用メタデータだけを端末内に保存します。元写真・元動画やサムネイル本体は保存しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("スマート全数OCRを推奨します。スクショ・書類を優先し、端末状態に合わせて少しずつOCRします。")
+            Text("まとめてOCRは、表示中または現在の絞り込み結果から選択した上限まで処理します。2,000件を超えて自動継続しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("全数高精度OCRは上級者向けです。長時間かかり、発熱やバッテリー消費が大きくなる場合があります。充電中かつ涼しく安定した場所での実行をおすすめします。")
+            Text("500件や2,000件は時間がかかる場合があります。充電中かつ涼しく安定した場所での実行をおすすめします。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("端末が熱い場合は自動で減速または一時停止します。完了済みのOCR結果は端末内に保存され、続きから再開できます。")
+            Text("端末状態が悪い場合は開始を止めます。完了済みのOCR結果は端末内に保存され、元写真・元動画は削除・変更されません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -542,7 +539,7 @@ struct SettingsView: View {
     private var ocrJobStatusRows: some View {
         Divider()
 
-        DetailInfoRow(title: "全数OCR状態", value: currentOCRJobStateTitle)
+        DetailInfoRow(title: "OCRジョブ状態", value: currentOCRJobStateTitle)
 
         if let progress = currentOCRProgress {
             DetailInfoRow(title: "対象", value: "\(progress.total)件")
