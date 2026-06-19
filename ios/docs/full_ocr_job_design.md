@@ -384,6 +384,20 @@ Debug buildでは個人情報を含まない `OCR_JOB state=... completed=... to
 
 復元後は `OCRProgressStore.activeSnapshot` を再作成する。写真画面とOCR runnerは同じ `OCRProgressStore` インスタンスを共有し、DEBUG buildではstore識別子とsnapshot状態をログで確認できる。
 
+## 壊れた空ジョブの扱い
+
+`completed` でありながら `totalCount = 0`、かつ文字あり、文字なし、スキップ、iCloud待ち、失敗がすべて0のジョブは、完走結果ではなく壊れたジョブ制御状態として扱う。この状態は `0 / 0件 完了` として画面に出さない。
+
+表示対象は次の3つに分ける。
+
+- `activeSnapshot`: 準備中、実行中、減速中、一時停止中、終了処理中など、ユーザーが管理できる未完了ジョブ
+- `latestCompletedSummary`: `totalCount > 0` かつ処理済み件数が対象件数以上の有効な完了サマリ
+- ignored invalid jobs: 空の完了ジョブ、空の古い実行中ジョブ、空の終端ジョブ
+
+Debug buildでは、無視した空ジョブを `invalidEmptyCompletedJob` などの理由付きログに残す。通常UIでは表示しない。
+
+SettingsのDebugメニューにある `全数OCRジョブ状態を整理` は、壊れたジョブ制御状態だけを整理する。写真本体、OCR結果、SearchDocument、PhotoRecord、手動分類、不要候補、メモ、タグは削除しない。
+
 ## やってはいけない実装
 
 - 28,000件分のPHAssetやUIImageをメモリに保持する
