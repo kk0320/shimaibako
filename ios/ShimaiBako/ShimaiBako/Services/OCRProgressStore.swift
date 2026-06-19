@@ -3,7 +3,11 @@ import Foundation
 
 @MainActor
 final class OCRProgressStore: ObservableObject {
-    @Published private(set) var snapshot: OCRProgressSnapshot?
+    @Published private(set) var activeSnapshot: OCRProgressSnapshot?
+
+    var snapshot: OCRProgressSnapshot? {
+        activeSnapshot
+    }
 
     private var lastPublishedAt = Date.distantPast
     private let publishInterval: TimeInterval = 0.5
@@ -12,7 +16,7 @@ final class OCRProgressStore: ObservableObject {
         guard let job,
               let nextSnapshot = OCRProgressSnapshot(job: job, isRunning: isRunning) else {
             if force {
-                snapshot = nil
+                activeSnapshot = nil
             }
             return
         }
@@ -23,6 +27,6 @@ final class OCRProgressStore: ObservableObject {
         }
 
         lastPublishedAt = now
-        snapshot = nextSnapshot
+        activeSnapshot = nextSnapshot
     }
 }

@@ -23,7 +23,7 @@ struct PhotoGridView: View {
     let indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var deviceSafety: DeviceSafetyService
-    @ObservedObject var ocrProgressStore: OCRProgressStore
+    let ocrProgressStore: OCRProgressStore
     @ObservedObject var ocrJobRunner: OCRJobRunner
     let mode: PhotoGridMode
     @Environment(\.scenePhase) private var scenePhase
@@ -176,6 +176,12 @@ struct PhotoGridView: View {
 
     private var isBulkOCRBusy: Bool {
         isRunningBulkOCR || bulkOCRTask != nil
+    }
+
+    private var isPersistentOCRBlockingBatch: Bool {
+        ocrJobRunner.isRunning ||
+        ocrJobRunner.isPreparingJob ||
+        (ocrJobRunner.activeJob?.state.isActive ?? false)
     }
 
     private var visibleOCRClearTargets: [PhotoAsset] {
@@ -952,7 +958,7 @@ struct PhotoGridView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isBulkOCRBusy || ocrJobRunner.isRunning)
+                .disabled(isBulkOCRBusy || isPersistentOCRBlockingBatch)
                 .accessibilityLabel("OCR件数を選択")
 
                 if isRunningBulkOCR {
@@ -978,7 +984,7 @@ struct PhotoGridView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                    .disabled(isBulkOCRBusy || ocrJobRunner.isRunning || ocrJobRunner.isPreparingJob)
+                    .disabled(isBulkOCRBusy || isPersistentOCRBlockingBatch)
                 }
 
                 Button {
@@ -1111,7 +1117,7 @@ struct PhotoGridView: View {
                 .disabled(isBulkOCRBusy)
             }
 
-            if ocrJobRunner.isRunning {
+            if isPersistentOCRBlockingBatch {
                 Text("全数OCRを実行中です。まとめてOCRは待機していますが、全数OCRの管理は続けられます。")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color(red: 0.75, green: 0.37, blue: 0.08))
@@ -1216,8 +1222,13 @@ struct PhotoGridView: View {
 
     @ViewBuilder
     private var persistentOCRProgressSection: some View {
-        FullOCRProgressCard(
+        CompactFullOCRProgressView(
             progressStore: ocrProgressStore,
+            onShowDetails: {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    showsOCRDetails = true
+                }
+            },
             onPause: {
                 ocrJobRunner.pause()
             },
@@ -2064,8 +2075,9 @@ private struct SafetyBullet: View {
     }
 }
 
-private struct FullOCRProgressCard: View {
+private struct CompactFullOCRProgressView: View {
     @ObservedObject var progressStore: OCRProgressStore
+    let onShowDetails: () -> Void
     let onPause: () -> Void
     let onResume: () -> Void
     let onCancel: () -> Void
@@ -2073,31 +2085,35 @@ private struct FullOCRProgressCard: View {
     let onResumeCloudPending: () -> Void
 
     var body: some View {
-        if let snapshot = progressStore.snapshot {
+        if let snapshot = progressStore.activeSnapshot {
             progressContent(snapshot)
         }
     }
 
     private func progressContent(_ snapshot: OCRProgressSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 8) {
-                Label(snapshot.stateTitle, systemImage: icon(for: snapshot.state))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label(title(for: snapshot), systemImage: icon(for: snapshot.state))
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(titleColor(for: snapshot))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
 
                 Spacer(minLength: 0)
 
-                Text(snapshot.scopeTitle)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                Button(action: onShowDetails) {
+                    Text("詳細")
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
             }
 
             ProgressView(value: snapshot.fractionCompleted)
                 .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
 
-            HStack(spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("\(snapshot.completed) / \(snapshot.total)件")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
@@ -2105,23 +2121,15 @@ private struct FullOCRProgressCard: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
+
+                Text(speedSummary(snapshot))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             HStack(spacing: 8) {
-                OCRJobMetric(title: "文字あり", value: snapshot.textFound)
-                OCRJobMetric(title: "文字なし", value: snapshot.noText)
-                OCRJobMetric(title: "失敗", value: snapshot.failed)
-            }
-
-            HStack(spacing: 8) {
-                OCRJobMetric(title: "iCloud待ち", value: snapshot.cloudPending)
-                OCRJobMetric(title: "スキップ", value: snapshot.skipped)
-                OCRJobTextMetric(title: "速度", value: speedText(snapshot.itemsPerMinute))
-                OCRJobTextMetric(title: "残り", value: remainingText(snapshot.estimatedRemainingSeconds))
-            }
-
-            HStack(spacing: 8) {
-                Label("現在: \(snapshot.phaseTitle)", systemImage: "waveform.path.ecg")
+                Text("文字あり \(snapshot.textFound)件・文字なし \(snapshot.noText)件・失敗 \(snapshot.failed)件")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -2130,10 +2138,21 @@ private struct FullOCRProgressCard: View {
                 Spacer(minLength: 0)
             }
 
-            Label(snapshot.heartbeatStatusText, systemImage: heartbeatIcon(for: snapshot.heartbeatAge))
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(snapshot.heartbeatAge > 30 ? Color(red: 0.75, green: 0.24, blue: 0.18) : .secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label("現在: \(snapshot.phaseTitle)", systemImage: "waveform.path.ecg")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer(minLength: 0)
+
+                Label(snapshot.heartbeatStatusText, systemImage: heartbeatIcon(for: snapshot.heartbeatAge))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(snapshot.heartbeatAge > 30 ? Color(red: 0.75, green: 0.24, blue: 0.18) : .secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
 
             if snapshot.heartbeatAge > 30 {
                 Text("完了済みの結果は保存されています。処理を再接続するか、いったん停止できます。")
@@ -2142,21 +2161,7 @@ private struct FullOCRProgressCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if let pausedReason = snapshot.pausedReason, pausedReason.isEmpty == false {
-                Text(pausedReason)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(Color(red: 0.75, green: 0.37, blue: 0.08))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if snapshot.state == .pausedThermal || snapshot.state == .pausedUser {
-                Text("完了済みのOCR結果は保存されています。端末状態が落ち着いたら続きから再開できます。")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Text("OCR結果は端末内で扱います。元写真・元動画は削除・変更しません。端末が熱くなった場合は自動的に減速または一時停止します。")
+            Text(statusDetail(for: snapshot))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -2168,7 +2173,7 @@ private struct FullOCRProgressCard: View {
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                 case .preparing, .pausedThermal, .pausedUser, .failed:
-                    Button("再開", action: onResume)
+                    Button(snapshot.state == .failed ? "再開" : "再開を試す", action: onResume)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                 case .cancelling, .completed:
@@ -2195,8 +2200,61 @@ private struct FullOCRProgressCard: View {
                 Spacer(minLength: 0)
             }
         }
-        .padding(12)
+        .padding(10)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func title(for snapshot: OCRProgressSnapshot) -> String {
+        switch snapshot.state {
+        case .preparing:
+            "全数OCRを準備中"
+        case .running:
+            "全数OCR 実行中"
+        case .throttled:
+            "温度を見ながらゆっくり処理中"
+        case .pausedThermal:
+            "端末を冷ますため一時停止中"
+        case .pausedUser:
+            "全数OCRは一時停止中"
+        case .cancelling:
+            "全数OCRを終了しています"
+        case .completed:
+            "全数OCRが完了しました"
+        case .failed:
+            "全数OCRを継続できませんでした"
+        }
+    }
+
+    private func titleColor(for snapshot: OCRProgressSnapshot) -> Color {
+        switch snapshot.state {
+        case .pausedThermal, .failed:
+            Color(red: 0.75, green: 0.24, blue: 0.18)
+        case .throttled:
+            Color(red: 0.75, green: 0.37, blue: 0.08)
+        default:
+            Color(red: 0.07, green: 0.18, blue: 0.31)
+        }
+    }
+
+    private func statusDetail(for snapshot: OCRProgressSnapshot) -> String {
+        switch snapshot.state {
+        case .preparing:
+            "対象写真を確認しています。元写真・元動画は削除・変更しません。"
+        case .running:
+            "OCR結果は端末内で扱います。まとめてOCRは全数OCRの完了まで待機します。"
+        case .throttled:
+            "端末の状態に合わせてペースを落としています。"
+        case .pausedThermal:
+            "完了済みの\(snapshot.completed)件は保存されています。端末が冷めたら続きから再開できます。"
+        case .pausedUser:
+            "続きから再開できます。完了済みのOCR結果は保存されています。"
+        case .cancelling:
+            "未処理分だけを止めています。完了済みのOCR結果は残ります。"
+        case .completed:
+            "OCR結果を確認できます。元写真・元動画は削除・変更していません。"
+        case .failed:
+            snapshot.pausedReason ?? "詳細から状態を確認し、必要なら再開できます。"
+        }
     }
 
     private func icon(for state: OCRProgressSnapshot.State) -> String {
@@ -2222,6 +2280,12 @@ private struct FullOCRProgressCard: View {
 
     private func heartbeatIcon(for age: TimeInterval) -> String {
         age > 30 ? "exclamationmark.triangle.fill" : "dot.radiowaves.left.and.right"
+    }
+
+    private func speedSummary(_ snapshot: OCRProgressSnapshot) -> String {
+        let speed = speedText(snapshot.itemsPerMinute)
+        let remaining = remainingText(snapshot.estimatedRemainingSeconds)
+        return "\(speed)・残り\(remaining)"
     }
 
     private func speedText(_ itemsPerMinute: Double?) -> String {

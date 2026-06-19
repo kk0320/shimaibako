@@ -297,6 +297,10 @@ OCRジョブ進捗は専用のジョブ状態として表示する。
 
 OCR進捗は `OCRProgressStore` に小さな値型スナップショットとして流す。`PhotoGridView` の写真配列、件数チップ、カテゴリチップ、サムネイルパイプラインとは分離し、進捗カードだけが購読する。SwiftUIへのpublishは最大500msに1回程度に間引く。
 
+写真画面では `OCRProgressStore.activeSnapshot` がある場合にコンパクト進捗カードを表示する。カードには状態、`completed / total`、ProgressView、パーセント、現在phase、Heartbeat、速度、残り時間、最低限の操作だけを出し、詳細は管理導線へ逃がす。`PhotoGridView` 本体は進捗storeを直接監視せず、OCRカードだけが進捗を購読する。
+
+全数OCRが準備中、実行中、減速中、一時停止中、終了処理中の場合、`全数OCRを管理` は有効にし、`まとめてOCR` は待機扱いにする。競合するOCR処理を同時に走らせない。
+
 ## Heartbeatと停止検出
 
 OCRワーカーは数秒ごとに `lastHeartbeatAt`、`currentPhase`、`currentAssetIdentifier` を更新する。個人情報に近い写真名、写真パス、OCR本文、サムネイルはログやUIに出さない。
