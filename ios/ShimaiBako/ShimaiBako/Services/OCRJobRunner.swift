@@ -521,7 +521,7 @@ final class OCRJobRunner: ObservableObject {
     }
 
     #if DEBUG
-    func startDebugDummyFullOCRProgress(totalCount: Int = 120) {
+    func startDebugDummyFullOCRProgress(totalCount: Int = 120, itemDelayNanoseconds: UInt64 = 1_000_000_000) {
         guard isRunning == false,
               isPreparingJob == false,
               snapshot.job?.state.isActive != true else {
@@ -531,11 +531,14 @@ final class OCRJobRunner: ObservableObject {
         cancelRequested = false
         pauseRequestedReason = nil
         runTask = Task { [weak self] in
-            await self?.runDebugDummyFullOCRProgress(totalCount: totalCount)
+            await self?.runDebugDummyFullOCRProgress(
+                totalCount: totalCount,
+                itemDelayNanoseconds: itemDelayNanoseconds
+            )
         }
     }
 
-    private func runDebugDummyFullOCRProgress(totalCount: Int) async {
+    private func runDebugDummyFullOCRProgress(totalCount: Int, itemDelayNanoseconds: UInt64) async {
         let inputs = (0..<totalCount).map { index in
             OCRJobItemInput(
                 assetIdentifier: "debug-dummy-full-ocr-\(index)",
@@ -560,17 +563,17 @@ final class OCRJobRunner: ObservableObject {
 
                 _ = try await store.updateHeartbeat(
                     jobID: job.id,
-                    phase: .recognizingText,
+                    phase: debugPhase(for: input.priority),
                     assetIdentifier: input.assetIdentifier,
                     state: .running,
                     pausedReason: nil
                 )
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                try? await Task.sleep(nanoseconds: itemDelayNanoseconds)
                 let updated = try await store.finishItem(
                     jobID: job.id,
                     assetIdentifier: input.assetIdentifier,
-                    state: .completedNoText,
-                    errorCode: nil
+                    state: debugResultState(for: input.priority),
+                    errorCode: debugResultState(for: input.priority) == .permanentFailure ? "debug-failure" : nil
                 )
                 publish(job: updated, force: true, isRunning: true)
             }
@@ -599,6 +602,30 @@ final class OCRJobRunner: ObservableObject {
 
         stopHeartbeat()
         runTask = nil
+    }
+
+    private func debugPhase(for index: Int) -> OCRCurrentPhase {
+        switch index % 4 {
+        case 0:
+            .selectingTargets
+        case 1:
+            .requestingImage
+        case 2:
+            .recognizingText
+        default:
+            .savingResult
+        }
+    }
+
+    private func debugResultState(for index: Int) -> OCRJobItemState {
+        switch index % 1000 {
+        case 0:
+            .permanentFailure
+        case 1..<250:
+            .completedNoText
+        default:
+            .completedText
+        }
     }
     #endif
 

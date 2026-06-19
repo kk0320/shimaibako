@@ -19,6 +19,8 @@ nonisolated protocol PhotoIndexStoring: Sendable {
     func categoryCounts(displayState: PhotoDisplayState?) async throws -> [PhotoCategory: Int]
     func screenshotSubcategoryCounts(displayState: PhotoDisplayState?) async throws -> [ScreenshotSubcategory: Int]
     func summary() async throws -> PhotoIndexSummary
+    func searchIndexPreparationState() async throws -> SearchIndexPreparationState
+    func prepareSearchIndexIfNeeded() async throws -> SearchIndexPreparationState
 }
 
 nonisolated struct PhotoIndexPageRequest: Equatable, Sendable {
@@ -42,6 +44,61 @@ nonisolated struct PhotoIndexPageRequest: Equatable, Sendable {
 nonisolated struct PhotoIndexPage: Equatable, Sendable {
     var localIdentifiers: [String]
     var totalCount: Int
+}
+
+nonisolated struct SearchIndexPreparationState: Codable, Equatable, Sendable {
+    enum State: String, Codable, Sendable {
+        case notStarted
+        case preparing
+        case running
+        case paused
+        case completed
+        case failed
+    }
+
+    var libraryRevision: Int64
+    var totalCount: Int
+    var completedCount: Int
+    var state: State
+    var startedAt: Date?
+    var updatedAt: Date?
+    var completedAt: Date?
+    var lastProcessedAssetIdentifier: String?
+    var lastOperation: String?
+    var lastError: String?
+    var schemaVersion: Int
+    var indexVersion: Int
+
+    static let empty = SearchIndexPreparationState(
+        libraryRevision: 0,
+        totalCount: 0,
+        completedCount: 0,
+        state: .notStarted,
+        startedAt: nil,
+        updatedAt: nil,
+        completedAt: nil,
+        lastProcessedAssetIdentifier: nil,
+        lastOperation: nil,
+        lastError: nil,
+        schemaVersion: 1,
+        indexVersion: 1
+    )
+
+    var isComplete: Bool {
+        state == .completed && completedAt != nil && completedCount >= totalCount
+    }
+
+    func isStale(referenceDate: Date = Date(), threshold: TimeInterval = 180) -> Bool {
+        switch state {
+        case .preparing, .running:
+            guard let updatedAt else {
+                return true
+            }
+            return referenceDate.timeIntervalSince(updatedAt) >= threshold
+        case .notStarted, .paused, .completed, .failed:
+            return false
+        }
+    }
 }
 
 nonisolated struct FilterCountsSnapshot: Equatable, Sendable {
@@ -351,6 +408,14 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
 
     func summary() async throws -> PhotoIndexSummary {
         PhotoIndexSummary(records: try await loadAll())
+    }
+
+    func searchIndexPreparationState() async throws -> SearchIndexPreparationState {
+        .empty
+    }
+
+    func prepareSearchIndexIfNeeded() async throws -> SearchIndexPreparationState {
+        .empty
     }
 
     private func write(_ records: [PhotoIndexRecord]) throws {

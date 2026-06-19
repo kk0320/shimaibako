@@ -7,7 +7,11 @@ final class PhotoIndexService: ObservableObject {
     @Published private(set) var recordsByAssetID: [String: PhotoIndexRecord] = [:]
     @Published private(set) var indexSummary: PhotoIndexSummary = .empty
     @Published private(set) var filterCountsSnapshot: FilterCountsSnapshot = .empty
+    @Published private(set) var searchIndexPreparationState: SearchIndexPreparationState = .empty
     @Published var errorMessage: String?
+    #if DEBUG
+    @Published private(set) var debugLargeLibraryStatusText: String?
+    #endif
 
     private let store: any PhotoIndexStoring
     private let learningService: ManualCategoryLearningService
@@ -927,14 +931,13 @@ final class PhotoIndexService: ObservableObject {
 
     private func loadPersistedRecords() async {
         do {
-            isIndexStorePreparing = true
-            indexStoreStatusText = "検索インデックスを準備しています"
-            progressStore.update(statusText: indexStoreStatusText)
+            searchIndexPreparationState = try await store.searchIndexPreparationState()
             let records = try await store.loadPage(limit: 500, offset: 0)
             recordsByAssetID = [:]
             recordCacheOrder = []
             updateRecordCache(with: records)
             try await refreshStoreStats()
+            searchIndexPreparationState = try await store.searchIndexPreparationState()
             indexStoreStatusText = nil
             isIndexStorePreparing = false
             progressStore.update(statusText: nil)
@@ -944,6 +947,201 @@ final class PhotoIndexService: ObservableObject {
             errorMessage = "インデックスを読み込めませんでした: \(error.localizedDescription)"
         }
     }
+
+    func prepareSearchIndexIfNeeded() async {
+        do {
+            isIndexStorePreparing = true
+            indexStoreStatusText = "検索インデックスを確認しています"
+            progressStore.update(statusText: indexStoreStatusText)
+            searchIndexPreparationState = try await store.prepareSearchIndexIfNeeded()
+            try await refreshStoreStats()
+            indexStoreStatusText = nil
+            isIndexStorePreparing = false
+            progressStore.update(statusText: nil)
+        } catch {
+            isIndexStorePreparing = false
+            progressStore.update(statusText: nil)
+            errorMessage = "検索インデックスを準備できませんでした: \(error.localizedDescription)"
+        }
+    }
+
+    #if DEBUG
+    func createDebugLargeLibraryFixture(totalCount: Int = 30_000) async {
+        debugLargeLibraryStatusText = "30,000件テストデータを作成中"
+        let batchSize = 500
+        var start = 0
+        while start < totalCount {
+            let end = min(start + batchSize, totalCount)
+            let records = (start..<end).map { makeDebugLargeLibraryRecord(index: $0, totalCount: totalCount) }
+            await persistRecords(records, refreshStats: false)
+            debugLargeLibraryStatusText = "テストデータ作成 \(end) / \(totalCount)件"
+            start = end
+            await Task.yield()
+        }
+
+        do {
+            try await refreshStoreStats()
+            await refreshFilterCountsSnapshot(scope: .active)
+            searchIndexPreparationState = try await store.searchIndexPreparationState()
+            debugLargeLibraryStatusText = "テストデータ作成完了 \(totalCount)件"
+        } catch {
+            debugLargeLibraryStatusText = "テストデータ作成後の集計に失敗: \(error.localizedDescription)"
+        }
+    }
+
+    func clearDebugLargeLibraryFixture() async {
+        do {
+            debugLargeLibraryStatusText = "テストデータを削除中"
+            let records = try await store.loadAll()
+            let keptRecords = records.filter { $0.localIdentifier.hasPrefix("debug-large-library-") == false }
+            try await store.saveAll(keptRecords)
+            recordsByAssetID = recordsByAssetID.filter { $0.key.hasPrefix("debug-large-library-") == false }
+            recordCacheOrder = recordCacheOrder.filter { $0.hasPrefix("debug-large-library-") == false }
+            try await refreshStoreStats()
+            await refreshFilterCountsSnapshot(scope: .active)
+            debugLargeLibraryStatusText = "テストデータ削除完了"
+        } catch {
+            debugLargeLibraryStatusText = "テストデータ削除に失敗: \(error.localizedDescription)"
+        }
+    }
+
+    func rebuildDebugSearchIndex() async {
+        await prepareSearchIndexIfNeeded()
+        debugLargeLibraryStatusText = "検索インデックス確認完了"
+    }
+
+    private func makeDebugLargeLibraryRecord(index: Int, totalCount: Int) -> PhotoIndexRecord {
+        let now = Date()
+        let identifier = "debug-large-library-\(String(format: "%05d", index))"
+        let isScreenshot = index < 12_000
+        let isDocument = index >= 12_000 && index < 22_000
+        let category: PhotoCategory
+        let screenshotSubcategory: ScreenshotSubcategory?
+        let mediaSubtype: UInt
+        let pixelWidth: Int
+        let pixelHeight: Int
+
+        if isScreenshot {
+            let subcategories: [ScreenshotSubcategory] = [
+                .memoIdeaCandidate, .webResearchCandidate, .reservationTicketCandidate,
+                .mapLocationCandidate, .shoppingReceiptCandidate, .appSettingsErrorCandidate,
+                .chatSNSCandidate, .workDocumentCandidate, .otherScreenshot
+            ]
+            category = .screenshots
+            screenshotSubcategory = subcategories[index % subcategories.count]
+            mediaSubtype = PHAssetMediaSubtype.photoScreenshot.rawValue
+            pixelWidth = 1179
+            pixelHeight = 2556
+        } else if isDocument {
+            let documentCategories: [PhotoCategory] = [
+                .documentCandidate, .receiptCandidate, .businessCardCandidate,
+                .whiteboardCandidate, .signboardCandidate
+            ]
+            category = documentCategories[index % documentCategories.count]
+            screenshotSubcategory = nil
+            mediaSubtype = 0
+            pixelWidth = 1600
+            pixelHeight = 2200
+        } else {
+            let generalCategories: [PhotoCategory] = [
+                .travelCandidate, .flowerPlantCandidate, .buildingCityCandidate,
+                .foodCandidate, .petAnimalCandidate, .uncategorized
+            ]
+            category = generalCategories[index % generalCategories.count]
+            screenshotSubcategory = nil
+            mediaSubtype = 0
+            pixelWidth = 4032
+            pixelHeight = 3024
+        }
+
+        let ocrStatus: OCRStatus
+        let ocrText: String
+        let ocrProcessedAt: Date?
+        switch index % 1000 {
+        case 0:
+            ocrStatus = .failed
+            ocrText = ""
+            ocrProcessedAt = now
+        case 1..<250:
+            ocrStatus = .completedNoText
+            ocrText = ""
+            ocrProcessedAt = now
+        case 250..<750:
+            ocrStatus = .completed
+            ocrText = debugOCRText(index: index, category: category, screenshotSubcategory: screenshotSubcategory)
+            ocrProcessedAt = now
+        default:
+            ocrStatus = .unprocessed
+            ocrText = ""
+            ocrProcessedAt = nil
+        }
+
+        let displayState: PhotoDisplayState
+        switch index % 97 {
+        case 0:
+            displayState = .hidden
+        case 1, 2:
+            displayState = .unwanted
+        case 3:
+            displayState = .archived
+        default:
+            displayState = .active
+        }
+
+        return PhotoIndexRecord(
+            localIdentifier: identifier,
+            creationDate: Calendar.current.date(byAdding: .minute, value: -index, to: now),
+            mediaTypeRawValue: PHAssetMediaType.image.rawValue,
+            mediaSubtypesRawValue: mediaSubtype,
+            pixelWidth: pixelWidth,
+            pixelHeight: pixelHeight,
+            isScreenshot: isScreenshot,
+            ocrStatus: ocrStatus,
+            ocrText: ocrText,
+            ocrLanguage: ocrStatus == .completed ? "ja+en" : nil,
+            ocrProcessedAt: ocrProcessedAt,
+            ocrErrorMessage: ocrStatus == .failed ? "Debug OCR failure" : nil,
+            inferredCategory: category,
+            categoryConfidence: isScreenshot || isDocument ? 0.78 : 0.42,
+            categoryReason: isScreenshot ? "Debugスクショ" : "Debug分類",
+            categoryUpdatedAt: now,
+            manualCategory: index.isMultiple(of: 211) ? category : nil,
+            manualScreenshotSubcategory: isScreenshot && index.isMultiple(of: 307) ? screenshotSubcategory : nil,
+            manualCategoryUpdatedAt: index.isMultiple(of: 211) ? now : nil,
+            screenshotSubcategory: screenshotSubcategory,
+            screenshotSubcategoryConfidence: screenshotSubcategory == nil ? nil : 0.76,
+            screenshotSubcategoryReason: screenshotSubcategory == nil ? nil : "Debug OCRキーワード",
+            screenshotSubcategoryUpdatedAt: screenshotSubcategory == nil ? nil : now,
+            displayState: displayState,
+            displayStateUpdatedAt: displayState == .active ? nil : now,
+            userMemo: index.isMultiple(of: 137) ? "Debug memo 東京 工事 メモ" : "",
+            userTags: index.isMultiple(of: 113) ? ["debug", category.title] : [],
+            lastSeenAt: now,
+            updatedAt: now
+        )
+    }
+
+    private func debugOCRText(index: Int, category: PhotoCategory, screenshotSubcategory: ScreenshotSubcategory?) -> String {
+        if let screenshotSubcategory {
+            return "Debug OCR \(index) \(screenshotSubcategory.title) 東京 メモ 予約 地図 領収書 電話番号"
+        }
+
+        switch category {
+        case .receiptCandidate:
+            return "Debug OCR \(index) 領収書 合計 送料 円 receipt order"
+        case .documentCandidate:
+            return "Debug OCR \(index) 書類 契約 見積 PDF document"
+        case .businessCardCandidate:
+            return "Debug OCR \(index) 名刺 電話 Email 会社"
+        case .whiteboardCandidate:
+            return "Debug OCR \(index) ホワイトボード 会議 TODO"
+        case .signboardCandidate:
+            return "Debug OCR \(index) 看板 営業中 案内"
+        default:
+            return "Debug OCR \(index) \(category.title) 東京 旅行 メモ"
+        }
+    }
+    #endif
 
     private func persistRecords(_ records: [PhotoIndexRecord], refreshStats: Bool = true) async {
         do {

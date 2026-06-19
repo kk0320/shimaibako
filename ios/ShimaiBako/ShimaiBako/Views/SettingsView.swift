@@ -57,6 +57,9 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         header
                         summaryCard
+                        #if DEBUG
+                        debugLargeLibraryCard
+                        #endif
                         IndexStoreStatusContainer()
                         if photoLibrary.shouldShowImportProgress || photoLibrary.shouldShowCompletedImportSummary {
                             PhotoImportProgressCard(photoLibrary: photoLibrary)
@@ -209,6 +212,74 @@ struct SettingsView: View {
         .padding(16)
         .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
     }
+
+    #if DEBUG
+    private var debugLargeLibraryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Debug Large Library", systemImage: "shippingbox")
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("Simulatorで30,000件規模の表示、検索、進捗カードを確認するための開発用メニューです。写真アプリには書き込みません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let statusText = indexService.debugLargeLibraryStatusText {
+                Text(statusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 8) {
+                Button {
+                    Task {
+                        await indexService.createDebugLargeLibraryFixture(totalCount: 30_000)
+                    }
+                } label: {
+                    Label("30,000件のテストデータを作成", systemImage: "plus.square.on.square")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    Task {
+                        await indexService.rebuildDebugSearchIndex()
+                    }
+                } label: {
+                    Label("ダミー検索インデックスを再構築", systemImage: "magnifyingglass.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    ocrJobRunner.startDebugDummyFullOCRProgress(totalCount: 30_000, itemDelayNanoseconds: 2_000_000)
+                } label: {
+                    Label("ダミー全数OCRを開始", systemImage: "timer")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button(role: .destructive) {
+                    Task {
+                        await indexService.clearDebugLargeLibraryFixture()
+                    }
+                } label: {
+                    Label("テストデータを削除", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Text("削除対象はDebug用テストレコードだけです。元写真・元動画、実ユーザーのOCR結果、手動分類には触れません。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
+    }
+    #endif
 
     private var loadingModeCard: some View {
         VStack(alignment: .leading, spacing: 12) {

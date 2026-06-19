@@ -3,6 +3,9 @@ import SQLite3
 
 actor SQLitePhotoIndexStore: PhotoIndexStoring {
     nonisolated static let migrationProgressNotification = Notification.Name("SQLitePhotoIndexStoreMigrationProgress")
+    private static let schemaVersion = 1
+    private static let searchIndexVersion = 1
+    private static let searchIndexStateID = "current"
 
     private enum StoreError: LocalizedError {
         case openFailed(String)
@@ -59,6 +62,7 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
 
         try execute("BEGIN IMMEDIATE TRANSACTION")
         do {
+            try execute("DELETE FROM search_documents")
             try execute("DELETE FROM photo_tags")
             try execute("DELETE FROM photo_texts")
             try execute("DELETE FROM photo_records")
@@ -66,6 +70,14 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
                 try upsertRecord(record)
             }
             try execute("COMMIT")
+            try updateSearchIndexPreparationState(
+                totalCount: records.count,
+                completedCount: records.count,
+                state: .completed,
+                lastProcessedAssetIdentifier: records.last?.localIdentifier,
+                lastOperation: "保存完了",
+                completedAt: Date()
+            )
         } catch {
             try? execute("ROLLBACK")
             throw error
@@ -275,6 +287,18 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         )
     }
 
+    func searchIndexPreparationState() async throws -> SearchIndexPreparationState {
+        try openIfNeeded()
+        return try currentSearchIndexPreparationState()
+    }
+
+    func prepareSearchIndexIfNeeded() async throws -> SearchIndexPreparationState {
+        try openIfNeeded()
+        didMigrateLegacyJSON = false
+        try await migrateLegacyJSONIfNeeded(forceSearchBackfill: true)
+        return try currentSearchIndexPreparationState()
+    }
+
     func loadPage(limit: Int, offset: Int) async throws -> [PhotoIndexRecord] {
         try openIfNeeded()
         try await migrateLegacyJSONIfNeeded()
@@ -377,6 +401,24 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         """)
 
         try execute("""
+        CREATE TABLE IF NOT EXISTS search_index_preparation_state (
+            id TEXT PRIMARY KEY NOT NULL,
+            library_revision INTEGER NOT NULL,
+            total_count INTEGER NOT NULL,
+            completed_count INTEGER NOT NULL,
+            state TEXT NOT NULL,
+            started_at REAL,
+            updated_at REAL,
+            completed_at REAL,
+            last_processed_asset_identifier TEXT,
+            last_operation TEXT,
+            last_error TEXT,
+            schema_version INTEGER NOT NULL,
+            index_version INTEGER NOT NULL
+        )
+        """)
+
+        try execute("""
         CREATE TABLE IF NOT EXISTS processing_jobs (
             job_identifier TEXT PRIMARY KEY NOT NULL,
             job_type TEXT NOT NULL,
@@ -414,24 +456,43 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         try execute("CREATE INDEX IF NOT EXISTS idx_search_documents_revision ON search_documents(index_version, source_revision)")
     }
 
-    private func migrateLegacyJSONIfNeeded() async throws {
+    private func migrateLegacyJSONIfNeeded(forceSearchBackfill: Bool = false) async throws {
         guard didMigrateLegacyJSON == false else {
             return
         }
 
         didMigrateLegacyJSON = true
-        guard try scalarInt("SELECT COUNT(*) FROM photo_records") == 0 else {
-            try backfillSearchDocumentsIfNeeded()
+        let recordCount = try scalarInt("SELECT COUNT(*) FROM photo_records")
+        guard recordCount == 0 else {
+            try reconcileSearchIndexPreparationState(
+                totalCount: recordCount,
+                forceSearchBackfill: forceSearchBackfill
+            )
             return
         }
 
         let legacyRecords = try await legacyStore.loadAll()
         guard legacyRecords.isEmpty == false else {
+            try saveSearchIndexPreparationState(.empty)
             return
         }
 
         let batchSize = 200
         var index = 0
+        try saveSearchIndexPreparationState(SearchIndexPreparationState(
+            libraryRevision: Int64(legacyRecords.count),
+            totalCount: legacyRecords.count,
+            completedCount: 0,
+            state: .running,
+            startedAt: Date(),
+            updatedAt: Date(),
+            completedAt: nil,
+            lastProcessedAssetIdentifier: nil,
+            lastOperation: "旧JSON移行",
+            lastError: nil,
+            schemaVersion: Self.schemaVersion,
+            indexVersion: Self.searchIndexVersion
+        ))
         postMigrationProgress(completed: 0, total: legacyRecords.count)
         while index < legacyRecords.count {
             let upperBound = min(index + batchSize, legacyRecords.count)
@@ -439,28 +500,94 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
                 try await upsert(Array(legacyRecords[index..<upperBound]))
             }
             index = upperBound
+            try updateSearchIndexPreparationState(
+                totalCount: legacyRecords.count,
+                completedCount: index,
+                state: .running,
+                lastProcessedAssetIdentifier: legacyRecords[index - 1].localIdentifier,
+                lastOperation: "旧JSON移行"
+            )
             postMigrationProgress(completed: index, total: legacyRecords.count)
         }
+
+        try updateSearchIndexPreparationState(
+            totalCount: legacyRecords.count,
+            completedCount: legacyRecords.count,
+            state: .completed,
+            lastProcessedAssetIdentifier: legacyRecords.last?.localIdentifier,
+            lastOperation: "完了",
+            completedAt: Date()
+        )
     }
 
-    private func backfillSearchDocumentsIfNeeded() throws {
-        guard try scalarInt("SELECT COUNT(*) FROM search_documents") == 0,
-              try scalarInt("SELECT COUNT(*) FROM photo_records") > 0 else {
+    private func reconcileSearchIndexPreparationState(totalCount: Int, forceSearchBackfill: Bool) throws {
+        let searchDocumentCount = try scalarInt("SELECT COUNT(*) FROM search_documents")
+        if searchDocumentCount >= totalCount {
+            try updateSearchIndexPreparationState(
+                totalCount: totalCount,
+                completedCount: totalCount,
+                state: .completed,
+                lastProcessedAssetIdentifier: nil,
+                lastOperation: "完了",
+                completedAt: Date()
+            )
             return
         }
 
-        let totalCount = try scalarInt("SELECT COUNT(*) FROM photo_records")
+        var state = try currentSearchIndexPreparationState()
+        if state.isStale() {
+            state.state = .paused
+            state.updatedAt = Date()
+            state.lastOperation = state.lastOperation ?? "インデックス保存"
+            state.lastError = "前回の検索インデックス準備が一定時間更新されませんでした。"
+            try saveSearchIndexPreparationState(state)
+            return
+        }
+
+        let shouldBackfill = forceSearchBackfill || (searchDocumentCount == 0 && state.state == .notStarted)
+        guard shouldBackfill else {
+            if state.state == .notStarted {
+                try updateSearchIndexPreparationState(
+                    totalCount: totalCount,
+                    completedCount: searchDocumentCount,
+                    state: .paused,
+                    lastProcessedAssetIdentifier: nil,
+                    lastOperation: "再開待ち",
+                    lastError: nil
+                )
+            }
+            return
+        }
+
+        try backfillSearchDocuments(totalCount: totalCount, alreadyIndexedCount: searchDocumentCount)
+    }
+
+    private func backfillSearchDocuments(totalCount: Int, alreadyIndexedCount: Int) throws {
         let batchSize = 200
-        var index = 0
-        while index < totalCount {
-            let upperBound = min(index + batchSize, totalCount)
+        var completed = min(alreadyIndexedCount, totalCount)
+        try updateSearchIndexPreparationState(
+            totalCount: totalCount,
+            completedCount: completed,
+            state: .running,
+            lastProcessedAssetIdentifier: nil,
+            lastOperation: "インデックス保存"
+        )
+        postMigrationProgress(completed: completed, total: totalCount)
+
+        while completed < totalCount {
             let records = try records(
-                whereClause: nil,
+                whereClause: "asset_identifier NOT IN (SELECT asset_identifier FROM search_documents)",
                 bindings: [],
-                orderAndLimit: "ORDER BY creation_date DESC, asset_identifier DESC LIMIT ? OFFSET ?",
-                limitBindings: [batchSize, index]
+                orderAndLimit: "ORDER BY creation_date DESC, asset_identifier DESC LIMIT ?",
+                limitBindings: [batchSize]
             )
-            try PerformanceTelemetry.measure(.searchIndexBatch, "backfill=\(index)-\(upperBound)") {
+            guard records.isEmpty == false else {
+                completed = totalCount
+                break
+            }
+
+            let upperBound = min(completed + records.count, totalCount)
+            try PerformanceTelemetry.measure(.searchIndexBatch, "backfill=\(completed)-\(upperBound)") {
                 try execute("BEGIN IMMEDIATE TRANSACTION")
                 do {
                     for record in records {
@@ -472,7 +599,156 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
                     throw error
                 }
             }
-            index = upperBound
+            completed = upperBound
+            try updateSearchIndexPreparationState(
+                totalCount: totalCount,
+                completedCount: completed,
+                state: .running,
+                lastProcessedAssetIdentifier: records.last?.localIdentifier,
+                lastOperation: "インデックス保存"
+            )
+            postMigrationProgress(completed: completed, total: totalCount)
+        }
+
+        try updateSearchIndexPreparationState(
+            totalCount: totalCount,
+            completedCount: totalCount,
+            state: .completed,
+            lastProcessedAssetIdentifier: nil,
+            lastOperation: "完了",
+            completedAt: Date()
+        )
+    }
+
+    private func currentSearchIndexPreparationState() throws -> SearchIndexPreparationState {
+        var storedState: SearchIndexPreparationState?
+        try withStatement("""
+        SELECT
+            library_revision,
+            total_count,
+            completed_count,
+            state,
+            started_at,
+            updated_at,
+            completed_at,
+            last_processed_asset_identifier,
+            last_operation,
+            last_error,
+            schema_version,
+            index_version
+        FROM search_index_preparation_state
+        WHERE id = ?
+        """) { statement in
+            try bindText(statement, 1, Self.searchIndexStateID)
+            if sqlite3_step(statement) == SQLITE_ROW {
+                storedState = SearchIndexPreparationState(
+                    libraryRevision: Int64(sqlite3_column_int64(statement, 0)),
+                    totalCount: Int(sqlite3_column_int64(statement, 1)),
+                    completedCount: Int(sqlite3_column_int64(statement, 2)),
+                    state: SearchIndexPreparationState.State(rawValue: columnText(statement, 3) ?? "") ?? .notStarted,
+                    startedAt: columnDate(statement, 4),
+                    updatedAt: columnDate(statement, 5),
+                    completedAt: columnDate(statement, 6),
+                    lastProcessedAssetIdentifier: columnText(statement, 7),
+                    lastOperation: columnText(statement, 8),
+                    lastError: columnText(statement, 9),
+                    schemaVersion: Int(sqlite3_column_int64(statement, 10)),
+                    indexVersion: Int(sqlite3_column_int64(statement, 11))
+                )
+            }
+        }
+
+        if let storedState {
+            return storedState
+        }
+
+        let totalCount = try scalarInt("SELECT COUNT(*) FROM photo_records")
+        let searchDocumentCount = try scalarInt("SELECT COUNT(*) FROM search_documents")
+        if totalCount > 0, searchDocumentCount >= totalCount {
+            let now = Date()
+            return SearchIndexPreparationState(
+                libraryRevision: Int64(totalCount),
+                totalCount: totalCount,
+                completedCount: totalCount,
+                state: .completed,
+                startedAt: now,
+                updatedAt: now,
+                completedAt: now,
+                lastProcessedAssetIdentifier: nil,
+                lastOperation: "完了",
+                lastError: nil,
+                schemaVersion: Self.schemaVersion,
+                indexVersion: Self.searchIndexVersion
+            )
+        }
+
+        var state = SearchIndexPreparationState.empty
+        state.libraryRevision = Int64(totalCount)
+        state.totalCount = totalCount
+        state.completedCount = min(searchDocumentCount, totalCount)
+        state.schemaVersion = Self.schemaVersion
+        state.indexVersion = Self.searchIndexVersion
+        return state
+    }
+
+    private func updateSearchIndexPreparationState(
+        totalCount: Int,
+        completedCount: Int,
+        state: SearchIndexPreparationState.State,
+        lastProcessedAssetIdentifier: String?,
+        lastOperation: String?,
+        lastError: String? = nil,
+        completedAt: Date? = nil
+    ) throws {
+        let now = Date()
+        var nextState = try currentSearchIndexPreparationState()
+        nextState.libraryRevision = Int64(totalCount)
+        nextState.totalCount = totalCount
+        nextState.completedCount = completedCount
+        nextState.state = state
+        nextState.startedAt = nextState.startedAt ?? now
+        nextState.updatedAt = now
+        nextState.completedAt = completedAt
+        nextState.lastProcessedAssetIdentifier = lastProcessedAssetIdentifier ?? nextState.lastProcessedAssetIdentifier
+        nextState.lastOperation = lastOperation
+        nextState.lastError = lastError
+        nextState.schemaVersion = Self.schemaVersion
+        nextState.indexVersion = Self.searchIndexVersion
+        try saveSearchIndexPreparationState(nextState)
+    }
+
+    private func saveSearchIndexPreparationState(_ state: SearchIndexPreparationState) throws {
+        try withStatement("""
+        INSERT OR REPLACE INTO search_index_preparation_state (
+            id,
+            library_revision,
+            total_count,
+            completed_count,
+            state,
+            started_at,
+            updated_at,
+            completed_at,
+            last_processed_asset_identifier,
+            last_operation,
+            last_error,
+            schema_version,
+            index_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """) { statement in
+            try bindText(statement, 1, Self.searchIndexStateID)
+            try bindInt64(statement, 2, state.libraryRevision)
+            try bindInt(statement, 3, state.totalCount)
+            try bindInt(statement, 4, state.completedCount)
+            try bindText(statement, 5, state.state.rawValue)
+            try bindDate(statement, 6, state.startedAt)
+            try bindDate(statement, 7, state.updatedAt)
+            try bindDate(statement, 8, state.completedAt)
+            try bindNullableText(statement, 9, state.lastProcessedAssetIdentifier)
+            try bindNullableText(statement, 10, state.lastOperation)
+            try bindNullableText(statement, 11, state.lastError)
+            try bindInt(statement, 12, state.schemaVersion)
+            try bindInt(statement, 13, state.indexVersion)
+            try stepDone(statement)
         }
     }
 
@@ -885,6 +1161,12 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         }
     }
 
+    private func bindInt64(_ statement: OpaquePointer, _ index: Int32, _ value: Int64) throws {
+        guard sqlite3_bind_int64(statement, index, sqlite3_int64(value)) == SQLITE_OK else {
+            throw StoreError.bindFailed(databaseMessage)
+        }
+    }
+
     private func bindDate(_ statement: OpaquePointer, _ index: Int32, _ value: Date?) throws {
         guard let value else {
             guard sqlite3_bind_null(statement, index) == SQLITE_OK else {
@@ -896,6 +1178,23 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         guard sqlite3_bind_double(statement, index, value.timeIntervalSince1970) == SQLITE_OK else {
             throw StoreError.bindFailed(databaseMessage)
         }
+    }
+
+    private func columnText(_ statement: OpaquePointer, _ index: Int32) -> String? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL,
+              let rawPointer = sqlite3_column_text(statement, index) else {
+            return nil
+        }
+
+        return String(cString: rawPointer)
+    }
+
+    private func columnDate(_ statement: OpaquePointer, _ index: Int32) -> Date? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else {
+            return nil
+        }
+
+        return Date(timeIntervalSince1970: sqlite3_column_double(statement, index))
     }
 
     private func normalizedSearchTokens(in query: String) -> [String] {

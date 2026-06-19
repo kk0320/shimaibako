@@ -409,3 +409,11 @@ Debug buildでは個人情報を含まない `OCR_JOB state=... completed=... to
 7. 一時停止、再開、終了、失敗分再試行、iCloud待ち再開を追加する
 8. 実機で長時間確認する
 9. 全数高精度OCRの本格拡張は実機結果を見て検討する
+
+## Simulator / Debug検証
+
+実機だけで30,000件規模の全数OCRを検証すると時間がかかるため、Debug buildではローカルDBに30,000件のテスト用 `PhotoIndexRecord` を作れるようにする。
+
+DebugデータはPhotoKitへ書き込まない。元写真・元動画は削除・変更しない。Vision OCRを使わないダミー全数OCRで、ジョブ状態、heartbeat、進捗カード、完了カード、写真タブのレイアウトを確認する。
+
+本番ビルドにはDebugメニューを出さない。

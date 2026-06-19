@@ -126,3 +126,9 @@ DEBUG buildでは、開始経路にtraceID付きログを出す。
 - `FULL_OCR trace=... step=heartbeat`
 
 写真画面のDEBUG表示には、Store ID、Coordinator ID、Repository ID、最後の開始時刻、開始plan、開始結果、作成jobID、再取得できたjobID、terminal state、エラー、worker開始時刻を表示する。個別写真名、写真パス、OCR全文は表示しない。
+
+## Simulator用30,000件表示
+
+Debug buildでは、実PHAssetがない `debug-large-library-*` のレコードをプレースホルダーセルとして表示する。これにより、PhotoKitやVision OCRに依存せず、写真グリッド、チップ、OCRカード、下部タブバーの重なりをSimulatorで確認できる。
+
+プレースホルダーはカテゴリ、OCR状態、表示状態だけを示す。個別写真名、写真パス、OCR全文、サムネイル本体は表示しない。

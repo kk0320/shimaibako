@@ -47,6 +47,9 @@ struct PhotoGridView: View {
     @State private var pageTotalCount = 0
     @State private var isFetchingPage = false
     @State private var assetByID: [String: PhotoAsset] = [:]
+    #if DEBUG
+    @State private var debugPageRecords: [PhotoIndexRecord] = []
+    #endif
     @State private var debugPresentedAsset: PhotoAsset?
     @State private var didPresentDebugAsset = false
     @State private var isRunningBulkOCR = false
@@ -748,6 +751,12 @@ struct PhotoGridView: View {
                     .padding(.horizontal, 24)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if visibleAssets.isEmpty && hasDebugPageRecords {
+            #if DEBUG
+            debugRecordGrid
+            #else
+            EmptyView()
+            #endif
         } else if visibleAssets.isEmpty {
             ContentUnavailableView(
                 effectiveSearchText.isEmpty ? "写真がありません" : "見つかりません",
@@ -798,8 +807,43 @@ struct PhotoGridView: View {
         }
     }
 
+    #if DEBUG
+    private var debugRecordGrid: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(debugPageRecords) { record in
+                        DebugPhotoIndexCell(record: record)
+                    }
+                }
+
+                if debugPageRecords.count < resultTotalCount {
+                    Button {
+                        fetchGridPage(reset: false)
+                    } label: {
+                        Label("さらに表示 \(min(visibleAssetLimit + 200, resultTotalCount)) / \(resultTotalCount)件", systemImage: "chevron.down.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .padding(.top, 4)
+                }
+            }
+            .padding(.bottom, 96)
+        }
+    }
+    #endif
+
     private var shouldShowSearchMatch: Bool {
         mode == .search && effectiveSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
+    private var hasDebugPageRecords: Bool {
+        #if DEBUG
+        return debugPageRecords.isEmpty == false
+        #else
+        return false
+        #endif
     }
 
     private func resetVisiblePage() {
@@ -888,6 +932,15 @@ struct PhotoGridView: View {
             }
 
             let resolvedAssets = photoLibrary.assets(for: page.localIdentifiers)
+            #if DEBUG
+            let debugRecords: [PhotoIndexRecord]
+            if resolvedAssets.count < page.localIdentifiers.count {
+                debugRecords = await indexService.recordsForOCRJob(localIdentifiers: page.localIdentifiers)
+                    .filter { $0.localIdentifier.hasPrefix("debug-large-library-") }
+            } else {
+                debugRecords = []
+            }
+            #endif
             guard Task.isCancelled == false else {
                 finishPageFetchIfCurrent(generation)
                 return
@@ -904,6 +957,12 @@ struct PhotoGridView: View {
                     nextIndex[asset.id] = asset
                 }
                 pageIdentifiers = resolvedAssets.map(\.id)
+                #if DEBUG
+                debugPageRecords = debugRecords
+                if resolvedAssets.isEmpty, debugRecords.isEmpty == false {
+                    pageIdentifiers = debugRecords.map(\.localIdentifier)
+                }
+                #endif
                 assetByID = trimmedAssetIndex(nextIndex)
                 pageTotalCount = page.totalCount
                 isFetchingPage = false
@@ -2758,6 +2817,62 @@ private struct IndexStoreStatusCard: View {
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
     }
 }
+
+#if DEBUG
+private struct DebugPhotoIndexCell: View {
+    let record: PhotoIndexRecord
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            ZStack(alignment: .topTrailing) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(backgroundColor)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                        VStack(spacing: 6) {
+                            Image(systemName: record.isScreenshot ? "iphone" : "photo")
+                                .font(.title2.weight(.semibold))
+                            Text(record.inferredCategory.shortTitle)
+                                .font(.caption2.weight(.semibold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(8)
+                    }
+
+                Text(record.ocrStatus.badgeTitle)
+                    .font(.caption2.weight(.bold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(.white.opacity(0.9), in: Capsule())
+                    .padding(6)
+            }
+
+            Text(record.displayState.title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .accessibilityLabel("Debug photo \(record.localIdentifier)")
+    }
+
+    private var backgroundColor: Color {
+        if record.isScreenshot {
+            return Color(red: 0.20, green: 0.47, blue: 0.76)
+        }
+
+        switch record.inferredCategory {
+        case .documentCandidate, .receiptCandidate, .businessCardCandidate, .whiteboardCandidate:
+            return Color(red: 0.22, green: 0.54, blue: 0.48)
+        case .uncategorized:
+            return Color(red: 0.55, green: 0.60, blue: 0.66)
+        default:
+            return Color(red: 0.45, green: 0.40, blue: 0.68)
+        }
+    }
+}
+#endif
 
 private struct PhotoThumbnailView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
