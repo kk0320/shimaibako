@@ -161,4 +161,33 @@ struct BatchOCRP2ValidationCaseResult: Codable, Equatable, Identifiable {
     var passed: Bool
     var message: String
 }
+
+struct BatchOCRP3ValidationReport: Codable, Equatable {
+    var startedAt: Date
+    var finishedAt: Date
+    var cases: [BatchOCRP3ValidationCaseResult]
+
+    var passed: Bool {
+        cases.allSatisfy(\.passed)
+    }
+}
+
+struct BatchOCRP3ValidationCaseResult: Codable, Equatable, Identifiable {
+    var id: String {
+        name
+    }
+
+    var name: String
+    var requestedLimit: Int
+    var jobState: BatchOCRJobState?
+    var plannedCount: Int
+    var processedCount: Int
+    var pendingCount: Int
+    var processingCount: Int
+    var completedTextCount: Int
+    var completedNoTextCount: Int
+    var failedCount: Int
+    var passed: Bool
+    var message: String
+}
 #endif

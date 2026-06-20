@@ -8,6 +8,7 @@ struct ReadView: View {
     @ObservedObject var deviceSafety: DeviceSafetyService
 
     @State private var selectedLimit: ReadBatchLimit = .oneHundred
+    @State private var showsTwoThousandConfirmation = false
 
     private var summary: PhotoIndexSummary {
         indexService.indexSummary
@@ -22,8 +23,9 @@ struct ReadView: View {
             return "読取を実行中です"
         }
 
-        if selectedLimit.isEnabledInP1 == false {
-            return "500件と2,000件はP3で有効化します"
+        if selectedLimit.requiresLargeWorkSafety,
+           let blockingReason = deviceSafety.blockingReasonForLargeWork {
+            return blockingReason
         }
 
         if photoLibrary.canReadPhotos == false {
@@ -65,6 +67,16 @@ struct ReadView: View {
             }
             .navigationTitle("文字を読み取る")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("2,000件の読取を開始しますか？", isPresented: $showsTwoThousandConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("2,000件を開始") {
+                    Task {
+                        await startSelectedLimit()
+                    }
+                }
+            } message: {
+                Text("2,000件の読取は時間がかかります。端末の温度や電池残量により、自動的に一時停止する場合があります。元写真・元動画は変更されません。")
+            }
         }
     }
 
@@ -134,14 +146,13 @@ struct ReadView: View {
 
             HStack(spacing: 10) {
                 Button {
-                    Task {
-                        await batchOCRJobService.start(
-                            requestedLimit: selectedLimit.rawValue,
-                            assets: photoLibrary.assets,
-                            photoLibrary: photoLibrary,
-                            ocrService: ocrService,
-                            indexService: indexService
-                        )
+                    deviceSafety.refresh()
+                    if selectedLimit == .twoThousand {
+                        showsTwoThousandConfirmation = true
+                    } else {
+                        Task {
+                            await startSelectedLimit()
+                        }
                     }
                 } label: {
                     Label("まとめて文字を読み取る", systemImage: "play.circle")
@@ -245,7 +256,8 @@ struct ReadView: View {
                                         assets: photoLibrary.assets,
                                         photoLibrary: photoLibrary,
                                         ocrService: ocrService,
-                                        indexService: indexService
+                                        indexService: indexService,
+                                        deviceSafety: deviceSafety
                                     )
                                 }
                             } label: {
@@ -289,7 +301,7 @@ struct ReadView: View {
     #if DEBUG
     private var debugValidationCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("BatchOCR P1検証", systemImage: "wrench.and.screwdriver")
+            Label("BatchOCR検証", systemImage: "wrench.and.screwdriver")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
@@ -332,8 +344,36 @@ struct ReadView: View {
                     }
                 }
                 .buttonStyle(.bordered)
+
+                Button("500件読取を検証") {
+                    Task {
+                        await batchOCRJobService.runP3CompletionValidationOnly(limit: 500, ocrService: ocrService)
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button("2,000件読取を検証") {
+                    Task {
+                        await batchOCRJobService.runP3CompletionValidationOnly(limit: 2_000, ocrService: ocrService)
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button("500件中断・再開") {
+                    Task {
+                        await batchOCRJobService.runP3PauseResumeValidationOnly(limit: 500, ocrService: ocrService)
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button("2,000件中断・再開") {
+                    Task {
+                        await batchOCRJobService.runP3PauseResumeValidationOnly(limit: 2_000, ocrService: ocrService)
+                    }
+                }
+                .buttonStyle(.bordered)
             }
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -355,7 +395,18 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+
+            Button {
+                Task {
+                    await batchOCRJobService.runP3ValidationSuite(ocrService: ocrService)
+                }
+            } label: {
+                Label("P3 500/2,000件検証を実行", systemImage: "rectangle.stack.badge.play")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             if batchOCRJobService.isRunningP1Validation {
                 Label("検証中です", systemImage: "hourglass")
@@ -365,6 +416,12 @@ struct ReadView: View {
 
             if batchOCRJobService.isRunningP2Validation {
                 Label("P2検証中です", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if batchOCRJobService.isRunningP3Validation {
+                Label("P3検証中です", systemImage: "hourglass")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -400,6 +457,22 @@ struct ReadView: View {
                 }
                 .padding(.top, 4)
             }
+
+            if let report = batchOCRJobService.p3ValidationReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(report.passed ? "P3検証: PASS" : "P3検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
+
+                    ForEach(report.cases) { result in
+                        ReadJobRow(
+                            title: result.name,
+                            value: result.passed ? "PASS" : "FAIL"
+                        )
+                    }
+                }
+                .padding(.top, 4)
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -422,6 +495,17 @@ struct ReadView: View {
         case .failed:
             "exclamationmark.triangle.fill"
         }
+    }
+
+    private func startSelectedLimit() async {
+        await batchOCRJobService.start(
+            requestedLimit: selectedLimit.rawValue,
+            assets: photoLibrary.assets,
+            photoLibrary: photoLibrary,
+            ocrService: ocrService,
+            indexService: indexService,
+            deviceSafety: deviceSafety
+        )
     }
 
     private var safetyCard: some View {
@@ -489,13 +573,8 @@ private enum ReadBatchLimit: Int, CaseIterable, Identifiable {
         }
     }
 
-    var isEnabledInP1: Bool {
-        switch self {
-        case .twenty, .fifty, .oneHundred:
-            true
-        case .fiveHundred, .twoThousand:
-            false
-        }
+    var requiresLargeWorkSafety: Bool {
+        rawValue >= 500
     }
 }
 

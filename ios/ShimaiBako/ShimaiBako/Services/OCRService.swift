@@ -201,12 +201,36 @@ final class OCRService: ObservableObject {
         return result
     }
 
+    @discardableResult
+    func saveValidationResults(localIdentifiers: [String], textProvider: (Int) -> String) async -> Int {
+        await ensureLoaded()
+
+        guard localIdentifiers.allSatisfy({ $0.hasPrefix("debug-batch-ocr-") }) else {
+            return 0
+        }
+
+        for (index, localIdentifier) in localIdentifiers.enumerated() {
+            resultsByAssetID[localIdentifier] = OCRResultRecord(
+                photoLocalIdentifier: localIdentifier,
+                ocrText: textProvider(index),
+                ocrStatus: .completed,
+                ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
+                processedAt: Date(),
+                errorMessage: nil
+            )
+            processingAssetIDs.remove(localIdentifier)
+        }
+
+        await persistResults()
+        return localIdentifiers.count
+    }
+
     func validationResultExists(localIdentifier: String) -> Bool {
         resultsByAssetID[localIdentifier]?.ocrStatus == .completed
     }
 
     func clearValidationResults(localIdentifiers: [String]) async {
-        guard localIdentifiers.allSatisfy({ $0.hasPrefix("debug-batch-ocr-p1-") }) else {
+        guard localIdentifiers.allSatisfy({ $0.hasPrefix("debug-batch-ocr-") }) else {
             return
         }
 
