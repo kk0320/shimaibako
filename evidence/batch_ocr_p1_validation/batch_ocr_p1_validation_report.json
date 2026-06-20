@@ -1,0 +1,58 @@
+{
+  "cases" : [
+    {
+      "completedNoTextCount" : 0,
+      "completedTextCount" : 0,
+      "failedCount" : 0,
+      "message" : "0件対象検証PASS",
+      "name" : "0件対象",
+      "ocrResultSaved" : false,
+      "passed" : true,
+      "plannedCount" : 0,
+      "processedCount" : 0,
+      "requestedLimit" : 0,
+      "zeroJobCreated" : false
+    },
+    {
+      "completedNoTextCount" : 4,
+      "completedTextCount" : 16,
+      "failedCount" : 0,
+      "message" : "20件検証PASS",
+      "name" : "20件",
+      "ocrResultSaved" : true,
+      "passed" : true,
+      "plannedCount" : 20,
+      "processedCount" : 20,
+      "requestedLimit" : 20,
+      "zeroJobCreated" : false
+    },
+    {
+      "completedNoTextCount" : 10,
+      "completedTextCount" : 40,
+      "failedCount" : 0,
+      "message" : "50件検証PASS",
+      "name" : "50件",
+      "ocrResultSaved" : true,
+      "passed" : true,
+      "plannedCount" : 50,
+      "processedCount" : 50,
+      "requestedLimit" : 50,
+      "zeroJobCreated" : false
+    },
+    {
+      "completedNoTextCount" : 20,
+      "completedTextCount" : 80,
+      "failedCount" : 0,
+      "message" : "100件検証PASS",
+      "name" : "100件",
+      "ocrResultSaved" : true,
+      "passed" : true,
+      "plannedCount" : 100,
+      "processedCount" : 100,
+      "requestedLimit" : 100,
+      "zeroJobCreated" : false
+    }
+  ],
+  "finishedAt" : 803611432.484072,
+  "startedAt" : 803611424.065293
+}

@@ -48,6 +48,9 @@ struct ReadView: View {
                         metricsGrid
                         batchLimitCard
                         jobStatusCard
+                        #if DEBUG
+                        debugValidationCard
+                        #endif
                         IndexStoreStatusContainer()
                         safetyCard
                     }
@@ -229,11 +232,11 @@ struct ReadView: View {
             .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                Label("中断中ジョブ", systemImage: "pause.circle")
+                Label("最新の読取ジョブ", systemImage: "tray")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-                Text("中断中の読取ジョブはありません。今後のBatchOCRJobでは、バックグラウンド移行時に一時停止し、ここから続きだけ再開できます。")
+                Text("読取ジョブはまだありません。読取を開始すると、状態、対象件数、処理済み件数、文字あり、文字なし、失敗件数がここに表示されます。")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -243,6 +246,94 @@ struct ReadView: View {
             .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
         }
     }
+
+    #if DEBUG
+    private var debugValidationCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("BatchOCR P1検証", systemImage: "wrench.and.screwdriver")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("DEBUGビルド限定です。合成IDだけを使い、元写真・元動画は変更しません。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 8),
+                    GridItem(.flexible(), spacing: 8)
+                ],
+                spacing: 8
+            ) {
+                Button("20件読取を検証") {
+                    Task {
+                        _ = await batchOCRJobService.runP1Validation(limit: 20, ocrService: ocrService)
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button("50件読取を検証") {
+                    Task {
+                        _ = await batchOCRJobService.runP1Validation(limit: 50, ocrService: ocrService)
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button("100件読取を検証") {
+                    Task {
+                        _ = await batchOCRJobService.runP1Validation(limit: 100, ocrService: ocrService)
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button("0件対象テスト") {
+                    Task {
+                        _ = await batchOCRJobService.runZeroTargetValidation()
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunning)
+
+            Button {
+                Task {
+                    await batchOCRJobService.runP1ValidationSuite(ocrService: ocrService)
+                }
+            } label: {
+                Label("P1検証をまとめて実行", systemImage: "play.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunning)
+
+            if batchOCRJobService.isRunningP1Validation {
+                Label("検証中です", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let report = batchOCRJobService.p1ValidationReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(report.passed ? "最新検証: PASS" : "最新検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
+
+                    ForEach(report.cases) { result in
+                        ReadJobRow(
+                            title: result.name,
+                            value: result.passed ? "PASS" : "FAIL"
+                        )
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+    #endif
 
     private func icon(for state: BatchOCRJobState) -> String {
         switch state {

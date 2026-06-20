@@ -11,11 +11,12 @@ final class OCRService: ObservableObject {
     @Published var errorMessage: String?
 
     private let resultStore: OCRResultStore
+    private var loadTask: Task<Void, Never>?
 
     init(resultStore: OCRResultStore = OCRResultStore()) {
         self.resultStore = resultStore
 
-        Task {
+        loadTask = Task {
             await loadPersistedResults()
         }
     }
@@ -177,6 +178,45 @@ final class OCRService: ObservableObject {
         resultsByAssetID = [:]
         processingAssetIDs = []
         await persistResults()
+    }
+
+    #if DEBUG
+    @discardableResult
+    func saveValidationResult(localIdentifier: String, text: String) async -> OCRResultRecord {
+        await ensureLoaded()
+
+        let result = OCRResultRecord(
+            photoLocalIdentifier: localIdentifier,
+            ocrText: text,
+            ocrStatus: .completed,
+            ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
+            processedAt: Date(),
+            errorMessage: nil
+        )
+
+        resultsByAssetID[localIdentifier] = result
+        processingAssetIDs.remove(localIdentifier)
+        await persistResults()
+
+        return result
+    }
+
+    func validationResultExists(localIdentifier: String) -> Bool {
+        resultsByAssetID[localIdentifier]?.ocrStatus == .completed
+    }
+
+    func clearValidationResults(localIdentifiers: [String]) async {
+        guard localIdentifiers.allSatisfy({ $0.hasPrefix("debug-batch-ocr-p1-") }) else {
+            return
+        }
+
+        await clearResults(localIdentifiers: localIdentifiers)
+    }
+    #endif
+
+    private func ensureLoaded() async {
+        await loadTask?.value
+        loadTask = nil
     }
 
     private func loadPersistedResults() async {

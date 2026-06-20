@@ -32,6 +32,11 @@ struct ContentView: View {
             deviceSafety: deviceSafety
         )
             .task {
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRP1Validation") {
+                    await batchOCRJobService.runP1ValidationSuite(ocrService: ocrService)
+                }
+                #endif
                 await photoLibrary.prepare()
             }
             .onChange(of: scenePhase) { _, newPhase in
