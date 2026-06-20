@@ -63,6 +63,7 @@ struct HomeView: View {
                 indexService: indexService,
                 learningService: learningService,
                 accuracyImprovementService: accuracyImprovementService,
+                batchOCRJobService: batchOCRJobService,
                 deviceSafety: deviceSafety
             )
                 .tabItem {

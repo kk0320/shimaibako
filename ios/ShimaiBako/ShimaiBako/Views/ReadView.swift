@@ -53,6 +53,7 @@ struct ReadView: View {
                         headerCard
                         metricsGrid
                         batchLimitCard
+                        targetDiagnosticsCard
                         jobStatusCard
                         #if DEBUG
                         debugValidationCard
@@ -202,6 +203,38 @@ struct ReadView: View {
         }
         .padding(16)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    @ViewBuilder
+    private var targetDiagnosticsCard: some View {
+        if let diagnostics = batchOCRJobService.latestTargetDiagnostics {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("対象抽出", systemImage: "line.3.horizontal.decrease.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    ReadJobRow(title: "選択上限", value: "\(diagnostics.selectedLimit)件")
+                    ReadJobRow(title: "候補", value: "\(diagnostics.candidateBeforeExclusion)件")
+                    ReadJobRow(title: "読取済み除外", value: "\(diagnostics.excludedAlreadyRead)件")
+                    ReadJobRow(title: "文字なし除外", value: "\(diagnostics.excludedCompletedNoText)件")
+                    ReadJobRow(title: "処理中除外", value: "\(diagnostics.excludedInProgress)件")
+                    ReadJobRow(title: "検索データのみ", value: "\(diagnostics.searchDataOnlyCandidateCount)件")
+                    ReadJobRow(title: "古い状態を候補へ戻す", value: "\(diagnostics.staleCacheCandidateCount)件")
+                    ReadJobRow(title: "今回対象", value: "\(diagnostics.finalTargetCount)件")
+                }
+
+                if let reason = diagnostics.reasonIfZero {
+                    Text(reason)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+        }
     }
 
     @ViewBuilder
@@ -372,8 +405,34 @@ struct ReadView: View {
                     }
                 }
                 .buttonStyle(.bordered)
+
+                Button("対象抽出診断") {
+                    Task {
+                        await batchOCRJobService.refreshTargetDiagnostics(
+                            requestedLimit: selectedLimit.rawValue,
+                            assets: photoLibrary.assets,
+                            ocrService: ocrService,
+                            indexService: indexService
+                        )
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button("読取状態再確認テスト") {
+                    Task {
+                        _ = await indexService.repairReadState(for: photoLibrary.assets, ocrService: ocrService)
+                        _ = await batchOCRJobService.repairInvalidReadJobState()
+                        await batchOCRJobService.refreshTargetDiagnostics(
+                            requestedLimit: selectedLimit.rawValue,
+                            assets: photoLibrary.assets,
+                            ocrService: ocrService,
+                            indexService: indexService
+                        )
+                    }
+                }
+                .buttonStyle(.bordered)
             }
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -384,7 +443,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -395,7 +454,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -406,7 +465,18 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+
+            Button {
+                Task {
+                    await batchOCRJobService.runTargetSelectionValidationSuite()
+                }
+            } label: {
+                Label("対象抽出検証を実行", systemImage: "checklist.checked")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             if batchOCRJobService.isRunningP1Validation {
                 Label("検証中です", systemImage: "hourglass")
@@ -422,6 +492,12 @@ struct ReadView: View {
 
             if batchOCRJobService.isRunningP3Validation {
                 Label("P3検証中です", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if batchOCRJobService.isRunningTargetSelectionValidation {
+                Label("対象抽出検証中です", systemImage: "hourglass")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -461,6 +537,22 @@ struct ReadView: View {
             if let report = batchOCRJobService.p3ValidationReport {
                 VStack(alignment: .leading, spacing: 6) {
                     Label(report.passed ? "P3検証: PASS" : "P3検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
+
+                    ForEach(report.cases) { result in
+                        ReadJobRow(
+                            title: result.name,
+                            value: result.passed ? "PASS" : "FAIL"
+                        )
+                    }
+                }
+                .padding(.top, 4)
+            }
+
+            if let report = batchOCRJobService.targetSelectionValidationReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(report.passed ? "対象抽出検証: PASS" : "対象抽出検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
 

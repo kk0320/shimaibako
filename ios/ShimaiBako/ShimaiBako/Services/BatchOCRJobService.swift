@@ -7,14 +7,17 @@ final class BatchOCRJobService: ObservableObject {
     @Published private(set) var currentJob: BatchOCRJob?
     @Published private(set) var items: [BatchOCRItem] = []
     @Published private(set) var message: String?
+    @Published private(set) var latestTargetDiagnostics: BatchOCRTargetSelectionDiagnostics?
     @Published var errorMessage: String?
     #if DEBUG
     @Published private(set) var p1ValidationReport: BatchOCRP1ValidationReport?
     @Published private(set) var p2ValidationReport: BatchOCRP2ValidationReport?
     @Published private(set) var p3ValidationReport: BatchOCRP3ValidationReport?
+    @Published private(set) var targetSelectionValidationReport: BatchOCRTargetSelectionValidationReport?
     @Published private(set) var isRunningP1Validation = false
     @Published private(set) var isRunningP2Validation = false
     @Published private(set) var isRunningP3Validation = false
+    @Published private(set) var isRunningTargetSelectionValidation = false
     #endif
 
     private let fileManager: FileManager
@@ -24,6 +27,7 @@ final class BatchOCRJobService: ObservableObject {
     private let validationReportFileName = "batch_ocr_p1_validation_report.json"
     private let p2ValidationReportFileName = "batch_ocr_p2_validation_report.json"
     private let p3ValidationReportFileName = "batch_ocr_p3_validation_report.json"
+    private let targetSelectionValidationReportFileName = "batch_ocr_target_selection_validation_report.json"
     #endif
     private var runTask: Task<Void, Never>?
     private var lastPublishedAt = Date.distantPast
@@ -116,24 +120,25 @@ final class BatchOCRJobService: ObservableObject {
             return
         }
 
-        let candidates = makeCandidates(
+        let selection = await makeSelection(
             requestedLimit: requestedLimit,
             assets: assets,
             ocrService: ocrService,
             indexService: indexService
         )
+        latestTargetDiagnostics = selection.diagnostics
 
-        guard candidates.isEmpty == false else {
+        guard selection.candidates.isEmpty == false else {
             currentJob = nil
             items = []
-            message = "新しく読み取る写真はありません"
+            message = selection.diagnostics.reasonIfZero ?? "新しく読み取る写真はありません"
             await saveSnapshot()
             return
         }
 
         let now = Date()
         let jobID = UUID().uuidString
-        let descriptors = candidates.map { asset in
+        let descriptors = selection.candidates.map { asset in
             BatchOCRCandidateDescriptor(
                 assetIdentifier: asset.localIdentifier,
                 sourceRevision: sourceRevision(for: asset)
@@ -147,7 +152,7 @@ final class BatchOCRJobService: ObservableObject {
             createdAt: now
         )
 
-        let assetByIdentifier = Dictionary(uniqueKeysWithValues: candidates.map { ($0.localIdentifier, $0) })
+        let assetByIdentifier = Dictionary(uniqueKeysWithValues: selection.candidates.map { ($0.localIdentifier, $0) })
         runTask = Task { [weak self] in
             await self?.run(
                 jobID: jobID,
@@ -158,6 +163,48 @@ final class BatchOCRJobService: ObservableObject {
                 deviceSafety: deviceSafety
             )
         }
+    }
+
+    func refreshTargetDiagnostics(
+        requestedLimit: Int,
+        assets: [PhotoAsset],
+        ocrService: OCRService,
+        indexService: PhotoIndexService
+    ) async {
+        let selection = await makeSelection(
+            requestedLimit: requestedLimit,
+            assets: assets,
+            ocrService: ocrService,
+            indexService: indexService
+        )
+        latestTargetDiagnostics = selection.diagnostics
+        message = selection.diagnostics.reasonIfZero
+    }
+
+    @discardableResult
+    func repairInvalidReadJobState() async -> Int {
+        guard let job = currentJob else {
+            return 0
+        }
+
+        let invalidLimit = allowedRequestedLimits.contains(job.requestedLimit) == false
+        let invalidEmptyJob = job.plannedCount == 0
+        let staleFullOCRText = job.filterSnapshot.contains("全数") ||
+            job.filterSnapshot.localizedCaseInsensitiveContains("full OCR") ||
+            job.filterSnapshot.localizedCaseInsensitiveContains("smart full")
+
+        guard invalidLimit || invalidEmptyJob || staleFullOCRText else {
+            return 0
+        }
+
+        currentJob = nil
+        items = []
+        runTask?.cancel()
+        runTask = nil
+        message = "古い読取ジョブ状態を整理しました。読取結果は削除していません。"
+        latestTargetDiagnostics = nil
+        await saveSnapshot()
+        return 1
     }
 
     #if DEBUG
@@ -285,6 +332,107 @@ final class BatchOCRJobService: ObservableObject {
         p3ValidationReport = report
         message = report.passed ? "BatchOCR P3検証が完了しました。" : "BatchOCR P3検証で確認が必要です。"
         await saveP3ValidationReport(report)
+    }
+
+    func runTargetSelectionValidationSuite() async {
+        guard isRunningTargetSelectionValidation == false else {
+            return
+        }
+
+        isRunningTargetSelectionValidation = true
+        defer {
+            isRunningTargetSelectionValidation = false
+        }
+
+        let startedAt = Date()
+        let cases = [
+            targetSelectionCase(
+                name: "検索データのみ写真の対象化テスト",
+                requestedLimit: 500,
+                totalCount: 2_000,
+                evidenceProvider: { index in
+                    BatchOCRReadEvidence(
+                        assetIdentifier: "debug-search-only-\(index)",
+                        ocrResult: nil,
+                        indexStatus: .unprocessed,
+                        indexText: "",
+                        indexHasOCRMetadata: false,
+                        indexExists: true,
+                        isServiceProcessing: false,
+                        isActiveInJob: false
+                    )
+                },
+                expectedFinalTargetCount: 500,
+                expectedSearchDataOnlyCandidateCount: 2_000,
+                expectedStaleCacheCandidateCount: 0,
+                expectedExcludedAlreadyRead: 0,
+                expectedExcludedCompletedNoText: 0
+            ),
+            targetSelectionCase(
+                name: "キャッシュ削除なし500件対象抽出テスト",
+                requestedLimit: 500,
+                totalCount: 2_400,
+                evidenceProvider: { index in
+                    if index < 12 {
+                        return BatchOCRReadEvidence.completedText("debug-read-\(index)")
+                    } else if index < 15 {
+                        return BatchOCRReadEvidence.completedNoText("debug-no-text-\(index)")
+                    } else if index < 20 {
+                        return BatchOCRReadEvidence.staleCompleted("debug-stale-\(index)")
+                    }
+                    return BatchOCRReadEvidence.searchDataOnly("debug-candidate-\(index)")
+                },
+                expectedFinalTargetCount: 500,
+                expectedSearchDataOnlyCandidateCount: 2_380,
+                expectedStaleCacheCandidateCount: 5,
+                expectedExcludedAlreadyRead: 12,
+                expectedExcludedCompletedNoText: 3
+            ),
+            targetSelectionCase(
+                name: "キャッシュ削除なし2,000件対象抽出テスト",
+                requestedLimit: 2_000,
+                totalCount: 3_200,
+                evidenceProvider: { index in
+                    if index < 40 {
+                        return BatchOCRReadEvidence.completedText("debug-read-\(index)")
+                    } else if index < 60 {
+                        return BatchOCRReadEvidence.completedNoText("debug-no-text-\(index)")
+                    } else if index < 75 {
+                        return BatchOCRReadEvidence.staleCompleted("debug-stale-\(index)")
+                    }
+                    return BatchOCRReadEvidence.searchDataOnly("debug-candidate-\(index)")
+                },
+                expectedFinalTargetCount: 2_000,
+                expectedSearchDataOnlyCandidateCount: 3_125,
+                expectedStaleCacheCandidateCount: 15,
+                expectedExcludedAlreadyRead: 40,
+                expectedExcludedCompletedNoText: 20
+            ),
+            targetSelectionCase(
+                name: "0件対象テスト",
+                requestedLimit: 500,
+                totalCount: 100,
+                evidenceProvider: { index in
+                    index.isMultiple(of: 2) ?
+                        BatchOCRReadEvidence.completedText("debug-read-\(index)") :
+                        BatchOCRReadEvidence.completedNoText("debug-no-text-\(index)")
+                },
+                expectedFinalTargetCount: 0,
+                expectedSearchDataOnlyCandidateCount: 0,
+                expectedStaleCacheCandidateCount: 0,
+                expectedExcludedAlreadyRead: 50,
+                expectedExcludedCompletedNoText: 50
+            )
+        ]
+
+        let report = BatchOCRTargetSelectionValidationReport(
+            startedAt: startedAt,
+            finishedAt: Date(),
+            cases: cases
+        )
+        targetSelectionValidationReport = report
+        message = report.passed ? "対象抽出検証が完了しました。" : "対象抽出検証で確認が必要です。"
+        await saveTargetSelectionValidationReport(report)
     }
 
     @discardableResult
@@ -958,8 +1106,15 @@ final class BatchOCRJobService: ObservableObject {
                 continue
             }
 
-            let currentStatus = indexService.status(for: asset, ocrService: ocrService)
-            if currentStatus == .completed || currentStatus == .processing {
+            if ocrService.isProcessing(asset) {
+                items[index].state = .skippedAlreadyOCRed
+                items[index].updatedAt = Date()
+                await updateCountsAndPersist(jobID: jobID, forcePublish: false)
+                continue
+            }
+
+            if let storedResult = ocrService.result(for: asset),
+               storedResult.ocrStatus == .completed || storedResult.ocrStatus == .processing {
                 items[index].state = .skippedAlreadyOCRed
                 items[index].updatedAt = Date()
                 await updateCountsAndPersist(jobID: jobID, forcePublish: false)
@@ -1114,37 +1269,95 @@ final class BatchOCRJobService: ObservableObject {
         publish(job, force: true)
     }
 
-    private func makeCandidates(
+    private func makeSelection(
         requestedLimit: Int,
         assets: [PhotoAsset],
         ocrService: OCRService,
         indexService: PhotoIndexService
-    ) -> [PhotoAsset] {
+    ) async -> BatchOCRTargetSelection {
+        let imageAssets = assets.filter { $0.mediaType == .image }
+        let recordsByIdentifier = await indexService.recordsByLocalIdentifier(
+            localIdentifiers: imageAssets.map(\.localIdentifier)
+        )
         let activeIdentifiers = Set(items.filter { item in
             item.state == .pending || item.state == .processing
         }.map(\.assetIdentifier))
+        let failedPermanentCount = items.filter { $0.state == .failedPermanent }.count
 
         var candidates: [PhotoAsset] = []
         candidates.reserveCapacity(min(requestedLimit, assets.count))
+        var diagnostics = BatchOCRTargetSelectionDiagnostics.empty
+        diagnostics.selectedLimit = requestedLimit
+        diagnostics.failedPermanentCount = failedPermanentCount
 
-        for asset in assets where asset.mediaType == .image {
-            guard activeIdentifiers.contains(asset.localIdentifier) == false else {
-                continue
-            }
+        for asset in imageAssets {
+            diagnostics.candidateBeforeExclusion += 1
+            let record = recordsByIdentifier[asset.localIdentifier]
+            let evidence = BatchOCRReadEvidence(
+                assetIdentifier: asset.localIdentifier,
+                ocrResult: ocrService.result(for: asset),
+                indexStatus: record?.ocrStatus,
+                indexText: record?.ocrText ?? "",
+                indexHasOCRMetadata: record?.hasOCRMetadata ?? false,
+                indexExists: record != nil,
+                isServiceProcessing: ocrService.isProcessing(asset),
+                isActiveInJob: activeIdentifiers.contains(asset.localIdentifier)
+            )
+            let decision = readDecision(for: evidence)
 
-            let status = indexService.status(for: asset, ocrService: ocrService)
-            guard status != .completed, status != .processing else {
-                continue
-            }
-
-            candidates.append(asset)
-
-            if candidates.count >= requestedLimit {
-                break
+            switch decision {
+            case .target:
+                appendCandidate(asset, to: &candidates, requestedLimit: requestedLimit)
+            case .searchDataOnlyTarget:
+                diagnostics.searchDataOnlyCandidateCount += 1
+                appendCandidate(asset, to: &candidates, requestedLimit: requestedLimit)
+            case .staleCacheTarget:
+                diagnostics.staleCacheCandidateCount += 1
+                appendCandidate(asset, to: &candidates, requestedLimit: requestedLimit)
+            case .failedRetryableTarget:
+                diagnostics.failedRetryableCount += 1
+                appendCandidate(asset, to: &candidates, requestedLimit: requestedLimit)
+            case .alreadyRead:
+                diagnostics.excludedAlreadyRead += 1
+            case .completedNoText:
+                diagnostics.excludedCompletedNoText += 1
+            case .inProgress:
+                diagnostics.excludedInProgress += 1
             }
         }
 
-        return candidates
+        diagnostics.finalTargetCount = candidates.count
+        diagnostics.reasonIfZero = reasonIfZero(for: diagnostics)
+
+        return BatchOCRTargetSelection(candidates: candidates, diagnostics: diagnostics)
+    }
+
+    private func appendCandidate(_ asset: PhotoAsset, to candidates: inout [PhotoAsset], requestedLimit: Int) {
+        guard candidates.count < requestedLimit else {
+            return
+        }
+
+        candidates.append(asset)
+    }
+
+    private func reasonIfZero(for diagnostics: BatchOCRTargetSelectionDiagnostics) -> String? {
+        guard diagnostics.finalTargetCount == 0 else {
+            return nil
+        }
+
+        if diagnostics.candidateBeforeExclusion == 0 {
+            return "新しく読み取る写真はありません"
+        }
+
+        if diagnostics.excludedAlreadyRead + diagnostics.excludedCompletedNoText >= diagnostics.candidateBeforeExclusion {
+            return "新しく読み取る写真はありません。すでに読取済み、または文字なし判定済みです。"
+        }
+
+        if diagnostics.excludedInProgress > 0 {
+            return "新しく読み取る写真はありません。現在処理中の写真を除外しています。"
+        }
+
+        return "新しく読み取る写真はありません"
     }
 
     private func recalculated(_ job: BatchOCRJob) -> BatchOCRJob {
@@ -1157,9 +1370,125 @@ final class BatchOCRJobService: ObservableObject {
     }
 
     private func isNoTextResult(_ result: OCRResultRecord) -> Bool {
-        let text = result.ocrText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return text.isEmpty || text == "テキストは見つかりませんでした。"
+        OCRService.isNoTextResult(result)
     }
+
+    private func readDecision(for evidence: BatchOCRReadEvidence) -> BatchOCRReadDecision {
+        if evidence.isActiveInJob || evidence.isServiceProcessing {
+            return .inProgress
+        }
+
+        if let result = evidence.ocrResult {
+            switch result.ocrStatus {
+            case .completed:
+                return OCRService.isNoTextResult(result) ? .completedNoText : .alreadyRead
+            case .processing:
+                return .inProgress
+            case .failed:
+                return .failedRetryableTarget
+            case .unprocessed:
+                break
+            }
+        }
+
+        guard evidence.indexExists else {
+            return .target
+        }
+
+        switch evidence.indexStatus {
+        case .completed:
+            let trimmedText = evidence.indexText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedText.isEmpty == false && trimmedText != "テキストは見つかりませんでした。" {
+                return .alreadyRead
+            }
+
+            if trimmedText == "テキストは見つかりませんでした。" || evidence.indexHasOCRMetadata {
+                return .completedNoText
+            }
+
+            return .staleCacheTarget
+        case .processing:
+            return .staleCacheTarget
+        case .failed:
+            return .failedRetryableTarget
+        case .unprocessed, .none:
+            return .searchDataOnlyTarget
+        }
+    }
+
+    #if DEBUG
+    private func targetSelectionCase(
+        name: String,
+        requestedLimit: Int,
+        totalCount: Int,
+        evidenceProvider: (Int) -> BatchOCRReadEvidence,
+        expectedFinalTargetCount: Int,
+        expectedSearchDataOnlyCandidateCount: Int,
+        expectedStaleCacheCandidateCount: Int,
+        expectedExcludedAlreadyRead: Int,
+        expectedExcludedCompletedNoText: Int
+    ) -> BatchOCRTargetSelectionValidationCaseResult {
+        let diagnostics = syntheticDiagnostics(
+            requestedLimit: requestedLimit,
+            totalCount: totalCount,
+            evidenceProvider: evidenceProvider
+        )
+        let passed = diagnostics.finalTargetCount == expectedFinalTargetCount &&
+            diagnostics.searchDataOnlyCandidateCount == expectedSearchDataOnlyCandidateCount &&
+            diagnostics.staleCacheCandidateCount == expectedStaleCacheCandidateCount &&
+            diagnostics.excludedAlreadyRead == expectedExcludedAlreadyRead &&
+            diagnostics.excludedCompletedNoText == expectedExcludedCompletedNoText
+
+        return BatchOCRTargetSelectionValidationCaseResult(
+            name: name,
+            selectedLimit: requestedLimit,
+            finalTargetCount: diagnostics.finalTargetCount,
+            searchDataOnlyCandidateCount: diagnostics.searchDataOnlyCandidateCount,
+            staleCacheCandidateCount: diagnostics.staleCacheCandidateCount,
+            excludedAlreadyRead: diagnostics.excludedAlreadyRead,
+            excludedCompletedNoText: diagnostics.excludedCompletedNoText,
+            passed: passed,
+            message: passed ? "PASS" : "対象抽出の内訳が期待と異なります"
+        )
+    }
+
+    private func syntheticDiagnostics(
+        requestedLimit: Int,
+        totalCount: Int,
+        evidenceProvider: (Int) -> BatchOCRReadEvidence
+    ) -> BatchOCRTargetSelectionDiagnostics {
+        var diagnostics = BatchOCRTargetSelectionDiagnostics.empty
+        diagnostics.selectedLimit = requestedLimit
+
+        for index in 0..<totalCount {
+            diagnostics.candidateBeforeExclusion += 1
+            let decision = readDecision(for: evidenceProvider(index))
+
+            switch decision {
+            case .target:
+                diagnostics.finalTargetCount = min(diagnostics.finalTargetCount + 1, requestedLimit)
+            case .searchDataOnlyTarget:
+                diagnostics.searchDataOnlyCandidateCount += 1
+                diagnostics.finalTargetCount = min(diagnostics.finalTargetCount + 1, requestedLimit)
+            case .staleCacheTarget:
+                diagnostics.staleCacheCandidateCount += 1
+                diagnostics.finalTargetCount = min(diagnostics.finalTargetCount + 1, requestedLimit)
+            case .failedRetryableTarget:
+                diagnostics.failedRetryableCount += 1
+                diagnostics.finalTargetCount = min(diagnostics.finalTargetCount + 1, requestedLimit)
+            case .alreadyRead:
+                diagnostics.excludedAlreadyRead += 1
+            case .completedNoText:
+                diagnostics.excludedCompletedNoText += 1
+            case .inProgress:
+                diagnostics.excludedInProgress += 1
+            }
+        }
+
+        diagnostics.reasonIfZero = reasonIfZero(for: diagnostics)
+        return diagnostics
+    }
+    #endif
 
     private func sourceRevision(for asset: PhotoAsset) -> String {
         [
@@ -1279,6 +1608,20 @@ final class BatchOCRJobService: ObservableObject {
         }
     }
 
+    private func saveTargetSelectionValidationReport(_ report: BatchOCRTargetSelectionValidationReport) async {
+        let url = targetSelectionValidationReportURL()
+        do {
+            let directoryURL = url.deletingLastPathComponent()
+            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(report)
+            try data.write(to: url, options: [.atomic])
+        } catch {
+            errorMessage = "対象抽出検証結果を保存できませんでした: \(error.localizedDescription)"
+        }
+    }
+
     private func validationReportURL() -> URL {
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first ?? fileManager.temporaryDirectory
@@ -1302,6 +1645,14 @@ final class BatchOCRJobService: ObservableObject {
             .appendingPathComponent("ShimaiBako", isDirectory: true)
             .appendingPathComponent(p3ValidationReportFileName)
     }
+
+    private func targetSelectionValidationReportURL() -> URL {
+        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first ?? fileManager.temporaryDirectory
+        return baseURL
+            .appendingPathComponent("ShimaiBako", isDirectory: true)
+            .appendingPathComponent(targetSelectionValidationReportFileName)
+    }
     #endif
 
     private func storeURL() -> URL {
@@ -1316,4 +1667,106 @@ final class BatchOCRJobService: ObservableObject {
 private struct BatchOCRCandidateDescriptor {
     let assetIdentifier: String
     let sourceRevision: String
+}
+
+private struct BatchOCRTargetSelection {
+    var candidates: [PhotoAsset]
+    var diagnostics: BatchOCRTargetSelectionDiagnostics
+}
+
+private enum BatchOCRReadDecision {
+    case target
+    case searchDataOnlyTarget
+    case staleCacheTarget
+    case failedRetryableTarget
+    case alreadyRead
+    case completedNoText
+    case inProgress
+}
+
+private struct BatchOCRReadEvidence {
+    var assetIdentifier: String
+    var ocrResult: OCRResultRecord?
+    var indexStatus: OCRStatus?
+    var indexText: String
+    var indexHasOCRMetadata: Bool
+    var indexExists: Bool
+    var isServiceProcessing: Bool
+    var isActiveInJob: Bool
+
+    #if DEBUG
+    static func completedText(_ identifier: String) -> BatchOCRReadEvidence {
+        BatchOCRReadEvidence(
+            assetIdentifier: identifier,
+            ocrResult: OCRResultRecord(
+                photoLocalIdentifier: identifier,
+                ocrText: "検証用テキスト",
+                ocrStatus: .completed,
+                ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
+                processedAt: Date(),
+                errorMessage: nil
+            ),
+            indexStatus: .completed,
+            indexText: "検証用テキスト",
+            indexHasOCRMetadata: true,
+            indexExists: true,
+            isServiceProcessing: false,
+            isActiveInJob: false
+        )
+    }
+
+    static func completedNoText(_ identifier: String) -> BatchOCRReadEvidence {
+        BatchOCRReadEvidence(
+            assetIdentifier: identifier,
+            ocrResult: OCRResultRecord(
+                photoLocalIdentifier: identifier,
+                ocrText: "テキストは見つかりませんでした。",
+                ocrStatus: .completed,
+                ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
+                processedAt: Date(),
+                errorMessage: nil
+            ),
+            indexStatus: .completed,
+            indexText: "テキストは見つかりませんでした。",
+            indexHasOCRMetadata: true,
+            indexExists: true,
+            isServiceProcessing: false,
+            isActiveInJob: false
+        )
+    }
+
+    static func staleCompleted(_ identifier: String) -> BatchOCRReadEvidence {
+        BatchOCRReadEvidence(
+            assetIdentifier: identifier,
+            ocrResult: nil,
+            indexStatus: .completed,
+            indexText: "",
+            indexHasOCRMetadata: false,
+            indexExists: true,
+            isServiceProcessing: false,
+            isActiveInJob: false
+        )
+    }
+
+    static func searchDataOnly(_ identifier: String) -> BatchOCRReadEvidence {
+        BatchOCRReadEvidence(
+            assetIdentifier: identifier,
+            ocrResult: nil,
+            indexStatus: .unprocessed,
+            indexText: "",
+            indexHasOCRMetadata: false,
+            indexExists: true,
+            isServiceProcessing: false,
+            isActiveInJob: false
+        )
+    }
+    #endif
+}
+
+private extension PhotoIndexRecord {
+    var hasOCRMetadata: Bool {
+        ocrProcessedAt != nil ||
+            ocrLanguage != nil ||
+            ocrErrorMessage != nil
+    }
 }

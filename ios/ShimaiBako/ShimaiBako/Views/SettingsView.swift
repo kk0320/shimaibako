@@ -8,6 +8,7 @@ struct SettingsView: View {
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
+    @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
     @Environment(\.openURL) private var openURL
     @State private var pendingReadMode: PhotoReadMode?
@@ -17,6 +18,8 @@ struct SettingsView: View {
     @State private var showingClearAccuracyDataConfirmation = false
     @State private var showingResetLoadingConfirmation = false
     @State private var isResettingLoadingState = false
+    @State private var isRepairingReadState = false
+    @State private var readStateRepairMessage: String?
 
     private var indexSummary: PhotoIndexSummary {
         indexService.indexSummary
@@ -662,6 +665,34 @@ struct SettingsView: View {
 
             Button {
                 Task {
+                    isRepairingReadState = true
+                    let repairSummary = await indexService.repairReadState(for: photoLibrary.assets, ocrService: ocrService)
+                    let repairedJobCount = await batchOCRJobService.repairInvalidReadJobState()
+                    readStateRepairMessage = "\(repairSummary.message) 古い読取ジョブ状態\(repairedJobCount)件を整理しました。"
+                    isRepairingReadState = false
+                }
+            } label: {
+                Label("読取状態を再確認", systemImage: "checklist")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(photoLibrary.assets.isEmpty || isRepairingReadState)
+
+            if isRepairingReadState {
+                Label("読取状態を確認しています", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let readStateRepairMessage {
+                Text(readStateRepairMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button {
+                Task {
                     await indexService.rebuildAllCategories(for: photoLibrary.assets, ocrService: ocrService)
                 }
             } label: {
@@ -680,7 +711,7 @@ struct SettingsView: View {
             .buttonStyle(.bordered)
             .disabled(ocrCacheCount == 0)
 
-            Text("読取結果を削除しても、元写真・元動画は残ります。必要な写真は読取タブで再作成できます。分類は読み込み済み写真について読取なしの軽量分類へ戻ります。")
+            Text("読取状態を再確認しても、読取結果、検索インデックス、手動分類、不要候補、メモ、タグは削除しません。読取結果キャッシュ削除は、読取文字を消したい場合だけ使います。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

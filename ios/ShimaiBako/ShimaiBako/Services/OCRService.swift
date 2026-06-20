@@ -45,6 +45,10 @@ final class OCRService: ObservableObject {
         resultsByAssetID[asset.id]
     }
 
+    func result(localIdentifier: String) -> OCRResultRecord? {
+        resultsByAssetID[localIdentifier]
+    }
+
     func text(for asset: PhotoAsset) -> String? {
         resultsByAssetID[asset.id]?.ocrText
     }
@@ -67,6 +71,11 @@ final class OCRService: ObservableObject {
         }
 
         return resultsByAssetID[asset.id]?.ocrText ?? ""
+    }
+
+    nonisolated static func isNoTextResult(_ result: OCRResultRecord) -> Bool {
+        let text = result.ocrText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty || text == "テキストは見つかりませんでした。"
     }
 
     func summary(for assets: [PhotoAsset]) -> OCRSummary {
@@ -277,11 +286,6 @@ final class OCRService: ObservableObject {
         } catch {
             errorMessage = "OCR結果を保存できませんでした: \(error.localizedDescription)"
         }
-    }
-
-    private nonisolated static func isNoTextResult(_ result: OCRResultRecord) -> Bool {
-        let text = result.ocrText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return text.isEmpty || text == "テキストは見つかりませんでした。"
     }
 
     private nonisolated static func recognizeText(in image: UIImage) async throws -> String {

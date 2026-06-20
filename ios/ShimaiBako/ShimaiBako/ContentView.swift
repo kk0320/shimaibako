@@ -42,6 +42,9 @@ struct ContentView: View {
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRP3Validation") {
                     await batchOCRJobService.runP3ValidationSuite(ocrService: ocrService)
                 }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRTargetSelectionValidation") {
+                    await batchOCRJobService.runTargetSelectionValidationSuite()
+                }
                 #endif
                 await photoLibrary.prepare()
             }

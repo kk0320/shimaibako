@@ -105,6 +105,51 @@ struct BatchOCRJobSnapshot: Codable, Equatable {
     var items: [BatchOCRItem]
 }
 
+struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
+    var selectedLimit: Int
+    var candidateBeforeExclusion: Int
+    var excludedAlreadyRead: Int
+    var excludedCompletedNoText: Int
+    var excludedInProgress: Int
+    var excludedSearchDataOnly: Int
+    var excludedStaleCache: Int
+    var searchDataOnlyCandidateCount: Int
+    var staleCacheCandidateCount: Int
+    var failedRetryableCount: Int
+    var failedPermanentCount: Int
+    var finalTargetCount: Int
+    var reasonIfZero: String?
+
+    static let empty = BatchOCRTargetSelectionDiagnostics(
+        selectedLimit: 0,
+        candidateBeforeExclusion: 0,
+        excludedAlreadyRead: 0,
+        excludedCompletedNoText: 0,
+        excludedInProgress: 0,
+        excludedSearchDataOnly: 0,
+        excludedStaleCache: 0,
+        searchDataOnlyCandidateCount: 0,
+        staleCacheCandidateCount: 0,
+        failedRetryableCount: 0,
+        failedPermanentCount: 0,
+        finalTargetCount: 0,
+        reasonIfZero: nil
+    )
+}
+
+struct ReadStateRepairSummary: Codable, Equatable {
+    var scannedCount: Int
+    var repairedStaleCompletedCount: Int
+    var repairedStaleProcessingCount: Int
+    var preservedOCRResultCount: Int
+    var preservedManualDataCount: Int
+    var updatedIndexRecordCount: Int
+
+    var message: String {
+        "読取状態を再確認しました。OCR結果\(preservedOCRResultCount)件、手動分類など\(preservedManualDataCount)件は保持し、古い読取状態\(repairedStaleCompletedCount + repairedStaleProcessingCount)件を未読取扱いへ戻しました。"
+    }
+}
+
 #if DEBUG
 struct BatchOCRP1ValidationReport: Codable, Equatable {
     var startedAt: Date
@@ -187,6 +232,32 @@ struct BatchOCRP3ValidationCaseResult: Codable, Equatable, Identifiable {
     var completedTextCount: Int
     var completedNoTextCount: Int
     var failedCount: Int
+    var passed: Bool
+    var message: String
+}
+
+struct BatchOCRTargetSelectionValidationReport: Codable, Equatable {
+    var startedAt: Date
+    var finishedAt: Date
+    var cases: [BatchOCRTargetSelectionValidationCaseResult]
+
+    var passed: Bool {
+        cases.allSatisfy(\.passed)
+    }
+}
+
+struct BatchOCRTargetSelectionValidationCaseResult: Codable, Equatable, Identifiable {
+    var id: String {
+        name
+    }
+
+    var name: String
+    var selectedLimit: Int
+    var finalTargetCount: Int
+    var searchDataOnlyCandidateCount: Int
+    var staleCacheCandidateCount: Int
+    var excludedAlreadyRead: Int
+    var excludedCompletedNoText: Int
     var passed: Bool
     var message: String
 }

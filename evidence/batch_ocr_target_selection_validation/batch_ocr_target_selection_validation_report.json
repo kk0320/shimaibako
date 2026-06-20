@@ -1,0 +1,50 @@
+{
+  "cases" : [
+    {
+      "excludedAlreadyRead" : 0,
+      "excludedCompletedNoText" : 0,
+      "finalTargetCount" : 500,
+      "message" : "PASS",
+      "name" : "検索データのみ写真の対象化テスト",
+      "passed" : true,
+      "searchDataOnlyCandidateCount" : 2000,
+      "selectedLimit" : 500,
+      "staleCacheCandidateCount" : 0
+    },
+    {
+      "excludedAlreadyRead" : 12,
+      "excludedCompletedNoText" : 3,
+      "finalTargetCount" : 500,
+      "message" : "PASS",
+      "name" : "キャッシュ削除なし500件対象抽出テスト",
+      "passed" : true,
+      "searchDataOnlyCandidateCount" : 2380,
+      "selectedLimit" : 500,
+      "staleCacheCandidateCount" : 5
+    },
+    {
+      "excludedAlreadyRead" : 40,
+      "excludedCompletedNoText" : 20,
+      "finalTargetCount" : 2000,
+      "message" : "PASS",
+      "name" : "キャッシュ削除なし2,000件対象抽出テスト",
+      "passed" : true,
+      "searchDataOnlyCandidateCount" : 3125,
+      "selectedLimit" : 2000,
+      "staleCacheCandidateCount" : 15
+    },
+    {
+      "excludedAlreadyRead" : 50,
+      "excludedCompletedNoText" : 50,
+      "finalTargetCount" : 0,
+      "message" : "PASS",
+      "name" : "0件対象テスト",
+      "passed" : true,
+      "searchDataOnlyCandidateCount" : 0,
+      "selectedLimit" : 500,
+      "staleCacheCandidateCount" : 0
+    }
+  ],
+  "finishedAt" : 803620785.23358,
+  "startedAt" : 803620785.222987
+}
