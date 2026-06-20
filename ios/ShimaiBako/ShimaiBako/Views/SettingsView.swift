@@ -92,15 +92,15 @@ struct SettingsView: View {
                 )
                 .presentationDetents([.large])
             }
-            .alert("OCR結果キャッシュを削除しますか？", isPresented: $showingClearAllOCRConfirmation) {
+            .alert("読取結果キャッシュを削除しますか？", isPresented: $showingClearAllOCRConfirmation) {
                 Button("キャンセル", role: .cancel) {}
-                Button("OCR結果キャッシュを削除", role: .destructive) {
+                Button("読取結果キャッシュを削除", role: .destructive) {
                     Task {
                         await indexService.clearAllOCRResults(for: photoLibrary.assets, ocrService: ocrService)
                     }
                 }
             } message: {
-                Text("しまい箱に保存されたOCR文字キャッシュを一括で削除します。元写真・元動画は削除・変更されません。削除後、OCR文字検索には出なくなります。必要な写真は再OCRできます。")
+                Text("しまい箱に保存された読取文字キャッシュを一括で削除します。元写真・元動画は削除・変更されません。削除後、読取文字検索には出なくなります。必要な写真は再読取できます。")
             }
             .alert("分類傾向学習データを削除しますか？", isPresented: $showingClearLearningConfirmation) {
                 Button("キャンセル", role: .cancel) {}
@@ -110,7 +110,7 @@ struct SettingsView: View {
                     }
                 }
             } message: {
-                Text("削除されるのは、手動で直した分類から作った軽量な分類傾向データだけです。元写真・元動画、OCR結果、手動分類は削除されません。")
+                Text("削除されるのは、手動で直した分類から作った軽量な分類傾向データだけです。元写真・元動画、読取結果、手動分類は削除されません。")
             }
             .alert("精度向上データを削除しますか？", isPresented: $showingClearAccuracyDataConfirmation) {
                 Button("キャンセル", role: .cancel) {}
@@ -121,7 +121,7 @@ struct SettingsView: View {
                     }
                 }
             } message: {
-                Text("分類傾向学習データ、将来の画像特徴量データ、精度向上モードの処理履歴だけを削除します。元写真・元動画、OCR結果、手動分類、写真アプリ側のデータは削除されません。")
+                Text("分類傾向学習データ、将来の画像特徴量データ、精度向上モードの処理履歴だけを削除します。元写真・元動画、読取結果、手動分類、写真アプリ側のデータは削除されません。")
             }
             .alert("読み込み処理だけを初期化しますか？", isPresented: $showingResetLoadingConfirmation) {
                 Button("キャンセル", role: .cancel) {}
@@ -135,7 +135,7 @@ struct SettingsView: View {
                 }
                 .disabled(isResettingLoadingState)
             } message: {
-                Text("元写真・元動画は削除されません。OCR結果・手動分類・不要候補・メモ・タグは削除しません。読み込みジョブ状態だけをリセットします。")
+                Text("元写真・元動画は削除されません。読取結果・手動分類・不要候補・メモ・タグは削除しません。読み込みジョブ状態だけをリセットします。")
             }
             .task {
                 if photoLibrary.canReadPhotos &&
@@ -184,9 +184,9 @@ struct SettingsView: View {
             DetailInfoRow(title: "読み込み済み", value: photoLibrary.loadingSummaryTitle)
             DetailInfoRow(title: "iCloud取得", value: photoLibrary.iCloudMode.title)
             DetailInfoRow(title: "インデックス件数", value: "\(indexService.indexedRecordCount)件")
-            DetailInfoRow(title: "OCR済み件数", value: "\(indexSummary.completedOCRCount)件")
-            DetailInfoRow(title: "OCR未処理件数", value: "\(indexSummary.unprocessedOCRCount)件")
-            DetailInfoRow(title: "OCR失敗件数", value: "\(indexSummary.failedOCRCount)件")
+            DetailInfoRow(title: "読取済み件数", value: "\(indexSummary.completedOCRCount)件")
+            DetailInfoRow(title: "未読取件数", value: "\(indexSummary.unprocessedOCRCount)件")
+            DetailInfoRow(title: "読取失敗件数", value: "\(indexSummary.failedOCRCount)件")
             DetailInfoRow(title: "分類済み件数", value: "\(indexSummary.categorizedCount)件")
             DetailInfoRow(title: "外部送信", value: "なし")
             DetailInfoRow(title: "保存先", value: "端末内")
@@ -274,7 +274,7 @@ struct SettingsView: View {
 
             SafetyBullet("3万枚など大量写真では、まず軽量/標準モードで確認してください")
             SafetyBullet("全件モードは時間がかかる場合があります")
-            SafetyBullet("OCRは必要なカテゴリから段階的に実行してください")
+            SafetyBullet("読取は必要なカテゴリから段階的に実行してください")
             SafetyBullet("iCloud写真の取得を許可すると通信が発生する場合があります")
             SafetyBullet("元写真・元動画は外部送信せず、変更もしません")
         }
@@ -313,7 +313,7 @@ struct SettingsView: View {
                 .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
             }
 
-            Text("iCloud取得はApple/iCloud写真からの取得です。外部OCRサービスには送信しません。モバイル通信量に注意してください。")
+            Text("iCloud取得はApple/iCloud写真からの取得です。外部の読取サービスには送信しません。モバイル通信量に注意してください。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -378,24 +378,24 @@ struct SettingsView: View {
 
     private var ocrSettingsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("OCR設定", systemImage: "text.viewfinder")
+            Label("読取設定", systemImage: "text.viewfinder")
                 .font(.headline)
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            DetailInfoRow(title: "OCR言語", value: OCRConfiguration.recognitionLanguageTitle)
-            DetailInfoRow(title: "OCR精度", value: OCRConfiguration.recognitionQualityTitle)
-            DetailInfoRow(title: "まとめてOCR上限", value: "\(OCRConfiguration.batchLimit)件")
-            DetailInfoRow(title: "OCR画像サイズ", value: OCRConfiguration.maxRecognitionImageLongSideTitle)
-            DetailInfoRow(title: "OCR結果件数", value: "\(indexSummary.completedOCRCount)件")
+            DetailInfoRow(title: "読取言語", value: OCRConfiguration.recognitionLanguageTitle)
+            DetailInfoRow(title: "読取精度", value: OCRConfiguration.recognitionQualityTitle)
+            DetailInfoRow(title: "読取上限", value: "20 / 50 / 100 / 500 / 2,000件")
+            DetailInfoRow(title: "画像サイズ", value: OCRConfiguration.maxRecognitionImageLongSideTitle)
+            DetailInfoRow(title: "読取済み件数", value: "\(indexSummary.completedOCRCount)件")
             DetailInfoRow(title: "インデックス保存先", value: "端末内")
             DetailInfoRow(title: "保存内容", value: "検索インデックスのみ")
 
-            Text("OCR結果、分類結果、検索用メタデータだけを端末内に保存します。元写真・元動画やサムネイル本体は保存しません。")
+            Text("読取結果、分類結果、検索用メタデータだけを端末内に保存します。元写真・元動画やサムネイル本体は保存しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("OCRは必要な写真から段階的に実行します。発熱やバッテリー消費を避けるため、全件OCRは初期運用では行いません。")
+            Text("読取は読取タブで必要な件数だけ段階的に実行します。発熱やバッテリー消費を避けるため、ライブラリ全体の自動読取は行いません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -640,7 +640,7 @@ struct SettingsView: View {
                 .font(.headline)
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            DetailInfoRow(title: "OCR結果キャッシュ件数", value: "\(ocrCacheCount)件")
+            DetailInfoRow(title: "読取結果キャッシュ件数", value: "\(ocrCacheCount)件")
             DetailInfoRow(title: "検索インデックス件数", value: "\(indexService.indexedRecordCount)件")
             DetailInfoRow(title: "保存先", value: "端末内")
 
@@ -674,13 +674,13 @@ struct SettingsView: View {
             Button(role: .destructive) {
                 showingClearAllOCRConfirmation = true
             } label: {
-                Label("OCR結果キャッシュを削除", systemImage: "trash")
+                Label("読取結果キャッシュを削除", systemImage: "trash")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
             .disabled(ocrCacheCount == 0)
 
-            Text("OCR結果を削除しても、元写真・元動画は残ります。必要な写真は詳細画面や一覧から再OCRできます。分類は読み込み済み写真についてOCRなしの軽量分類へ戻ります。")
+            Text("読取結果を削除しても、元写真・元動画は残ります。必要な写真は読取タブで再作成できます。分類は読み込み済み写真について読取なしの軽量分類へ戻ります。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -705,7 +705,7 @@ struct SettingsView: View {
                 SafetyNoticeRow(notice: notice)
             }
 
-            Text("OCRは端末内処理です。元写真・元動画は外部送信せず、変更もしません。大量写真では軽量/標準モードから始めてください。")
+            Text("読取は端末内処理です。元写真・元動画は外部送信せず、変更もしません。大量写真では軽量/標準モードから始めてください。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -829,7 +829,7 @@ struct SettingsView: View {
         case .notDetermined:
             "写真タブで許可すると、設定した読み込みモードの範囲で読み取り専用表示します。"
         case .authorized:
-            "許可された範囲から写真を読み込み、検索とOCRを端末内で実行します。"
+            "許可された範囲から写真を読み込み、検索と読取を端末内で実行します。"
         case .limited:
             "限定アクセス中です。必要に応じて、利用できる写真の選択を変更できます。"
         case .denied:

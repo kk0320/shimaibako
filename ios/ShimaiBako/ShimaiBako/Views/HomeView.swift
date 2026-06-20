@@ -4,6 +4,7 @@ import SwiftUI
 private enum HomeTab: Hashable {
     case photos
     case search
+    case read
     case settings
 }
 
@@ -43,6 +44,17 @@ struct HomeView: View {
                 }
                 .tag(HomeTab.search)
 
+            ReadView(
+                photoLibrary: photoLibrary,
+                ocrService: ocrService,
+                indexService: indexService,
+                deviceSafety: deviceSafety
+            )
+                .tabItem {
+                    Label("読取", systemImage: "text.viewfinder")
+                }
+                .tag(HomeTab.read)
+
             SettingsView(
                 photoLibrary: photoLibrary,
                 ocrService: ocrService,
@@ -72,6 +84,10 @@ private extension HomeTab {
 
         if arguments.contains("-ShimaiBakoOpenSettingsTab") {
             return .settings
+        }
+
+        if arguments.contains("-ShimaiBakoOpenReadTab") {
+            return .read
         }
         #endif
 
