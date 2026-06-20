@@ -57,6 +57,10 @@ final class OCRService: ObservableObject {
         processingAssetIDs.contains(asset.id)
     }
 
+    func isProcessing(localIdentifier: String) -> Bool {
+        processingAssetIDs.contains(localIdentifier)
+    }
+
     func status(for asset: PhotoAsset) -> OCRStatus {
         if processingAssetIDs.contains(asset.id) {
             return .processing

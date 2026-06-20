@@ -107,7 +107,12 @@ struct BatchOCRJobSnapshot: Codable, Equatable {
 
 struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
     var selectedLimit: Int
+    var photoDBTotalCount: Int
+    var batchCandidateScanLimit: Int
+    var batchCandidateSource: String
+    var effectiveFetchLimit: Int
     var candidateBeforeExclusion: Int
+    var candidateAfterPaging: Int
     var excludedAlreadyRead: Int
     var excludedCompletedNoText: Int
     var excludedInProgress: Int
@@ -118,12 +123,22 @@ struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
     var staleCacheCandidateCount: Int
     var failedRetryableCount: Int
     var failedPermanentCount: Int
+    var staleInProgressRecovered: Int
+    var activeRunningJobTargets: Int
+    var pausedJobPendingTargets: Int
+    var staleProcessingTargets: Int
+    var orphanProcessingTargets: Int
     var finalTargetCount: Int
     var reasonIfZero: String?
 
     static let empty = BatchOCRTargetSelectionDiagnostics(
         selectedLimit: 0,
+        photoDBTotalCount: 0,
+        batchCandidateScanLimit: 0,
+        batchCandidateSource: "",
+        effectiveFetchLimit: 0,
         candidateBeforeExclusion: 0,
+        candidateAfterPaging: 0,
         excludedAlreadyRead: 0,
         excludedCompletedNoText: 0,
         excludedInProgress: 0,
@@ -134,6 +149,11 @@ struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
         staleCacheCandidateCount: 0,
         failedRetryableCount: 0,
         failedPermanentCount: 0,
+        staleInProgressRecovered: 0,
+        activeRunningJobTargets: 0,
+        pausedJobPendingTargets: 0,
+        staleProcessingTargets: 0,
+        orphanProcessingTargets: 0,
         finalTargetCount: 0,
         reasonIfZero: nil
     )
@@ -287,6 +307,10 @@ struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
     var searchDataOnlyCount: Int
     var unreadCandidateCount: Int
     var activeJobTargetCount: Int
+    var activeRunningJobTargets: Int
+    var pausedJobPendingTargets: Int
+    var staleProcessingTargets: Int
+    var orphanProcessingTargets: Int
     var invalidOrStaleJobCount: Int
     var limitDiagnostics: [BatchOCRLimitDiagnostics]
 
@@ -305,19 +329,33 @@ struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
             "検索データのみ: \(searchDataOnlyCount)",
             "未読取候補: \(unreadCandidateCount)",
             "処理中ジョブ対象: \(activeJobTargetCount)",
+            "activeRunningJobTargets: \(activeRunningJobTargets)",
+            "pausedJobPendingTargets: \(pausedJobPendingTargets)",
+            "staleProcessingTargets: \(staleProcessingTargets)",
+            "orphanProcessingTargets: \(orphanProcessingTargets)",
             "無効/古いジョブ: \(invalidOrStaleJobCount)"
         ]
 
         for limit in limitDiagnostics.sorted(by: { $0.selectedLimit < $1.selectedLimit }) {
             lines.append("")
             lines.append("\(limit.selectedLimit)件選択時の対象数: \(limit.targetCount)")
+            lines.append("photoDBTotalCount: \(limit.diagnostics.photoDBTotalCount)")
+            lines.append("batchCandidateSource: \(limit.diagnostics.batchCandidateSource)")
+            lines.append("requestedLimit: \(limit.diagnostics.selectedLimit)")
+            lines.append("effectiveFetchLimit: \(limit.diagnostics.effectiveFetchLimit)")
             lines.append("candidateBeforeExclusion: \(limit.diagnostics.candidateBeforeExclusion)")
+            lines.append("candidateAfterPaging: \(limit.diagnostics.candidateAfterPaging)")
             lines.append("excludedAlreadyRead: \(limit.diagnostics.excludedAlreadyRead)")
             lines.append("excludedCompletedNoText: \(limit.diagnostics.excludedCompletedNoText)")
             lines.append("excludedInProgress: \(limit.diagnostics.excludedInProgress)")
             lines.append("excludedSearchDataOnly: \(limit.diagnostics.excludedSearchDataOnly)")
             lines.append("excludedFailedPermanent: \(limit.diagnostics.excludedFailedPermanent)")
             lines.append("failedRetryableCount: \(limit.diagnostics.failedRetryableCount)")
+            lines.append("staleInProgressRecovered: \(limit.diagnostics.staleInProgressRecovered)")
+            lines.append("activeRunningJobTargets: \(limit.diagnostics.activeRunningJobTargets)")
+            lines.append("pausedJobPendingTargets: \(limit.diagnostics.pausedJobPendingTargets)")
+            lines.append("staleProcessingTargets: \(limit.diagnostics.staleProcessingTargets)")
+            lines.append("orphanProcessingTargets: \(limit.diagnostics.orphanProcessingTargets)")
             lines.append("finalTargetCount: \(limit.diagnostics.finalTargetCount)")
             lines.append("reasonIfZero: \(limit.diagnostics.reasonIfZero ?? "-")")
         }

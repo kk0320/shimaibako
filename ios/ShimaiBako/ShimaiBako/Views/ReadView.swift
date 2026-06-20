@@ -217,13 +217,18 @@ struct ReadView: View {
 
                 VStack(alignment: .leading, spacing: 5) {
                     ReadJobRow(title: "選択上限", value: "\(diagnostics.selectedLimit)件")
+                    ReadJobRow(title: "候補取得元", value: diagnostics.batchCandidateSource)
+                    ReadJobRow(title: "DB総数", value: "\(diagnostics.photoDBTotalCount)件")
+                    ReadJobRow(title: "取得上限", value: "\(diagnostics.effectiveFetchLimit)件")
                     ReadJobRow(title: "候補", value: "\(diagnostics.candidateBeforeExclusion)件")
+                    ReadJobRow(title: "取得後候補", value: "\(diagnostics.candidateAfterPaging)件")
                     ReadJobRow(title: "読取済み除外", value: "\(diagnostics.excludedAlreadyRead)件")
                     ReadJobRow(title: "文字なし除外", value: "\(diagnostics.excludedCompletedNoText)件")
                     ReadJobRow(title: "処理中除外", value: "\(diagnostics.excludedInProgress)件")
                     ReadJobRow(title: "失敗確定除外", value: "\(diagnostics.excludedFailedPermanent)件")
                     ReadJobRow(title: "検索データのみ", value: "\(diagnostics.searchDataOnlyCandidateCount)件")
                     ReadJobRow(title: "古い状態を候補へ戻す", value: "\(diagnostics.staleCacheCandidateCount)件")
+                    ReadJobRow(title: "stale処理中復旧", value: "\(diagnostics.staleInProgressRecovered)件")
                     ReadJobRow(title: "今回対象", value: "\(diagnostics.finalTargetCount)件")
                 }
 
@@ -391,6 +396,10 @@ struct ReadView: View {
                     ReadJobRow(title: "検索データだけある件数", value: "\(report.searchDataOnlyCount)件")
                     ReadJobRow(title: "未読取候補件数", value: "\(report.unreadCandidateCount)件")
                     ReadJobRow(title: "処理中ジョブ対象件数", value: "\(report.activeJobTargetCount)件")
+                    ReadJobRow(title: "activeRunningJobTargets", value: "\(report.activeRunningJobTargets)件")
+                    ReadJobRow(title: "pausedJobPendingTargets", value: "\(report.pausedJobPendingTargets)件")
+                    ReadJobRow(title: "staleProcessingTargets", value: "\(report.staleProcessingTargets)件")
+                    ReadJobRow(title: "orphanProcessingTargets", value: "\(report.orphanProcessingTargets)件")
                     ReadJobRow(title: "無効/古いジョブ件数", value: "\(report.invalidOrStaleJobCount)件")
                 }
 
@@ -410,13 +419,23 @@ struct ReadView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
 
+                        ReadJobRow(title: "batchCandidateSource", value: primary.batchCandidateSource)
+                        ReadJobRow(title: "photoDBTotalCount", value: "\(primary.photoDBTotalCount)")
+                        ReadJobRow(title: "requestedLimit", value: "\(primary.selectedLimit)")
+                        ReadJobRow(title: "effectiveFetchLimit", value: "\(primary.effectiveFetchLimit)")
                         ReadJobRow(title: "candidateBeforeExclusion", value: "\(primary.candidateBeforeExclusion)")
+                        ReadJobRow(title: "candidateAfterPaging", value: "\(primary.candidateAfterPaging)")
                         ReadJobRow(title: "excludedAlreadyRead", value: "\(primary.excludedAlreadyRead)")
                         ReadJobRow(title: "excludedCompletedNoText", value: "\(primary.excludedCompletedNoText)")
                         ReadJobRow(title: "excludedInProgress", value: "\(primary.excludedInProgress)")
                         ReadJobRow(title: "excludedSearchDataOnly", value: "\(primary.excludedSearchDataOnly)")
                         ReadJobRow(title: "excludedFailedPermanent", value: "\(primary.excludedFailedPermanent)")
                         ReadJobRow(title: "failedRetryableCount", value: "\(primary.failedRetryableCount)")
+                        ReadJobRow(title: "staleInProgressRecovered", value: "\(primary.staleInProgressRecovered)")
+                        ReadJobRow(title: "activeRunningJobTargets", value: "\(primary.activeRunningJobTargets)")
+                        ReadJobRow(title: "pausedJobPendingTargets", value: "\(primary.pausedJobPendingTargets)")
+                        ReadJobRow(title: "staleProcessingTargets", value: "\(primary.staleProcessingTargets)")
+                        ReadJobRow(title: "orphanProcessingTargets", value: "\(primary.orphanProcessingTargets)")
                         ReadJobRow(title: "finalTargetCount", value: "\(primary.finalTargetCount)")
 
                         if let reason = primary.reasonIfZero {

@@ -25,6 +25,7 @@ final class BatchOCRJobService: ObservableObject {
     private let fileManager: FileManager
     private let fileName = "batch_ocr_jobs.json"
     private let allowedRequestedLimits = [20, 50, 100, 500, 2_000]
+    private let staleProcessingInterval: TimeInterval = 180
     #if DEBUG
     private let validationReportFileName = "batch_ocr_p1_validation_report.json"
     private let p2ValidationReportFileName = "batch_ocr_p2_validation_report.json"
@@ -77,8 +78,47 @@ final class BatchOCRJobService: ObservableObject {
     }
 
     private var activeJobTargetCount: Int {
-        items.filter { item in
+        guard currentJob?.state.isActive == true else {
+            return 0
+        }
+
+        return items.filter { item in
             item.state == .pending || item.state == .processing
+        }.count
+    }
+
+    private var pausedJobPendingTargetCount: Int {
+        guard currentJob?.state == .pausedBackground || currentJob?.state == .pausedUser else {
+            return 0
+        }
+
+        return items.filter { item in
+            item.state == .pending || item.state == .failedRetryable || item.state == .processing
+        }.count
+    }
+
+    private var staleProcessingTargetCount: Int {
+        let now = Date()
+        return items.filter { item in
+            guard item.state == .processing else {
+                return false
+            }
+
+            guard currentJob?.state.isActive == true else {
+                return true
+            }
+
+            return now.timeIntervalSince(item.updatedAt) > staleProcessingInterval
+        }.count
+    }
+
+    private var orphanProcessingTargetCount: Int {
+        guard let jobID = currentJob?.id else {
+            return items.filter { $0.state == .processing }.count
+        }
+
+        return items.filter { item in
+            item.state == .processing && item.jobID != jobID
         }.count
     }
 
@@ -139,7 +179,6 @@ final class BatchOCRJobService: ObservableObject {
 
         let selection = await makeSelection(
             requestedLimit: requestedLimit,
-            assets: assets,
             ocrService: ocrService,
             indexService: indexService
         )
@@ -155,21 +194,16 @@ final class BatchOCRJobService: ObservableObject {
 
         let now = Date()
         let jobID = UUID().uuidString
-        let descriptors = selection.candidates.map { asset in
-            BatchOCRCandidateDescriptor(
-                assetIdentifier: asset.localIdentifier,
-                sourceRevision: sourceRevision(for: asset)
-            )
-        }
         await createJob(
             jobID: jobID,
             requestedLimit: requestedLimit,
-            candidateDescriptors: descriptors,
-            filterSnapshot: "読取タブ: 読み込み済み写真から未読取候補を最大\(requestedLimit)件",
+            candidateDescriptors: selection.candidates,
+            filterSnapshot: "読取タブ: SQLiteインデックスから未読取候補を最大\(requestedLimit)件",
             createdAt: now
         )
 
-        let assetByIdentifier = Dictionary(uniqueKeysWithValues: selection.candidates.map { ($0.localIdentifier, $0) })
+        let resolvedAssets = photoLibrary.assets(for: selection.candidates.map(\.assetIdentifier))
+        let assetByIdentifier = Dictionary(uniqueKeysWithValues: resolvedAssets.map { ($0.localIdentifier, $0) })
         runTask = Task { [weak self] in
             await self?.run(
                 jobID: jobID,
@@ -190,7 +224,6 @@ final class BatchOCRJobService: ObservableObject {
     ) async {
         let selection = await makeSelection(
             requestedLimit: requestedLimit,
-            assets: assets,
             ocrService: ocrService,
             indexService: indexService
         )
@@ -380,6 +413,19 @@ final class BatchOCRJobService: ObservableObject {
                 expectedExcludedCompletedNoText: 0
             ),
             targetSelectionCase(
+                name: "pageLimit leakage test: 2,000件抽出",
+                requestedLimit: 2_000,
+                totalCount: 2_800,
+                evidenceProvider: { index in
+                    BatchOCRReadEvidence.searchDataOnly("debug-page-limit-\(index)")
+                },
+                expectedFinalTargetCount: 2_000,
+                expectedSearchDataOnlyCandidateCount: 2_800,
+                expectedStaleCacheCandidateCount: 0,
+                expectedExcludedAlreadyRead: 0,
+                expectedExcludedCompletedNoText: 0
+            ),
+            targetSelectionCase(
                 name: "キャッシュ削除なし500件対象抽出テスト",
                 requestedLimit: 500,
                 totalCount: 2_400,
@@ -466,7 +512,6 @@ final class BatchOCRJobService: ObservableObject {
         for limit in limits {
             let selection = await makeSelection(
                 requestedLimit: limit,
-                assets: assets,
                 ocrService: ocrService,
                 indexService: indexService
             )
@@ -480,8 +525,7 @@ final class BatchOCRJobService: ObservableObject {
         }
 
         let fullSelection = await makeSelection(
-            requestedLimit: max(assets.filter { $0.mediaType == .image }.count, 1),
-            assets: assets,
+            requestedLimit: max(indexService.indexedRecordCount, 1),
             ocrService: ocrService,
             indexService: indexService
         )
@@ -500,6 +544,10 @@ final class BatchOCRJobService: ObservableObject {
             searchDataOnlyCount: fullDiagnostics.searchDataOnlyCandidateCount,
             unreadCandidateCount: fullDiagnostics.finalTargetCount,
             activeJobTargetCount: activeJobTargetCount,
+            activeRunningJobTargets: activeJobTargetCount,
+            pausedJobPendingTargets: pausedJobPendingTargetCount,
+            staleProcessingTargets: staleProcessingTargetCount,
+            orphanProcessingTargets: orphanProcessingTargetCount,
             invalidOrStaleJobCount: invalidOrStaleJobCount,
             limitDiagnostics: limitDiagnostics
         )
@@ -1061,7 +1109,11 @@ final class BatchOCRJobService: ObservableObject {
             return
         }
 
-        let assetByIdentifier = Dictionary(uniqueKeysWithValues: assets.map { ($0.localIdentifier, $0) })
+        let targetIdentifiers = items
+            .filter { $0.state == .pending || $0.state == .failedRetryable }
+            .map(\.assetIdentifier)
+        let resolvedAssets = photoLibrary.assets(for: targetIdentifiers)
+        let assetByIdentifier = Dictionary(uniqueKeysWithValues: resolvedAssets.map { ($0.localIdentifier, $0) })
         var nextJob = job
         nextJob.state = .running
         nextJob.pausedReason = nil
@@ -1346,53 +1398,56 @@ final class BatchOCRJobService: ObservableObject {
 
     private func makeSelection(
         requestedLimit: Int,
-        assets: [PhotoAsset],
         ocrService: OCRService,
         indexService: PhotoIndexService
     ) async -> BatchOCRTargetSelection {
-        let imageAssets = assets.filter { $0.mediaType == .image }
-        let recordsByIdentifier = await indexService.recordsByLocalIdentifier(
-            localIdentifiers: imageAssets.map(\.localIdentifier)
-        )
-        let activeIdentifiers = Set(items.filter { item in
-            item.state == .pending || item.state == .processing
-        }.map(\.assetIdentifier))
+        let recoveredProcessingCount = await recoverStaleProcessingLocksIfNeeded()
+        let candidateRecords = await indexService.batchOCRCandidateRecords(limit: requestedLimit)
+        let activeIdentifiers = activeInProgressIdentifiers()
         let failedPermanentCount = items.filter { $0.state == .failedPermanent }.count
 
-        var candidates: [PhotoAsset] = []
-        candidates.reserveCapacity(min(requestedLimit, assets.count))
+        var candidates: [BatchOCRCandidateDescriptor] = []
+        candidates.reserveCapacity(min(requestedLimit, candidateRecords.count))
         var diagnostics = BatchOCRTargetSelectionDiagnostics.empty
         diagnostics.selectedLimit = requestedLimit
+        diagnostics.photoDBTotalCount = indexService.indexedRecordCount
+        diagnostics.batchCandidateScanLimit = requestedLimit
+        diagnostics.batchCandidateSource = "sqliteUnreadQuery"
+        diagnostics.effectiveFetchLimit = requestedLimit
         diagnostics.failedPermanentCount = failedPermanentCount
         diagnostics.excludedFailedPermanent = failedPermanentCount
+        diagnostics.staleInProgressRecovered = recoveredProcessingCount
+        diagnostics.activeRunningJobTargets = activeJobTargetCount
+        diagnostics.pausedJobPendingTargets = pausedJobPendingTargetCount
+        diagnostics.staleProcessingTargets = staleProcessingTargetCount
+        diagnostics.orphanProcessingTargets = orphanProcessingTargetCount
 
-        for asset in imageAssets {
+        for record in candidateRecords {
             diagnostics.candidateBeforeExclusion += 1
-            let record = recordsByIdentifier[asset.localIdentifier]
             let evidence = BatchOCRReadEvidence(
-                assetIdentifier: asset.localIdentifier,
-                ocrResult: ocrService.result(for: asset),
-                indexStatus: record?.ocrStatus,
-                indexText: record?.ocrText ?? "",
-                indexHasOCRMetadata: record?.hasOCRMetadata ?? false,
-                indexExists: record != nil,
-                isServiceProcessing: ocrService.isProcessing(asset),
-                isActiveInJob: activeIdentifiers.contains(asset.localIdentifier)
+                assetIdentifier: record.localIdentifier,
+                ocrResult: ocrService.result(localIdentifier: record.localIdentifier),
+                indexStatus: record.ocrStatus,
+                indexText: record.ocrText,
+                indexHasOCRMetadata: record.hasOCRMetadata,
+                indexExists: true,
+                isServiceProcessing: ocrService.isProcessing(localIdentifier: record.localIdentifier),
+                isActiveInJob: activeIdentifiers.contains(record.localIdentifier)
             )
             let decision = readDecision(for: evidence)
 
             switch decision {
             case .target:
-                appendCandidate(asset, to: &candidates, requestedLimit: requestedLimit)
+                appendCandidate(record, to: &candidates, requestedLimit: requestedLimit)
             case .searchDataOnlyTarget:
                 diagnostics.searchDataOnlyCandidateCount += 1
-                appendCandidate(asset, to: &candidates, requestedLimit: requestedLimit)
+                appendCandidate(record, to: &candidates, requestedLimit: requestedLimit)
             case .staleCacheTarget:
                 diagnostics.staleCacheCandidateCount += 1
-                appendCandidate(asset, to: &candidates, requestedLimit: requestedLimit)
+                appendCandidate(record, to: &candidates, requestedLimit: requestedLimit)
             case .failedRetryableTarget:
                 diagnostics.failedRetryableCount += 1
-                appendCandidate(asset, to: &candidates, requestedLimit: requestedLimit)
+                appendCandidate(record, to: &candidates, requestedLimit: requestedLimit)
             case .alreadyRead:
                 diagnostics.excludedAlreadyRead += 1
             case .completedNoText:
@@ -1402,18 +1457,24 @@ final class BatchOCRJobService: ObservableObject {
             }
         }
 
+        diagnostics.candidateAfterPaging = candidateRecords.count
         diagnostics.finalTargetCount = candidates.count
         diagnostics.reasonIfZero = reasonIfZero(for: diagnostics)
 
         return BatchOCRTargetSelection(candidates: candidates, diagnostics: diagnostics)
     }
 
-    private func appendCandidate(_ asset: PhotoAsset, to candidates: inout [PhotoAsset], requestedLimit: Int) {
+    private func appendCandidate(_ record: PhotoIndexRecord, to candidates: inout [BatchOCRCandidateDescriptor], requestedLimit: Int) {
         guard candidates.count < requestedLimit else {
             return
         }
 
-        candidates.append(asset)
+        candidates.append(
+            BatchOCRCandidateDescriptor(
+                assetIdentifier: record.localIdentifier,
+                sourceRevision: sourceRevision(for: record)
+            )
+        )
     }
 
     private func reasonIfZero(for diagnostics: BatchOCRTargetSelectionDiagnostics) -> String? {
@@ -1576,12 +1637,70 @@ final class BatchOCRJobService: ObservableObject {
         return invalidLimit || invalidEmptyJob || staleFullOCRText
     }
 
+    private func activeInProgressIdentifiers() -> Set<String> {
+        guard currentJob?.state.isActive == true else {
+            return []
+        }
+
+        return Set(items.filter { item in
+            item.state == .pending || item.state == .processing
+        }.map(\.assetIdentifier))
+    }
+
+    @discardableResult
+    private func recoverStaleProcessingLocksIfNeeded() async -> Int {
+        guard items.isEmpty == false else {
+            return 0
+        }
+
+        let now = Date()
+        let currentJobID = currentJob?.id
+        let hasActiveJob = currentJob?.state.isActive == true
+        var recovered = 0
+
+        for index in items.indices where items[index].state == .processing {
+            let isOrphan = currentJobID == nil || items[index].jobID != currentJobID
+            let isInactiveJob = hasActiveJob == false
+            let isOld = now.timeIntervalSince(items[index].updatedAt) > staleProcessingInterval
+            guard isOrphan || isInactiveJob || isOld else {
+                continue
+            }
+
+            items[index].state = .pending
+            items[index].updatedAt = now
+            recovered += 1
+        }
+
+        guard recovered > 0 else {
+            return 0
+        }
+
+        if var job = currentJob, job.state == .running || job.state == .pausing || job.state == .cancelling {
+            job.state = .pausedBackground
+            job.pausedReason = "古い読取処理状態を復旧しました。続きから再開できます。"
+            job.updatedAt = now
+            currentJob = recalculated(job)
+        }
+
+        await saveSnapshot()
+        return recovered
+    }
+
     private func sourceRevision(for asset: PhotoAsset) -> String {
         [
             "\(asset.pixelWidth)x\(asset.pixelHeight)",
             asset.creationDate.map { String(Int($0.timeIntervalSince1970)) } ?? "date-none",
             "\(asset.mediaType.rawValue)",
             "\(asset.mediaSubtypes.rawValue)"
+        ].joined(separator: ":")
+    }
+
+    private func sourceRevision(for record: PhotoIndexRecord) -> String {
+        [
+            "\(record.pixelWidth)x\(record.pixelHeight)",
+            record.creationDate.map { String(Int($0.timeIntervalSince1970)) } ?? "date-none",
+            "\(record.mediaTypeRawValue)",
+            "\(record.mediaSubtypesRawValue)"
         ].joined(separator: ":")
     }
 
@@ -1778,7 +1897,7 @@ private struct BatchOCRCandidateDescriptor {
 }
 
 private struct BatchOCRTargetSelection {
-    var candidates: [PhotoAsset]
+    var candidates: [BatchOCRCandidateDescriptor]
     var diagnostics: BatchOCRTargetSelectionDiagnostics
 }
 

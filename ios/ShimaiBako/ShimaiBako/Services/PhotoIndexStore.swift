@@ -6,6 +6,7 @@ nonisolated protocol PhotoIndexStoring: Sendable {
     func loadPage(limit: Int, offset: Int) async throws -> [PhotoIndexRecord]
     func records(localIdentifiers: [String]) async throws -> [PhotoIndexRecord]
     func localIdentifierPage(matching request: PhotoIndexPageRequest) async throws -> PhotoIndexPage
+    func batchOCRCandidateRecords(limit: Int) async throws -> [PhotoIndexRecord]
     func saveAll(_ records: [PhotoIndexRecord]) async throws
     func upsert(_ records: [PhotoIndexRecord]) async throws
     func clearOCRResult(localIdentifier: String) async throws
@@ -219,6 +220,35 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
             .prefix(request.normalizedLimit)
             .map(\.localIdentifier)
         return PhotoIndexPage(localIdentifiers: Array(page), totalCount: records.count)
+    }
+
+    func batchOCRCandidateRecords(limit: Int) async throws -> [PhotoIndexRecord] {
+        Array(
+            try await loadAll()
+                .filter { record in
+                    guard record.mediaTypeRawValue == 1 else {
+                        return false
+                    }
+
+                    return record.ocrStatus != .completed
+                }
+                .sorted { lhs, rhs in
+                    switch (lhs.creationDate, rhs.creationDate) {
+                    case let (lhsDate?, rhsDate?):
+                        if lhsDate == rhsDate {
+                            return lhs.localIdentifier > rhs.localIdentifier
+                        }
+                        return lhsDate > rhsDate
+                    case (.some, .none):
+                        return true
+                    case (.none, .some):
+                        return false
+                    case (.none, .none):
+                        return lhs.localIdentifier > rhs.localIdentifier
+                    }
+                }
+                .prefix(max(limit, 1))
+        )
     }
 
     func saveAll(_ records: [PhotoIndexRecord]) async throws {
