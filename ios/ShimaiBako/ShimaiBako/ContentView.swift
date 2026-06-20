@@ -7,6 +7,7 @@ struct ContentView: View {
     @StateObject private var indexService: PhotoIndexService
     @StateObject private var learningService: ManualCategoryLearningService
     @StateObject private var accuracyImprovementService: AccuracyImprovementService
+    @StateObject private var batchOCRJobService: BatchOCRJobService
     @StateObject private var deviceSafety: DeviceSafetyService
 
     init() {
@@ -16,6 +17,7 @@ struct ContentView: View {
         _learningService = StateObject(wrappedValue: learningService)
         _indexService = StateObject(wrappedValue: PhotoIndexService(learningService: learningService))
         _accuracyImprovementService = StateObject(wrappedValue: AccuracyImprovementService())
+        _batchOCRJobService = StateObject(wrappedValue: BatchOCRJobService())
         _deviceSafety = StateObject(wrappedValue: DeviceSafetyService())
     }
 
@@ -26,6 +28,7 @@ struct ContentView: View {
             indexService: indexService,
             learningService: learningService,
             accuracyImprovementService: accuracyImprovementService,
+            batchOCRJobService: batchOCRJobService,
             deviceSafety: deviceSafety
         )
             .task {
@@ -37,6 +40,7 @@ struct ContentView: View {
                     photoLibrary.applicationDidBecomeActive()
                 case .background:
                     photoLibrary.applicationDidEnterBackground()
+                    batchOCRJobService.pauseForBackground()
                 case .inactive:
                     break
                 @unknown default:

@@ -4,12 +4,37 @@ struct ReadView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
 
     @State private var selectedLimit: ReadBatchLimit = .oneHundred
 
     private var summary: PhotoIndexSummary {
         indexService.indexSummary
+    }
+
+    private var startDisabledReason: String? {
+        if batchOCRJobService.isRunning {
+            return "読取を実行中です"
+        }
+
+        if selectedLimit.isEnabledInP1 == false {
+            return "500件と2,000件はP3で有効化します"
+        }
+
+        if photoLibrary.canReadPhotos == false {
+            return "写真アクセスを許可してください"
+        }
+
+        if photoLibrary.assets.isEmpty {
+            return "読み込み済み写真がありません"
+        }
+
+        return nil
+    }
+
+    private var canStartReading: Bool {
+        startDisabledReason == nil
     }
 
     var body: some View {
@@ -22,7 +47,7 @@ struct ReadView: View {
                         headerCard
                         metricsGrid
                         batchLimitCard
-                        jobPlaceholderCard
+                        jobStatusCard
                         IndexStoreStatusContainer()
                         safetyCard
                     }
@@ -63,8 +88,8 @@ struct ReadView: View {
         ) {
             ReadMetricCard(title: "読取済み", value: "\(summary.completedOCRCount)件", systemImage: "checkmark.circle")
             ReadMetricCard(title: "未読取", value: "\(summary.unprocessedOCRCount)件", systemImage: "text.viewfinder")
-            ReadMetricCard(title: "文字あり", value: "\(summary.completedOCRCount)件", systemImage: "doc.text.magnifyingglass")
-            ReadMetricCard(title: "文字なし", value: "準備中", systemImage: "doc")
+            ReadMetricCard(title: "文字あり", value: "\(ocrService.storedCompletedTextCount)件", systemImage: "doc.text.magnifyingglass")
+            ReadMetricCard(title: "文字なし", value: "\(ocrService.storedCompletedNoTextCount)件", systemImage: "doc")
             ReadMetricCard(title: "失敗", value: "\(summary.failedOCRCount)件", systemImage: "exclamationmark.triangle")
             ReadMetricCard(title: "検索データ", value: "\(summary.indexedCount)件", systemImage: "magnifyingglass")
         }
@@ -102,12 +127,21 @@ struct ReadView: View {
 
             HStack(spacing: 10) {
                 Button {
+                    Task {
+                        await batchOCRJobService.start(
+                            requestedLimit: selectedLimit.rawValue,
+                            assets: photoLibrary.assets,
+                            photoLibrary: photoLibrary,
+                            ocrService: ocrService,
+                            indexService: indexService
+                        )
+                    }
                 } label: {
                     Label("まとめて文字を読み取る", systemImage: "play.circle")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(true)
+                .disabled(canStartReading == false)
 
                 Menu {
                     Button("続きから再開") {}
@@ -122,29 +156,109 @@ struct ReadView: View {
                 .disabled(true)
             }
 
-            Text("BatchOCRJobの永続化後に有効化します。写真タブでは読取処理を開始しません。")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if let startDisabledReason {
+                Label(startDisabledReason, systemImage: "info.circle")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("写真タブでは読取処理を開始しません。読取タブから選択した上限までだけ処理します。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let message = batchOCRJobService.message {
+                Label(message, systemImage: "checkmark.circle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.16, green: 0.42, blue: 0.75))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let errorMessage = batchOCRJobService.errorMessage {
+                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(16)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private var jobPlaceholderCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("中断中ジョブ", systemImage: "pause.circle")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+    @ViewBuilder
+    private var jobStatusCard: some View {
+        if let job = batchOCRJobService.currentJob {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(batchOCRJobService.activeStatusTitle, systemImage: icon(for: job.state))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            Text("中断中の読取ジョブはありません。今後のBatchOCRJobでは、バックグラウンド移行時に一時停止し、ここから続きだけ再開できます。")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                ProgressView(value: job.progress)
+                    .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ReadJobRow(title: "処理済み", value: "\(job.processedCount) / \(job.plannedCount)件")
+                    ReadJobRow(title: "文字あり", value: "\(job.completedTextCount)件")
+                    ReadJobRow(title: "文字なし", value: "\(job.completedNoTextCount)件")
+                    ReadJobRow(title: "失敗", value: "\(job.failedCount)件")
+                    ReadJobRow(title: "上限", value: "\(job.requestedLimit)件")
+                }
+
+                if let pausedReason = job.pausedReason {
+                    Text(pausedReason)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if job.state == .running || job.state == .preparing {
+                    HStack(spacing: 10) {
+                        Button("一時停止") {}
+                            .buttonStyle(.bordered)
+                            .disabled(true)
+
+                        Text("P2で続きから再開に対応します。")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("中断中ジョブ", systemImage: "pause.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                Text("中断中の読取ジョブはありません。今後のBatchOCRJobでは、バックグラウンド移行時に一時停止し、ここから続きだけ再開できます。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func icon(for state: BatchOCRJobState) -> String {
+        switch state {
+        case .preparing:
+            "clock"
+        case .running:
+            "text.viewfinder"
+        case .pausing, .pausedBackground, .pausedUser:
+            "pause.circle"
+        case .cancelling:
+            "stop.circle"
+        case .completed:
+            "checkmark.circle.fill"
+        case .failed:
+            "exclamationmark.triangle.fill"
+        }
     }
 
     private var safetyCard: some View {
@@ -209,6 +323,15 @@ private enum ReadBatchLimit: Int, CaseIterable, Identifiable {
             "rectangle.stack"
         case .twoThousand:
             "clock.badge.exclamationmark"
+        }
+    }
+
+    var isEnabledInP1: Bool {
+        switch self {
+        case .twenty, .fifty, .oneHundred:
+            true
+        case .fiveHundred, .twoThousand:
+            false
         }
     }
 }
@@ -276,6 +399,28 @@ private struct ReadLimitChip: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct ReadJobRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
     }
 }
 

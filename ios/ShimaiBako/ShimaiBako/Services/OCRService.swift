@@ -24,6 +24,18 @@ final class OCRService: ObservableObject {
         resultsByAssetID.values.filter { $0.ocrStatus == .completed }.count
     }
 
+    var storedCompletedTextCount: Int {
+        resultsByAssetID.values.filter { result in
+            result.ocrStatus == .completed && Self.isNoTextResult(result) == false
+        }.count
+    }
+
+    var storedCompletedNoTextCount: Int {
+        resultsByAssetID.values.filter { result in
+            result.ocrStatus == .completed && Self.isNoTextResult(result)
+        }.count
+    }
+
     var storedFailedCount: Int {
         resultsByAssetID.values.filter { $0.ocrStatus == .failed }.count
     }
@@ -201,6 +213,11 @@ final class OCRService: ObservableObject {
         } catch {
             errorMessage = "OCR結果を保存できませんでした: \(error.localizedDescription)"
         }
+    }
+
+    private nonisolated static func isNoTextResult(_ result: OCRResultRecord) -> Bool {
+        let text = result.ocrText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty || text == "テキストは見つかりませんでした。"
     }
 
     private nonisolated static func recognizeText(in image: UIImage) async throws -> String {
