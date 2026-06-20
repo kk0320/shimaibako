@@ -45,6 +45,9 @@ struct ContentView: View {
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRTargetSelectionValidation") {
                     await batchOCRJobService.runTargetSelectionValidationSuite()
                 }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRAutoContinueValidation") {
+                    await batchOCRJobService.runAutoContinueValidationSuite(ocrService: ocrService)
+                }
                 #endif
                 await photoLibrary.prepare()
                 #if DEBUG
@@ -65,6 +68,7 @@ struct ContentView: View {
                 switch newPhase {
                 case .active:
                     photoLibrary.applicationDidBecomeActive()
+                    batchOCRJobService.applicationDidBecomeActive()
                 case .background:
                     photoLibrary.applicationDidEnterBackground()
                     batchOCRJobService.pauseForBackground()

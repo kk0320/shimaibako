@@ -16,7 +16,7 @@
 - `500件`
 - `2,000件（長時間）`
 
-2,000件を超えて自動継続しない。対象候補が2,000件を超える場合も、開始時に固定する対象は最大2,000件までにする。
+1つの `BatchOCRJob` は最大2,000件までにする。ユーザーが `自動で次の2,000件へ進む` を明示的にONにした場合だけ、2,000件完了後に端末状態を確認して次の2,000件ジョブを作る。28,000件などを1つの巨大ジョブとして作る全数読取は通常UIに戻さない。
 
 ## 置き場所
 
@@ -39,6 +39,7 @@ OCR操作は写真タブから外し、読取タブへ集約する。
 - 検索データ状態
 - 件数選択
 - まとめて文字を読み取る
+- 自動で次の2,000件へ進むON/OFF
 - 中断中ジョブの再開
 - 失敗分の再試行
 
@@ -54,7 +55,7 @@ OCR操作は写真タブから外し、読取タブへ集約する。
 
 P3では `20件`、`50件`、`100件`、`500件`、`2,000件（長時間）` を同じ `BatchOCRJob` で動かす。処理の違いは `requestedLimit` だけにする。
 
-`2,000件（長時間）` は開始前に確認を表示する。2,000件を超えて自動継続しない。ライブラリ全体を対象にした全数読取は通常UIに戻さない。
+`2,000件（長時間）` は開始前に確認を表示する。自動継続OFFでは2,000件完了後に止まる。自動継続ONでは、完了後に端末状態、低電力モード、空き容量、アプリ状態、未読取候補を確認し、条件が良い場合だけ次の2,000件ジョブを作る。ライブラリ全体を対象にした全数読取は通常UIに戻さない。
 
 保存する項目:
 
@@ -72,6 +73,25 @@ P3では `20件`、`50件`、`100件`、`500件`、`2,000件（長時間）` を
 - `pausedReason`
 - `filterSnapshot`
 - `recognitionProfileVersion`
+
+## BatchOCRSeries
+
+2,000件ジョブを安全に連結するため、単発Jobとは別に `BatchOCRSeries` を持つ。
+
+- `id`
+- `state`
+- `autoContinueEnabled`
+- `batchLimit = 2000`
+- `createdAt`
+- `updatedAt`
+- `lastJobID`
+- `totalProcessedInSeries`
+- `remainingEstimate`
+- `pausedReason`
+
+stateは `idle`、`running`、`waitingForNextBatch`、`pausedDeviceCondition`、`pausedUser`、`completedNoMoreTargets`、`failed` を使う。
+
+自動継続は初期OFFとし、ONにする時は確認を出す。ONでも1つのJobは必ず2,000件以下に固定し、未読取候補が0件なら0件Jobを作らない。
 
 ## BatchOCRItem
 
@@ -164,6 +184,22 @@ pausedBackgroundとして保存
 
 `この処理を終了` は未処理分を終了扱いにするだけで、完了済みOCR結果は残す。写真本体、元動画、検索インデックス、分類、不要候補、メモ、タグは削除しない。
 
+## 自動継続と端末状態
+
+自動継続の条件:
+
+- 自動継続ON
+- 現在の2,000件Jobが `completed`
+- 未読取候補が残っている
+- アプリがforeground / active
+- 低電力モードOFF
+- thermal state が `nominal` または `fair`
+- 空き容量2GB以上を推奨
+
+thermal `fair` では停止せず、1件ごとの休みを長めにして低速運転する。`serious` では現在の1件を保存後に一時停止し、`critical` では安全停止して続きから再開できる状態にする。
+
+バックグラウンド移行時は自動継続を開始せず、`pausedBackground` または `pausedDeviceCondition` として保存する。次回起動後、ユーザーが `続きから再開` を押した場合だけ、未完了Jobを優先して再開し、未完了Jobがなければ次の2,000件Jobを作る。
+
 ## P2検証
 
 DEBUGビルド限定でP2自己検証を用意する。
@@ -185,6 +221,16 @@ DEBUGビルド限定でP3自己検証を用意する。
 - 2,000件読取の中断・再開がP2と同じ仕組みで動く
 - 検証結果は `batch_ocr_p3_validation_report.json` に保存する
 - 証跡は `evidence/batch_ocr_p3_validation/` に保存する
+
+自動継続はDEBUGビルド限定の検証で確認する。
+
+- 2,000件完了後に次の2,000件Jobを作る
+- 未読取0件では0件Jobを作らない
+- thermal seriousでは一時停止する
+- 低電力モードでは一時停止する
+- 途中Jobがある場合は新しいJobを作らず既存Jobを再開する
+- 検証結果は `batch_ocr_auto_continue_validation_report.json` に保存する
+- 証跡は `evidence/batch_ocr_auto_continue_validation/` に保存する
 
 ## 対象抽出と読取状態
 

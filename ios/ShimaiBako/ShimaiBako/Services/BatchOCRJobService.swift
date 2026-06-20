@@ -1,11 +1,14 @@
 import Combine
 import Foundation
 import Photos
+import UIKit
 
 @MainActor
 final class BatchOCRJobService: ObservableObject {
     @Published private(set) var currentJob: BatchOCRJob?
     @Published private(set) var items: [BatchOCRItem] = []
+    @Published private(set) var currentSeries: BatchOCRSeries?
+    @Published private(set) var isAutoContinueEnabled: Bool
     @Published private(set) var message: String?
     @Published private(set) var latestTargetDiagnostics: BatchOCRTargetSelectionDiagnostics?
     @Published var errorMessage: String?
@@ -15,16 +18,22 @@ final class BatchOCRJobService: ObservableObject {
     @Published private(set) var p3ValidationReport: BatchOCRP3ValidationReport?
     @Published private(set) var targetSelectionValidationReport: BatchOCRTargetSelectionValidationReport?
     @Published private(set) var readStateDiagnosticsReport: BatchOCRReadStateDiagnosticsReport?
+    @Published private(set) var autoContinueValidationReport: BatchOCRAutoContinueValidationReport?
     @Published private(set) var isRunningP1Validation = false
     @Published private(set) var isRunningP2Validation = false
     @Published private(set) var isRunningP3Validation = false
     @Published private(set) var isRunningTargetSelectionValidation = false
     @Published private(set) var isRunningReadStateDiagnostics = false
+    @Published private(set) var isRunningAutoContinueValidation = false
     #endif
 
     private let fileManager: FileManager
+    private let userDefaults: UserDefaults
     private let fileName = "batch_ocr_jobs.json"
+    private let autoContinueKey = "shimaibako.batchOCR.autoContinue2000"
     private let allowedRequestedLimits = [20, 50, 100, 500, 2_000]
+    private let autoContinueBatchLimit = 2_000
+    private let autoContinueRecommendedCapacityBytes: Int64 = 2_000_000_000
     private let staleProcessingInterval: TimeInterval = 180
     #if DEBUG
     private let validationReportFileName = "batch_ocr_p1_validation_report.json"
@@ -32,13 +41,17 @@ final class BatchOCRJobService: ObservableObject {
     private let p3ValidationReportFileName = "batch_ocr_p3_validation_report.json"
     private let targetSelectionValidationReportFileName = "batch_ocr_target_selection_validation_report.json"
     private let readStateDiagnosticsReportFileName = "batch_ocr_read_state_diagnostics_report.json"
+    private let autoContinueValidationReportFileName = "batch_ocr_auto_continue_validation_report.json"
     #endif
     private var runTask: Task<Void, Never>?
     private var lastPublishedAt = Date.distantPast
     private var pauseTargetState: BatchOCRJobState = .pausedBackground
+    private var isAppActive = true
 
-    init(fileManager: FileManager = .default) {
+    init(fileManager: FileManager = .default, userDefaults: UserDefaults = .standard) {
         self.fileManager = fileManager
+        self.userDefaults = userDefaults
+        isAutoContinueEnabled = userDefaults.bool(forKey: autoContinueKey)
         loadSnapshot()
         normalizeInterruptedJob()
     }
@@ -62,11 +75,27 @@ final class BatchOCRJobService: ObservableObject {
 
     var canResumeCurrentJob: Bool {
         guard let job = currentJob else {
+            return canPrepareNextAutoBatch
+        }
+
+        let canResumeJob = (job.state == .pausedBackground || job.state == .pausedUser)
+            && items.contains { $0.state == .pending || $0.state == .failedRetryable }
+        return canResumeJob || canPrepareNextAutoBatch
+    }
+
+    var canPrepareNextAutoBatch: Bool {
+        guard isAutoContinueEnabled,
+              let series = currentSeries,
+              series.batchLimit == autoContinueBatchLimit else {
             return false
         }
 
-        return (job.state == .pausedBackground || job.state == .pausedUser)
-            && items.contains { $0.state == .pending || $0.state == .failedRetryable }
+        switch series.state {
+        case .waitingForNextBatch, .pausedDeviceCondition, .pausedUser:
+            return true
+        case .idle, .running, .completedNoMoreTargets, .failed:
+            return false
+        }
     }
 
     var remainingCount: Int {
@@ -153,6 +182,49 @@ final class BatchOCRJobService: ObservableObject {
         }
     }
 
+    var autoContinueStatusTitle: String {
+        guard isAutoContinueEnabled else {
+            return "自動継続 OFF"
+        }
+
+        guard let currentSeries else {
+            return "自動継続 ON"
+        }
+
+        return "自動継続 ON / \(currentSeries.state.title)"
+    }
+
+    var autoContinueRemainingEstimateTitle: String? {
+        guard let remainingEstimate = currentSeries?.remainingEstimate else {
+            return nil
+        }
+
+        return "未読取の残り 約\(remainingEstimate)件"
+    }
+
+    func setAutoContinueEnabled(_ enabled: Bool) {
+        isAutoContinueEnabled = enabled
+        userDefaults.set(enabled, forKey: autoContinueKey)
+
+        if enabled {
+            ensureSeries(state: currentSeries?.state ?? .idle, pausedReason: currentSeries?.pausedReason)
+        } else if var series = currentSeries {
+            series.autoContinueEnabled = false
+            series.state = .pausedUser
+            series.pausedReason = "ユーザー操作で自動継続をOFFにしました。"
+            series.updatedAt = Date()
+            currentSeries = series
+        }
+
+        Task {
+            await saveSnapshot()
+        }
+    }
+
+    func applicationDidBecomeActive() {
+        isAppActive = true
+    }
+
     func start(
         requestedLimit: Int,
         assets: [PhotoAsset],
@@ -194,6 +266,11 @@ final class BatchOCRJobService: ObservableObject {
 
         let now = Date()
         let jobID = UUID().uuidString
+        if requestedLimit == autoContinueBatchLimit, isAutoContinueEnabled {
+            updateSeriesForStartingJob(jobID: jobID, remainingEstimate: selection.diagnostics.photoDBTotalCount, resetTotal: true)
+        } else if requestedLimit != autoContinueBatchLimit {
+            currentSeries = nil
+        }
         await createJob(
             jobID: jobID,
             requestedLimit: requestedLimit,
@@ -556,6 +633,41 @@ final class BatchOCRJobService: ObservableObject {
         latestTargetDiagnostics = limitDiagnostics.first(where: { $0.selectedLimit == 500 })?.diagnostics ?? limitDiagnostics.last?.diagnostics
         message = "読取状態診断が完了しました。"
         await saveReadStateDiagnosticsReport(report)
+    }
+
+    func runAutoContinueValidationSuite(ocrService: OCRService) async {
+        guard isRunningAutoContinueValidation == false else {
+            return
+        }
+
+        isRunningAutoContinueValidation = true
+        defer {
+            isRunningAutoContinueValidation = false
+        }
+
+        await clearDebugValidationStateIfNeeded()
+        let startedAt = Date()
+        var results: [BatchOCRAutoContinueValidationCaseResult] = []
+        results.append(await runAutoContinueCreatesNextBatchValidation(ocrService: ocrService))
+        results.append(await runAutoContinueNoTargetsValidation())
+        results.append(await runAutoContinuePausedForThermalValidation())
+        results.append(await runAutoContinuePausedForLowPowerValidation())
+        results.append(await runAutoContinueExistingJobValidation())
+
+        let report = BatchOCRAutoContinueValidationReport(
+            startedAt: startedAt,
+            finishedAt: Date(),
+            cases: results
+        )
+        autoContinueValidationReport = report
+        message = report.passed ? "自動継続検証が完了しました。" : "自動継続検証で確認が必要です。"
+        currentJob = nil
+        items = []
+        if isAutoContinueEnabled == false {
+            currentSeries = nil
+        }
+        await saveAutoContinueValidationReport(report)
+        await saveSnapshot()
     }
 
     @discardableResult
@@ -1048,6 +1160,185 @@ final class BatchOCRJobService: ObservableObject {
         }
     }
 
+    private func runAutoContinueCreatesNextBatchValidation(ocrService: OCRService) async -> BatchOCRAutoContinueValidationCaseResult {
+        await clearDebugValidationStateIfNeeded()
+        guard canStartNewJob else {
+            return autoContinueResult(
+                name: "自動継続: 2,000件完了後に次の2,000件を作る",
+                passed: false,
+                message: "読取ジョブを実行中です。"
+            )
+        }
+
+        let previousAuto = isAutoContinueEnabled
+        setAutoContinueEnabled(true)
+        let runID = UUID().uuidString
+        let firstIdentifiers = (0..<2_000).map { "debug-auto-first-\(runID)-\($0)" }
+        let nextIdentifiers = (0..<2_000).map { "debug-auto-next-\(runID)-\($0)" }
+        let firstJobID = "debug-auto-first-\(runID)"
+        let nextJobID = "debug-auto-next-\(runID)"
+        updateSeriesForStartingJob(jobID: firstJobID, remainingEstimate: 4_000, resetTotal: true)
+        await createDebugJob(
+            jobID: firstJobID,
+            requestedLimit: autoContinueBatchLimit,
+            identifiers: firstIdentifiers,
+            filterSnapshot: "DEBUG: 自動継続1本目"
+        )
+        await completeDebugItems(jobID: firstJobID, maximumCount: 2_000, ocrService: ocrService)
+        if var job = currentJob {
+            job = recalculated(job)
+            job.state = .completed
+            job.updatedAt = Date()
+            currentJob = job
+        }
+        updateSeriesForStartingJob(jobID: nextJobID, remainingEstimate: 2_000)
+        await createDebugJob(
+            jobID: nextJobID,
+            requestedLimit: autoContinueBatchLimit,
+            identifiers: nextIdentifiers,
+            filterSnapshot: "DEBUG: 自動継続2本目"
+        )
+
+        let passed = currentJob?.id == nextJobID
+            && currentJob?.requestedLimit == autoContinueBatchLimit
+            && currentJob?.plannedCount == autoContinueBatchLimit
+            && currentSeries?.state == .running
+
+        await ocrService.clearValidationResults(localIdentifiers: firstIdentifiers + nextIdentifiers)
+        setAutoContinueEnabled(previousAuto)
+
+        return autoContinueResult(
+            name: "自動継続: 2,000件完了後に次の2,000件を作る",
+            passed: passed,
+            message: passed ? "次の2,000件ジョブ作成PASS" : "次のジョブ作成状態が期待と異なります"
+        )
+    }
+
+    private func runAutoContinueNoTargetsValidation() async -> BatchOCRAutoContinueValidationCaseResult {
+        await clearDebugValidationStateIfNeeded()
+        let previousAuto = isAutoContinueEnabled
+        setAutoContinueEnabled(true)
+        currentJob = nil
+        items = []
+        var series = makeSeries(state: .completedNoMoreTargets)
+        series.autoContinueEnabled = true
+        series.remainingEstimate = 0
+        currentSeries = series
+        await saveSnapshot()
+
+        let passed = currentJob == nil
+            && items.isEmpty
+            && currentSeries?.state == .completedNoMoreTargets
+
+        setAutoContinueEnabled(previousAuto)
+
+        return autoContinueResult(
+            name: "自動継続: 未読取0件で停止",
+            passed: passed,
+            message: passed ? "0件ジョブ未作成PASS" : "0件ジョブが作られた可能性があります"
+        )
+    }
+
+    private func runAutoContinuePausedForThermalValidation() async -> BatchOCRAutoContinueValidationCaseResult {
+        await clearDebugValidationStateIfNeeded()
+        let previousAuto = isAutoContinueEnabled
+        setAutoContinueEnabled(true)
+        pauseSeriesForDeviceCondition("端末温度が高いため、自動継続を一時停止しています。")
+        await saveSnapshot()
+
+        let passed = currentSeries?.state == .pausedDeviceCondition
+            && currentSeries?.pausedReason?.contains("端末温度") == true
+
+        setAutoContinueEnabled(previousAuto)
+
+        return autoContinueResult(
+            name: "自動継続: thermal seriousで停止",
+            passed: passed,
+            message: passed ? "発熱一時停止PASS" : "発熱時の一時停止状態が期待と異なります"
+        )
+    }
+
+    private func runAutoContinuePausedForLowPowerValidation() async -> BatchOCRAutoContinueValidationCaseResult {
+        await clearDebugValidationStateIfNeeded()
+        let previousAuto = isAutoContinueEnabled
+        setAutoContinueEnabled(true)
+        pauseSeriesForDeviceCondition("低電力モードのため一時停止しています。")
+        await saveSnapshot()
+
+        let passed = currentSeries?.state == .pausedDeviceCondition
+            && currentSeries?.pausedReason?.contains("低電力") == true
+
+        setAutoContinueEnabled(previousAuto)
+
+        return autoContinueResult(
+            name: "自動継続: low powerで停止",
+            passed: passed,
+            message: passed ? "低電力一時停止PASS" : "低電力時の一時停止状態が期待と異なります"
+        )
+    }
+
+    private func runAutoContinueExistingJobValidation() async -> BatchOCRAutoContinueValidationCaseResult {
+        await clearDebugValidationStateIfNeeded()
+        guard canStartNewJob else {
+            return autoContinueResult(
+                name: "自動継続: 途中jobがある場合は既存jobを再開",
+                passed: false,
+                message: "読取ジョブを実行中です。"
+            )
+        }
+
+        let previousAuto = isAutoContinueEnabled
+        setAutoContinueEnabled(true)
+        let runID = UUID().uuidString
+        let identifiers = (0..<2_000).map { "debug-auto-existing-\(runID)-\($0)" }
+        let jobID = "debug-auto-existing-\(runID)"
+        await createDebugJob(
+            jobID: jobID,
+            requestedLimit: autoContinueBatchLimit,
+            identifiers: identifiers,
+            filterSnapshot: "DEBUG: 自動継続途中job検証"
+        )
+        await pause(jobID: jobID, reason: "アプリがバックグラウンドへ移行したため", state: .pausedBackground)
+
+        let passed = currentJob?.id == jobID
+            && currentJob?.state == .pausedBackground
+            && canResumeCurrentJob
+            && currentJob?.plannedCount == autoContinueBatchLimit
+
+        setAutoContinueEnabled(previousAuto)
+
+        return autoContinueResult(
+            name: "自動継続: 途中jobがある場合は既存jobを再開",
+            passed: passed,
+            message: passed ? "既存job優先PASS" : "既存job再開状態が期待と異なります"
+        )
+    }
+
+    private func autoContinueResult(name: String, passed: Bool, message: String) -> BatchOCRAutoContinueValidationCaseResult {
+        BatchOCRAutoContinueValidationCaseResult(
+            name: name,
+            seriesState: currentSeries?.state,
+            autoContinueEnabled: isAutoContinueEnabled,
+            nextJobCreated: currentJob?.requestedLimit == autoContinueBatchLimit && currentJob?.plannedCount == autoContinueBatchLimit,
+            plannedCount: currentJob?.plannedCount ?? 0,
+            passed: passed,
+            message: message
+        )
+    }
+
+    private func clearDebugValidationStateIfNeeded() async {
+        guard currentJob?.filterSnapshot.hasPrefix("DEBUG:") == true else {
+            return
+        }
+
+        currentJob = nil
+        items = []
+        currentSeries = nil
+        runTask?.cancel()
+        runTask = nil
+        await saveSnapshot()
+    }
+
     private func p2Result(name: String, passed: Bool, message: String) -> BatchOCRP2ValidationCaseResult {
         BatchOCRP2ValidationCaseResult(
             name: name,
@@ -1083,11 +1374,30 @@ final class BatchOCRJobService: ObservableObject {
     #endif
 
     func pauseForBackground() {
+        isAppActive = false
         requestPause(targetState: .pausedBackground, reason: "アプリがバックグラウンドへ移行したため")
+        if var series = currentSeries, series.autoContinueEnabled {
+            series.state = .pausedDeviceCondition
+            series.pausedReason = "アプリがバックグラウンドへ移行したため、自動継続を一時停止しています。"
+            series.updatedAt = Date()
+            currentSeries = series
+            Task {
+                await saveSnapshot()
+            }
+        }
     }
 
     func pauseByUser() {
         requestPause(targetState: .pausedUser, reason: "ユーザー操作で一時停止しました。")
+        if var series = currentSeries, series.autoContinueEnabled {
+            series.state = .pausedUser
+            series.pausedReason = "ユーザー操作で自動継続を一時停止しました。"
+            series.updatedAt = Date()
+            currentSeries = series
+            Task {
+                await saveSnapshot()
+            }
+        }
     }
 
     func resumePausedJob(
@@ -1097,6 +1407,29 @@ final class BatchOCRJobService: ObservableObject {
         indexService: PhotoIndexService,
         deviceSafety: DeviceSafetyService? = nil
     ) async {
+        if currentJob == nil, canPrepareNextAutoBatch {
+            await prepareNextAutoContinueBatch(
+                photoLibrary: photoLibrary,
+                ocrService: ocrService,
+                indexService: indexService,
+                deviceSafety: deviceSafety
+            )
+            return
+        }
+
+        if let job = currentJob,
+           job.state != .pausedBackground,
+           job.state != .pausedUser,
+           canPrepareNextAutoBatch {
+            await prepareNextAutoContinueBatch(
+                photoLibrary: photoLibrary,
+                ocrService: ocrService,
+                indexService: indexService,
+                deviceSafety: deviceSafety
+            )
+            return
+        }
+
         guard let job = currentJob,
               (job.state == .pausedBackground || job.state == .pausedUser) else {
             message = "再開できる読取ジョブはありません。"
@@ -1105,7 +1438,22 @@ final class BatchOCRJobService: ObservableObject {
 
         let resumableItems = items.filter { $0.state == .pending || $0.state == .failedRetryable }
         guard resumableItems.isEmpty == false else {
-            await finish(jobID: job.id)
+            if job.requestedLimit == autoContinueBatchLimit, canPrepareNextAutoBatch {
+                await prepareNextAutoContinueBatch(
+                    photoLibrary: photoLibrary,
+                    ocrService: ocrService,
+                    indexService: indexService,
+                    deviceSafety: deviceSafety
+                )
+            } else {
+                await finish(
+                    jobID: job.id,
+                    photoLibrary: photoLibrary,
+                    ocrService: ocrService,
+                    indexService: indexService,
+                    deviceSafety: deviceSafety
+                )
+            }
             return
         }
 
@@ -1159,6 +1507,12 @@ final class BatchOCRJobService: ObservableObject {
         job.pausedReason = "ユーザー操作で読取処理を終了しました。完了済みの読取結果は保存されています。"
         job.updatedAt = Date()
         currentJob = job
+        if var series = currentSeries {
+            series.state = .pausedUser
+            series.pausedReason = "ユーザー操作で自動継続を停止しました。"
+            series.updatedAt = Date()
+            currentSeries = series
+        }
         message = "読取処理を終了しました。完了済みの読取結果は保存されています。"
         await saveSnapshot()
         publish(job, force: true)
@@ -1289,8 +1643,10 @@ final class BatchOCRJobService: ObservableObject {
             items[index].updatedAt = Date()
             await updateCountsAndPersist(jobID: jobID, forcePublish: false)
 
+            await throttleForLargeBatchIfNeeded(deviceSafety: deviceSafety)
+
             deviceSafety?.refresh()
-            if let blockingReason = deviceSafety?.blockingReasonForLargeWork {
+            if let blockingReason = pauseReasonForRunningLargeBatch(deviceSafety: deviceSafety) {
                 await pause(jobID: jobID, reason: blockingReason, state: .pausedBackground)
                 return
             }
@@ -1298,7 +1654,13 @@ final class BatchOCRJobService: ObservableObject {
             await Task.yield()
         }
 
-        await finish(jobID: jobID)
+        await finish(
+            jobID: jobID,
+            photoLibrary: photoLibrary,
+            ocrService: ocrService,
+            indexService: indexService,
+            deviceSafety: deviceSafety
+        )
     }
 
     private func pause(jobID: String, reason: String, state: BatchOCRJobState) async {
@@ -1324,7 +1686,13 @@ final class BatchOCRJobService: ObservableObject {
         publish(currentJob, force: true)
     }
 
-    private func finish(jobID: String) async {
+    private func finish(
+        jobID: String,
+        photoLibrary: PhotoLibraryService? = nil,
+        ocrService: OCRService? = nil,
+        indexService: PhotoIndexService? = nil,
+        deviceSafety: DeviceSafetyService? = nil
+    ) async {
         guard var job = currentJob, job.id == jobID else {
             return
         }
@@ -1338,6 +1706,277 @@ final class BatchOCRJobService: ObservableObject {
         runTask = nil
         await saveSnapshot()
         publish(job, force: true)
+
+        if job.state == .completed,
+           job.requestedLimit == autoContinueBatchLimit,
+           photoLibrary != nil,
+           ocrService != nil,
+           indexService != nil {
+            await handleAutoContinueAfterCompletion(
+                completedJob: job,
+                photoLibrary: photoLibrary!,
+                ocrService: ocrService!,
+                indexService: indexService!,
+                deviceSafety: deviceSafety
+            )
+        }
+    }
+
+    private func handleAutoContinueAfterCompletion(
+        completedJob: BatchOCRJob,
+        photoLibrary: PhotoLibraryService,
+        ocrService: OCRService,
+        indexService: PhotoIndexService,
+        deviceSafety: DeviceSafetyService?
+    ) async {
+        guard isAutoContinueEnabled,
+              completedJob.requestedLimit == autoContinueBatchLimit else {
+            return
+        }
+
+        var series = currentSeries ?? makeSeries(state: .running)
+        series.autoContinueEnabled = true
+        series.lastJobID = completedJob.id
+        series.totalProcessedInSeries += completedJob.processedCount
+        series.updatedAt = Date()
+        currentSeries = series
+
+        guard isAppActive else {
+            pauseSeriesForDeviceCondition("アプリがバックグラウンドへ移行したため、自動継続を一時停止しています。")
+            return
+        }
+
+        if let pauseReason = pauseReasonForAutoContinue(deviceSafety: deviceSafety) {
+            pauseSeriesForDeviceCondition(pauseReason)
+            message = "2,000件の読取が完了しました。端末の状態を見て一時停止しています。"
+            await saveSnapshot()
+            return
+        }
+
+        await prepareNextAutoContinueBatch(
+            photoLibrary: photoLibrary,
+            ocrService: ocrService,
+            indexService: indexService,
+            deviceSafety: deviceSafety
+        )
+    }
+
+    private func prepareNextAutoContinueBatch(
+        photoLibrary: PhotoLibraryService,
+        ocrService: OCRService,
+        indexService: PhotoIndexService,
+        deviceSafety: DeviceSafetyService?
+    ) async {
+        guard isAutoContinueEnabled else {
+            return
+        }
+
+        guard canStartNewJob else {
+            return
+        }
+
+        guard isAppActive else {
+            pauseSeriesForDeviceCondition("アプリがバックグラウンドへ移行したため、自動継続を一時停止しています。")
+            return
+        }
+
+        if let pauseReason = pauseReasonForAutoContinue(deviceSafety: deviceSafety) {
+            pauseSeriesForDeviceCondition(pauseReason)
+            message = "端末の状態を見て一時停止しています。続きから再開できます。"
+            await saveSnapshot()
+            return
+        }
+
+        ensureSeries(state: .waitingForNextBatch, pausedReason: nil)
+        message = "端末の状態が良いため、次の2,000件を準備しています。"
+        await saveSnapshot()
+
+        let selection = await makeSelection(
+            requestedLimit: autoContinueBatchLimit,
+            ocrService: ocrService,
+            indexService: indexService
+        )
+        latestTargetDiagnostics = selection.diagnostics
+
+        guard selection.candidates.isEmpty == false else {
+            var series = currentSeries ?? makeSeries(state: .completedNoMoreTargets)
+            series.state = .completedNoMoreTargets
+            series.remainingEstimate = 0
+            series.pausedReason = nil
+            series.updatedAt = Date()
+            currentSeries = series
+            message = "未読取の写真はありません。すべての読取が完了しています。"
+            await saveSnapshot()
+            return
+        }
+
+        let now = Date()
+        let jobID = UUID().uuidString
+        updateSeriesForStartingJob(
+            jobID: jobID,
+            remainingEstimate: max(selection.diagnostics.photoDBTotalCount - selection.diagnostics.excludedAlreadyRead - selection.diagnostics.excludedCompletedNoText, selection.diagnostics.finalTargetCount)
+        )
+        await createJob(
+            jobID: jobID,
+            requestedLimit: autoContinueBatchLimit,
+            candidateDescriptors: selection.candidates,
+            filterSnapshot: "読取タブ: 自動継続で次の2,000件を固定",
+            createdAt: now
+        )
+
+        let resolvedAssets = photoLibrary.assets(for: selection.candidates.map(\.assetIdentifier))
+        let assetByIdentifier = Dictionary(uniqueKeysWithValues: resolvedAssets.map { ($0.localIdentifier, $0) })
+        runTask = Task { [weak self] in
+            await self?.run(
+                jobID: jobID,
+                assetByIdentifier: assetByIdentifier,
+                photoLibrary: photoLibrary,
+                ocrService: ocrService,
+                indexService: indexService,
+                deviceSafety: deviceSafety
+            )
+        }
+    }
+
+    private func ensureSeries(state: BatchOCRSeriesState, pausedReason: String?) {
+        var series = currentSeries ?? makeSeries(state: state)
+        series.autoContinueEnabled = isAutoContinueEnabled
+        series.batchLimit = autoContinueBatchLimit
+        series.state = state
+        series.pausedReason = pausedReason
+        series.updatedAt = Date()
+        currentSeries = series
+    }
+
+    private func updateSeriesForStartingJob(jobID: String, remainingEstimate: Int?, resetTotal: Bool = false) {
+        var series = currentSeries ?? makeSeries(state: .running)
+        series.autoContinueEnabled = isAutoContinueEnabled
+        series.batchLimit = autoContinueBatchLimit
+        series.state = .running
+        series.lastJobID = jobID
+        if resetTotal {
+            series.totalProcessedInSeries = 0
+        }
+        series.remainingEstimate = remainingEstimate
+        series.pausedReason = nil
+        series.updatedAt = Date()
+        currentSeries = series
+    }
+
+    private func makeSeries(state: BatchOCRSeriesState) -> BatchOCRSeries {
+        let now = Date()
+        return BatchOCRSeries(
+            id: UUID().uuidString,
+            state: state,
+            autoContinueEnabled: isAutoContinueEnabled,
+            batchLimit: autoContinueBatchLimit,
+            createdAt: now,
+            updatedAt: now,
+            lastJobID: nil,
+            totalProcessedInSeries: 0,
+            remainingEstimate: nil,
+            pausedReason: nil
+        )
+    }
+
+    private func pauseSeriesForDeviceCondition(_ reason: String) {
+        var series = currentSeries ?? makeSeries(state: .pausedDeviceCondition)
+        series.autoContinueEnabled = isAutoContinueEnabled
+        series.batchLimit = autoContinueBatchLimit
+        series.state = .pausedDeviceCondition
+        series.pausedReason = reason
+        series.updatedAt = Date()
+        currentSeries = series
+    }
+
+    private func pauseReasonForAutoContinue(deviceSafety: DeviceSafetyService?) -> String? {
+        deviceSafety?.refresh()
+
+        guard let deviceSafety else {
+            return nil
+        }
+
+        if deviceSafety.thermalState == .serious {
+            return "端末温度が高いため、自動継続を一時停止しています。"
+        }
+
+        if deviceSafety.thermalState == .critical {
+            return "端末保護のため、自動継続を停止しました。続きから再開できます。"
+        }
+
+        if deviceSafety.isLowPowerModeEnabled {
+            return "低電力モードのため一時停止しています。"
+        }
+
+        if let availableCapacityBytes = deviceSafety.availableCapacityBytes,
+           availableCapacityBytes < autoContinueRecommendedCapacityBytes {
+            return "空き容量が2GB未満のため、自動継続を一時停止しています。"
+        }
+
+        if deviceSafety.batteryLevel >= 0,
+           deviceSafety.batteryLevel < 0.5,
+           deviceSafety.batteryState != .charging,
+           deviceSafety.batteryState != .full {
+            return "バッテリー残量が50%未満のため、自動継続を一時停止しています。"
+        }
+
+        return nil
+    }
+
+    private func pauseReasonForRunningLargeBatch(deviceSafety: DeviceSafetyService?) -> String? {
+        guard currentJob?.requestedLimit == autoContinueBatchLimit else {
+            return deviceSafety?.blockingReasonForLargeWork
+        }
+
+        deviceSafety?.refresh()
+
+        guard let deviceSafety else {
+            return nil
+        }
+
+        if deviceSafety.thermalState == .serious {
+            return "端末温度が高いため、現在の1件を保存して一時停止しました。"
+        }
+
+        if deviceSafety.thermalState == .critical {
+            return "端末保護のため読取を停止しました。続きから再開できます。"
+        }
+
+        if deviceSafety.isLowPowerModeEnabled {
+            return "低電力モードのため読取を一時停止しています。"
+        }
+
+        if let availableCapacityBytes = deviceSafety.availableCapacityBytes,
+           availableCapacityBytes < 1_000_000_000 {
+            return "保存容量が1GB未満のため、読取を一時停止しています。"
+        }
+
+        return nil
+    }
+
+    private func throttleForLargeBatchIfNeeded(deviceSafety: DeviceSafetyService?) async {
+        guard currentJob?.requestedLimit == autoContinueBatchLimit else {
+            return
+        }
+
+        let thermalState = deviceSafety?.thermalState ?? ProcessInfo.processInfo.thermalState
+        let nanoseconds: UInt64
+        switch thermalState {
+        case .nominal:
+            nanoseconds = 350_000_000
+        case .fair:
+            nanoseconds = 1_500_000_000
+        case .serious, .critical:
+            nanoseconds = 0
+        @unknown default:
+            nanoseconds = 800_000_000
+        }
+
+        guard nanoseconds > 0 else {
+            return
+        }
+
+        try? await Task.sleep(nanoseconds: nanoseconds)
     }
 
     private func updateCountsAndPersist(jobID: String, forcePublish: Bool) async {
@@ -1725,6 +2364,11 @@ final class BatchOCRJobService: ObservableObject {
             let snapshot = try JSONDecoder().decode(BatchOCRJobSnapshot.self, from: data)
             currentJob = snapshot.job
             items = snapshot.items
+            currentSeries = snapshot.series
+            if let series = snapshot.series {
+                isAutoContinueEnabled = series.autoContinueEnabled
+                userDefaults.set(series.autoContinueEnabled, forKey: autoContinueKey)
+            }
         } catch {
             errorMessage = "読取ジョブ状態を読み込めませんでした: \(error.localizedDescription)"
         }
@@ -1748,6 +2392,12 @@ final class BatchOCRJobService: ObservableObject {
         job.pausedReason = "前回の読取処理が中断されました。続きから再開できます。"
         job.updatedAt = Date()
         currentJob = recalculated(job)
+        if var series = currentSeries, series.autoContinueEnabled {
+            series.state = .pausedDeviceCondition
+            series.pausedReason = "前回の読取処理が中断されました。続きから再開できます。"
+            series.updatedAt = Date()
+            currentSeries = series
+        }
         runTask = nil
 
         Task {
@@ -1760,7 +2410,7 @@ final class BatchOCRJobService: ObservableObject {
         do {
             let directoryURL = url.deletingLastPathComponent()
             try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
-            let snapshot = BatchOCRJobSnapshot(job: currentJob, items: items)
+            let snapshot = BatchOCRJobSnapshot(job: currentJob, items: items, series: currentSeries)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(snapshot)
@@ -1841,6 +2491,20 @@ final class BatchOCRJobService: ObservableObject {
         }
     }
 
+    private func saveAutoContinueValidationReport(_ report: BatchOCRAutoContinueValidationReport) async {
+        let url = autoContinueValidationReportURL()
+        do {
+            let directoryURL = url.deletingLastPathComponent()
+            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(report)
+            try data.write(to: url, options: [.atomic])
+        } catch {
+            errorMessage = "自動継続検証結果を保存できませんでした: \(error.localizedDescription)"
+        }
+    }
+
     private func validationReportURL() -> URL {
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first ?? fileManager.temporaryDirectory
@@ -1879,6 +2543,14 @@ final class BatchOCRJobService: ObservableObject {
         return baseURL
             .appendingPathComponent("ShimaiBako", isDirectory: true)
             .appendingPathComponent(readStateDiagnosticsReportFileName)
+    }
+
+    private func autoContinueValidationReportURL() -> URL {
+        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first ?? fileManager.temporaryDirectory
+        return baseURL
+            .appendingPathComponent("ShimaiBako", isDirectory: true)
+            .appendingPathComponent(autoContinueValidationReportFileName)
     }
     #endif
 

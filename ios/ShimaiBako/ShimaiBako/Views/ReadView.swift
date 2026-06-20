@@ -10,6 +10,7 @@ struct ReadView: View {
 
     @State private var selectedLimit: ReadBatchLimit = .oneHundred
     @State private var showsTwoThousandConfirmation = false
+    @State private var showsAutoContinueConfirmation = false
 
     private var summary: PhotoIndexSummary {
         indexService.indexSummary
@@ -80,6 +81,14 @@ struct ReadView: View {
             } message: {
                 Text("2,000件の読取は時間がかかります。端末の温度や電池残量により、自動的に一時停止する場合があります。元写真・元動画は変更されません。")
             }
+            .alert("自動で次の2,000件へ進む", isPresented: $showsAutoContinueConfirmation) {
+                Button("キャンセル", role: .cancel) {}
+                Button("ONにする") {
+                    batchOCRJobService.setAutoContinueEnabled(true)
+                }
+            } message: {
+                Text("未読取の写真を2,000件ずつ続けて読み取ります。端末が高温になった場合、低電力モードの場合、空き容量が少ない場合は自動的に一時停止します。途中で止まっても、次回続きから再開できます。元写真・元動画は変更されません。")
+            }
         }
     }
 
@@ -124,7 +133,7 @@ struct ReadView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-                Text("選択した上限まで対象を固定して処理します。2,000件を超えて自動継続しません。")
+                Text("選択した上限まで対象を固定して処理します。自動継続をONにした場合だけ、2,000件完了後に次の2,000件へ進みます。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -146,6 +155,8 @@ struct ReadView: View {
             }
             .frame(height: 44)
             .clipped()
+
+            autoContinueCard
 
             HStack(spacing: 10) {
                 Button {
@@ -207,6 +218,58 @@ struct ReadView: View {
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
     }
 
+    private var autoContinueCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("自動で次の2,000件へ進む")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                    Text(batchOCRJobService.autoContinueStatusTitle)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(batchOCRJobService.isAutoContinueEnabled ? Color(red: 0.16, green: 0.42, blue: 0.75) : .secondary)
+                }
+
+                Spacer(minLength: 8)
+
+                Button {
+                    if batchOCRJobService.isAutoContinueEnabled {
+                        batchOCRJobService.setAutoContinueEnabled(false)
+                    } else {
+                        showsAutoContinueConfirmation = true
+                    }
+                } label: {
+                    Text(batchOCRJobService.isAutoContinueEnabled ? "ON" : "OFF")
+                        .font(.caption.weight(.semibold))
+                        .frame(width: 54, height: 30)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Text("2,000件の読取が終わったあと、端末の状態が良ければ次の2,000件を続けて読み取ります。端末が高温の場合や低電力モードの場合は一時停止します。元写真・元動画は変更されません。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let remainingTitle = batchOCRJobService.autoContinueRemainingEstimateTitle {
+                Label(remainingTitle, systemImage: "tray.full")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let pausedReason = batchOCRJobService.currentSeries?.pausedReason {
+                Label(pausedReason, systemImage: "pause.circle")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.75, green: 0.45, blue: 0.10))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8))
+    }
+
     @ViewBuilder
     private var targetDiagnosticsCard: some View {
         if let diagnostics = batchOCRJobService.latestTargetDiagnostics {
@@ -263,6 +326,10 @@ struct ReadView: View {
                     ReadJobRow(title: "文字なし", value: "\(job.completedNoTextCount)件")
                     ReadJobRow(title: "失敗", value: "\(job.failedCount)件")
                     ReadJobRow(title: "上限", value: "\(job.requestedLimit)件")
+                    if let series = batchOCRJobService.currentSeries, series.autoContinueEnabled {
+                        ReadJobRow(title: "自動継続", value: series.state.title)
+                        ReadJobRow(title: "連続処理済み", value: "\(series.totalProcessedInSeries + job.processedCount)件")
+                    }
                 }
 
                 if let pausedReason = job.pausedReason {
@@ -313,6 +380,37 @@ struct ReadView: View {
                                 }
                             } label: {
                                 Text("この処理を終了")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                } else if job.state == .completed, batchOCRJobService.canPrepareNextAutoBatch {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("2,000件の読取は完了しています。自動継続は一時停止中のため、端末状態を確認してから次の2,000件を準備できます。")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        HStack(spacing: 10) {
+                            Button {
+                                Task {
+                                    await batchOCRJobService.resumePausedJob(
+                                        assets: photoLibrary.assets,
+                                        photoLibrary: photoLibrary,
+                                        ocrService: ocrService,
+                                        indexService: indexService,
+                                        deviceSafety: deviceSafety
+                                    )
+                                }
+                            } label: {
+                                Label("続きから再開", systemImage: "play.circle")
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            Button {
+                                batchOCRJobService.setAutoContinueEnabled(false)
+                            } label: {
+                                Text("今日はここまで")
                             }
                             .buttonStyle(.bordered)
                         }
@@ -553,7 +651,7 @@ struct ReadView: View {
                 }
                 .buttonStyle(.bordered)
             }
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -599,6 +697,17 @@ struct ReadView: View {
             .buttonStyle(.bordered)
             .disabled(batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
+            Button {
+                Task {
+                    await batchOCRJobService.runAutoContinueValidationSuite(ocrService: ocrService)
+                }
+            } label: {
+                Label("自動継続検証を実行", systemImage: "forward.end.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+
             if batchOCRJobService.isRunningP1Validation {
                 Label("検証中です", systemImage: "hourglass")
                     .font(.caption.weight(.semibold))
@@ -619,6 +728,12 @@ struct ReadView: View {
 
             if batchOCRJobService.isRunningTargetSelectionValidation {
                 Label("対象抽出検証中です", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if batchOCRJobService.isRunningAutoContinueValidation {
+                Label("自動継続検証中です", systemImage: "hourglass")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -674,6 +789,22 @@ struct ReadView: View {
             if let report = batchOCRJobService.targetSelectionValidationReport {
                 VStack(alignment: .leading, spacing: 6) {
                     Label(report.passed ? "対象抽出検証: PASS" : "対象抽出検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
+
+                    ForEach(report.cases) { result in
+                        ReadJobRow(
+                            title: result.name,
+                            value: result.passed ? "PASS" : "FAIL"
+                        )
+                    }
+                }
+                .padding(.top, 4)
+            }
+
+            if let report = batchOCRJobService.autoContinueValidationReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(report.passed ? "自動継続検証: PASS" : "自動継続検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
 

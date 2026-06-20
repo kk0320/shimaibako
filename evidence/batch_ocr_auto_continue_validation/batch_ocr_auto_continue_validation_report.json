@@ -1,0 +1,51 @@
+{
+  "cases" : [
+    {
+      "autoContinueEnabled" : true,
+      "message" : "次の2,000件ジョブ作成PASS",
+      "name" : "自動継続: 2,000件完了後に次の2,000件を作る",
+      "nextJobCreated" : true,
+      "passed" : true,
+      "plannedCount" : 2000,
+      "seriesState" : "running"
+    },
+    {
+      "autoContinueEnabled" : true,
+      "message" : "0件ジョブ未作成PASS",
+      "name" : "自動継続: 未読取0件で停止",
+      "nextJobCreated" : false,
+      "passed" : true,
+      "plannedCount" : 0,
+      "seriesState" : "completedNoMoreTargets"
+    },
+    {
+      "autoContinueEnabled" : true,
+      "message" : "発熱一時停止PASS",
+      "name" : "自動継続: thermal seriousで停止",
+      "nextJobCreated" : false,
+      "passed" : true,
+      "plannedCount" : 0,
+      "seriesState" : "pausedDeviceCondition"
+    },
+    {
+      "autoContinueEnabled" : true,
+      "message" : "低電力一時停止PASS",
+      "name" : "自動継続: low powerで停止",
+      "nextJobCreated" : false,
+      "passed" : true,
+      "plannedCount" : 0,
+      "seriesState" : "pausedDeviceCondition"
+    },
+    {
+      "autoContinueEnabled" : true,
+      "message" : "既存job優先PASS",
+      "name" : "自動継続: 途中jobがある場合は既存jobを再開",
+      "nextJobCreated" : true,
+      "passed" : true,
+      "plannedCount" : 2000,
+      "seriesState" : "pausedDeviceCondition"
+    }
+  ],
+  "finishedAt" : 803633398.426894,
+  "startedAt" : 803633395.027907
+}

@@ -103,6 +103,49 @@ struct BatchOCRItem: Codable, Identifiable, Equatable {
 struct BatchOCRJobSnapshot: Codable, Equatable {
     var job: BatchOCRJob?
     var items: [BatchOCRItem]
+    var series: BatchOCRSeries?
+}
+
+enum BatchOCRSeriesState: String, Codable, CaseIterable {
+    case idle
+    case running
+    case waitingForNextBatch
+    case pausedDeviceCondition
+    case pausedUser
+    case completedNoMoreTargets
+    case failed
+
+    var title: String {
+        switch self {
+        case .idle:
+            "待機中"
+        case .running:
+            "自動継続中"
+        case .waitingForNextBatch:
+            "次の2,000件を準備中"
+        case .pausedDeviceCondition:
+            "端末状態により一時停止中"
+        case .pausedUser:
+            "一時停止中"
+        case .completedNoMoreTargets:
+            "未読取候補なし"
+        case .failed:
+            "確認が必要"
+        }
+    }
+}
+
+struct BatchOCRSeries: Codable, Identifiable, Equatable {
+    let id: String
+    var state: BatchOCRSeriesState
+    var autoContinueEnabled: Bool
+    var batchLimit: Int
+    var createdAt: Date
+    var updatedAt: Date
+    var lastJobID: String?
+    var totalProcessedInSeries: Int
+    var remainingEstimate: Int?
+    var pausedReason: String?
 }
 
 struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
@@ -369,5 +412,29 @@ struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
         formatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
         return formatter.string(from: date)
     }
+}
+
+struct BatchOCRAutoContinueValidationReport: Codable, Equatable {
+    var startedAt: Date
+    var finishedAt: Date
+    var cases: [BatchOCRAutoContinueValidationCaseResult]
+
+    var passed: Bool {
+        cases.allSatisfy(\.passed)
+    }
+}
+
+struct BatchOCRAutoContinueValidationCaseResult: Codable, Equatable, Identifiable {
+    var id: String {
+        name
+    }
+
+    var name: String
+    var seriesState: BatchOCRSeriesState?
+    var autoContinueEnabled: Bool
+    var nextJobCreated: Bool
+    var plannedCount: Int
+    var passed: Bool
+    var message: String
 }
 #endif
