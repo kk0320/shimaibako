@@ -113,35 +113,67 @@ Item state:
 
 ## 完了判定
 
-P1では次の状態になったitem数が `plannedCount` に達したら完了とする。
+表示上の処理済み数は、次の終端状態になったitem数で計算する。
 
 - `completedText`
 - `completedNoText`
-- `failedRetryable`
 - `failedPermanent`
 - `skippedAlreadyOCRed`
 
 `completedNoText` は失敗ではない。文字が見つからない写真を毎回再処理しないため、明示的に保存する。
 
-`failedRetryable` は再試行可能な失敗として残す。P1ではジョブ完了表示の処理済み数に含め、失敗分再試行は次段階で扱う。
+`failedRetryable` は再試行可能な失敗として残し、処理済み数には含めない。再開時は `pending` と同じく再処理候補にできる。
+
+```text
+処理済み = completedText + completedNoText + failedPermanent + skippedAlreadyOCRed
+残り = plannedCount - 処理済み
+```
 
 ## バックグラウンド移行
 
 初回リリースではバックグラウンドで読取を続けない。
 
-P1ではバックグラウンドへ移行したら、実行中ジョブを一時停止予定状態にして保存する。`processing` 中のitemは将来再開しやすいよう `pending` に戻す。
+P2ではバックグラウンドへ移行したら、実行中ジョブを安全に `pausedBackground` として保存する。`.inactive` では止めず、実際に `.background` へ移った場合だけ中断する。
+
+```text
+running
+↓
+pausing
+↓
+現在処理中のタスクを止める
+↓
+processing中のitemをpendingへ戻す
+↓
+pausedBackgroundとして保存
+```
+
+強制終了や再起動後に `running` / `pausing` の古いジョブが残っている場合も、起動時に `pausedBackground` へ復旧する。`processing` itemは `pending` に戻し、完了済みOCR結果は保持する。
 
 復帰後は読取タブで次のように表示する。
 
 ```text
 文字読取は一時停止中です
-84 / 500件完了
-残り416件
+84 / 100件完了
+残り16件
+理由: アプリがバックグラウンドへ移行したため
 [続きから再開]
 [この処理を終了]
 ```
 
-「この処理を終了」は未処理分を破棄するだけで、完了済みOCR結果は残す。
+`続きから再開` は `pending` と `failedRetryable` のitemだけ処理する。`completedText`、`completedNoText`、`failedPermanent`、`skippedAlreadyOCRed` は再処理しない。
+
+`この処理を終了` は未処理分を終了扱いにするだけで、完了済みOCR結果は残す。写真本体、元動画、検索インデックス、分類、不要候補、メモ、タグは削除しない。
+
+## P2検証
+
+DEBUGビルド限定でP2自己検証を用意する。
+
+- 100件ジョブを途中で `pausedBackground` にする
+- `processing` itemを `pending` へ戻す
+- `pausedBackground` から続き再開し、残りだけ完了する
+- `pausedUser` のジョブで「この処理を終了」し、完了済み結果を保持する
+- 検証結果は `batch_ocr_p2_validation_report.json` に保存する
+- 証跡は `evidence/batch_ocr_p2_validation/` に保存する
 
 ## 検索インデックス連携
 

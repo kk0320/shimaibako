@@ -14,6 +14,10 @@ struct ReadView: View {
     }
 
     private var startDisabledReason: String? {
+        if batchOCRJobService.canResumeCurrentJob {
+            return "一時停止中の読取があります"
+        }
+
         if batchOCRJobService.isRunning {
             return "読取を実行中です"
         }
@@ -202,6 +206,7 @@ struct ReadView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     ReadJobRow(title: "処理済み", value: "\(job.processedCount) / \(job.plannedCount)件")
+                    ReadJobRow(title: "残り", value: "\(batchOCRJobService.remainingCount)件")
                     ReadJobRow(title: "文字あり", value: "\(job.completedTextCount)件")
                     ReadJobRow(title: "文字なし", value: "\(job.completedNoTextCount)件")
                     ReadJobRow(title: "失敗", value: "\(job.failedCount)件")
@@ -217,13 +222,47 @@ struct ReadView: View {
 
                 if job.state == .running || job.state == .preparing {
                     HStack(spacing: 10) {
-                        Button("一時停止") {}
-                            .buttonStyle(.bordered)
-                            .disabled(true)
+                        Button("一時停止") {
+                            batchOCRJobService.pauseByUser()
+                        }
+                        .buttonStyle(.bordered)
 
-                        Text("P2で続きから再開に対応します。")
+                        Text("完了済みの読取結果は保存されます。")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                    }
+                } else if job.state == .pausedBackground || job.state == .pausedUser {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("完了済みの読取結果は保存されています。未処理分だけ続きから再開できます。")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        HStack(spacing: 10) {
+                            Button {
+                                Task {
+                                    await batchOCRJobService.resumePausedJob(
+                                        assets: photoLibrary.assets,
+                                        photoLibrary: photoLibrary,
+                                        ocrService: ocrService,
+                                        indexService: indexService
+                                    )
+                                }
+                            } label: {
+                                Label("続きから再開", systemImage: "play.circle")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(batchOCRJobService.canResumeCurrentJob == false)
+
+                            Button(role: .destructive) {
+                                Task {
+                                    await batchOCRJobService.finishPausedJob()
+                                }
+                            } label: {
+                                Text("この処理を終了")
+                            }
+                            .buttonStyle(.bordered)
+                        }
                     }
                 }
             }
@@ -294,7 +333,7 @@ struct ReadView: View {
                 }
                 .buttonStyle(.bordered)
             }
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunning)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -305,7 +344,18 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunning)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+
+            Button {
+                Task {
+                    await batchOCRJobService.runP2ValidationSuite(ocrService: ocrService)
+                }
+            } label: {
+                Label("P2中断・再開検証を実行", systemImage: "arrow.clockwise.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             if batchOCRJobService.isRunningP1Validation {
                 Label("検証中です", systemImage: "hourglass")
@@ -313,9 +363,31 @@ struct ReadView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if batchOCRJobService.isRunningP2Validation {
+                Label("P2検証中です", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
             if let report = batchOCRJobService.p1ValidationReport {
                 VStack(alignment: .leading, spacing: 6) {
                     Label(report.passed ? "最新検証: PASS" : "最新検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
+
+                    ForEach(report.cases) { result in
+                        ReadJobRow(
+                            title: result.name,
+                            value: result.passed ? "PASS" : "FAIL"
+                        )
+                    }
+                }
+                .padding(.top, 4)
+            }
+
+            if let report = batchOCRJobService.p2ValidationReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(report.passed ? "P2検証: PASS" : "P2検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
 

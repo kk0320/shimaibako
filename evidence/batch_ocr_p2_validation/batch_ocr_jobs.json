@@ -1,0 +1,920 @@
+{
+  "items" : [
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-0",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 0,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedNoText",
+      "updatedAt" : 803613045.480066
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-1",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 1,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.506727
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-2",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 2,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.532633
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-3",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 3,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.561082
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-4",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 4,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.592137
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-5",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 5,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedNoText",
+      "updatedAt" : 803613045.619586
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-6",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 6,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.649564
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-7",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 7,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.681632
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-8",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 8,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.712525
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-9",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 9,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.740151
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-10",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 10,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedNoText",
+      "updatedAt" : 803613045.764654
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-11",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 11,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.789008
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-12",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 12,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.814872
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-13",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 13,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.843729
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-14",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 14,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.871782
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-15",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 15,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedNoText",
+      "updatedAt" : 803613045.904467
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-16",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 16,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.937201
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-17",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 17,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.96695
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-18",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 18,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613045.994194
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-19",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 19,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613046.023428
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-20",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 20,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedNoText",
+      "updatedAt" : 803613046.049388
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-21",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 21,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613046.078643
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-22",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 22,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613046.106889
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-23",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 23,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613046.13835
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-24",
+      "attemptCount" : 1,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 24,
+      "sourceRevision" : "debug-validation",
+      "state" : "completedText",
+      "updatedAt" : 803613046.166221
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-25",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 25,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-26",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 26,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-27",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 27,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-28",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 28,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-29",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 29,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-30",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 30,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-31",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 31,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-32",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 32,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-33",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 33,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-34",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 34,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-35",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 35,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-36",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 36,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-37",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 37,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-38",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 38,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-39",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 39,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-40",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 40,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-41",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 41,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-42",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 42,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-43",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 43,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-44",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 44,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-45",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 45,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-46",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 46,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-47",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 47,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-48",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 48,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-49",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 49,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-50",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 50,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-51",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 51,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-52",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 52,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-53",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 53,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-54",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 54,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-55",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 55,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-56",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 56,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-57",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 57,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-58",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 58,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-59",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 59,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-60",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 60,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-61",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 61,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-62",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 62,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-63",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 63,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-64",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 64,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-65",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 65,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-66",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 66,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-67",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 67,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-68",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 68,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-69",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 69,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-70",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 70,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-71",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 71,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-72",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 72,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-73",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 73,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-74",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 74,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-75",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 75,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-76",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 76,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-77",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 77,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-78",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 78,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-79",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 79,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-80",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 80,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-81",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 81,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-82",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 82,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-83",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 83,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-84",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 84,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-85",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 85,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-86",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 86,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-87",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 87,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-88",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 88,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-89",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 89,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-90",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 90,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-91",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 91,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-92",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 92,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-93",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 93,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-94",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 94,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-95",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 95,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-96",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 96,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-97",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 97,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-98",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 98,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    },
+    {
+      "assetIdentifier" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0-99",
+      "attemptCount" : 0,
+      "jobID" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+      "ordinal" : 99,
+      "sourceRevision" : "debug-validation",
+      "state" : "pending",
+      "updatedAt" : 803613045.474912
+    }
+  ],
+  "job" : {
+    "completedNoTextCount" : 5,
+    "completedTextCount" : 20,
+    "createdAt" : 803613045.474912,
+    "failedCount" : 0,
+    "filterSnapshot" : "DEBUG: BatchOCR P2 終了検証",
+    "id" : "debug-batch-ocr-p2-finish-583510B0-6401-4B58-BC5E-FAC1224F83D0",
+    "pausedReason" : "ユーザー操作で読取処理を終了しました。完了済みの読取結果は保存されています。",
+    "plannedCount" : 100,
+    "processedCount" : 25,
+    "recognitionProfileVersion" : "高精度 日本語+英語",
+    "requestedLimit" : 100,
+    "startedAt" : 803613045.477186,
+    "state" : "completed",
+    "updatedAt" : 803613046.200183
+  }
+}

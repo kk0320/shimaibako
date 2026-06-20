@@ -402,12 +402,15 @@ P0では既存読取結果、写真インデックス、分類、メモ、タグ
 
 ### P2: 中断・再開
 
-- `pausedBackground`
-- `pausedUser`
-- 復帰後に続きから再開
-- 強制終了後の復旧
+- `pausedBackground` を実装する
+- `pausedUser` を実装する
+- 復帰後に続きから再開する
+- 強制終了後の復旧で `running` / `pausing` を `pausedBackground` に戻す
 - `processing` itemを `pending` へ戻す
-- 「この処理を終了」
+- 「この処理を終了」は未処理分だけ終了扱いにし、完了済み読取結果を残す
+- 表示上の処理済みは `completedText + completedNoText + failedPermanent + skippedAlreadyOCRed` で計算する
+- `failedRetryable` は処理済みに含めず、再開時の再処理候補にする
+- DEBUG限定のP2検証で中断、再開、processing復旧、終了操作を確認する
 
 ### P3: 500 / 2,000件対応
 
