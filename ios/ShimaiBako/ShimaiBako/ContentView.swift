@@ -46,11 +46,20 @@ struct ContentView: View {
                     await batchOCRJobService.runTargetSelectionValidationSuite()
                 }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRAutoContinueValidation") {
-                    await batchOCRJobService.runAutoContinueValidationSuite(ocrService: ocrService)
+                    Task {
+                        await batchOCRJobService.runAutoContinueValidationSuite(
+                            photoLibrary: photoLibrary,
+                            ocrService: ocrService,
+                            indexService: indexService
+                        )
+                    }
                 }
                 #endif
                 await photoLibrary.prepare()
                 #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRAutoContinueValidation") {
+                    await waitForAutoContinueValidationReport()
+                }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRReadStateDiagnostics") {
                     if photoLibrary.canReadPhotos, photoLibrary.assets.isEmpty {
                         await photoLibrary.loadRecentAssets()
@@ -82,6 +91,16 @@ struct ContentView: View {
     }
 
     #if DEBUG
+    private func waitForAutoContinueValidationReport() async {
+        for _ in 0..<80 {
+            if batchOCRJobService.autoContinueValidationReport != nil {
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
+
     private func waitForReadStateDiagnosticsInputs() async {
         for _ in 0..<160 {
             if photoLibrary.isLoading == false, indexService.isIndexStorePreparing == false {

@@ -30,6 +30,8 @@
 - `remainingEstimate`
 - `pausedReason`
 
+`autoContinueEnabled` は設定値を永続保存し、ジョブ状態を読み込む時も最新の設定値を優先する。古いsnapshot内の `BatchOCRSeries.autoContinueEnabled` が残っていても、設定画面のON/OFFとサービス側の判定がずれないようにする。
+
 state:
 
 - `idle`
@@ -53,6 +55,20 @@ state:
 - 空き容量2GB以上を推奨
 
 未読取候補が0件の場合は `completedNoMoreTargets` とし、0件Jobは作らない。
+
+自動継続判定は `BatchOCRJobService` の完了処理内で行う。読取タブの表示、完了カードの表示、ユーザーが画面を開いていることには依存しない。
+
+処理順:
+
+1. 現在のJobを `completed` として保存する
+2. `autoContinueEnabled` と `BatchOCRSeries` の状態を確認する
+3. 端末状態と未読取候補を確認する
+4. 条件OKなら次の2,000件 `BatchOCRJob` を作る
+5. 条件NGなら `pausedDeviceCondition` または `completedNoMoreTargets` として保存する
+
+自動継続時の対象抽出は、手動で2,000件読取を開始する時と同じ未読取候補抽出経路を使う。写真タブの表示中配列やViewの状態は使わない。
+
+判断内容はDEBUGログに `AUTO_CONTINUE decision` として残す。ログにはON/OFF、完了Job ID、候補件数、thermal、低電力、空き容量、アプリ状態、既存Job状態、判断結果、理由を含める。
 
 ## 端末状態
 
@@ -86,6 +102,8 @@ state:
 DEBUGビルド限定で以下を確認する。
 
 - 2,000件完了後に次の2,000件Jobを作る
+- 自動継続OFFでは次Jobを作らない
+- thermal fairでは停止せず次の2,000件Jobを作る
 - 未読取0件で停止する
 - thermal seriousで停止する
 - 低電力モードで停止する

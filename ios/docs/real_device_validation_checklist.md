@@ -379,10 +379,13 @@ CLIから実機画面をタップできない場合は、DEBUGビルド限定の
 - [ ] `-ShimaiBakoOpenReadTab -ShimaiBakoRunBatchOCRAutoContinueValidation` で自動継続自己検証が実行される
 - [ ] `batch_ocr_auto_continue_validation_report.json` が作成される
 - [ ] 2,000件完了後に次の2,000件Jobを作る検証がPASSになる
+- [ ] 自動継続OFFでは次Jobを作らない検証がPASSになる
+- [ ] thermal fairでは停止せず次Jobを作る検証がPASSになる
 - [ ] 未読取0件で停止する検証がPASSになる
 - [ ] thermal seriousで停止する検証がPASSになる
 - [ ] low powerで停止する検証がPASSになる
 - [ ] 途中Jobがある場合は既存Jobを再開する検証がPASSになる
+- [ ] レポート内の `AUTO_CONTINUE decision` にON/OFF、候補件数、端末状態、判断結果、理由が記録される
 
 キャッシュ削除なしの対象抽出は、DEBUGビルド限定の対象抽出検証で確認できる。
 

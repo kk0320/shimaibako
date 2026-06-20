@@ -198,6 +198,14 @@ pausedBackgroundとして保存
 
 thermal `fair` では停止せず、1件ごとの休みを長めにして低速運転する。`serious` では現在の1件を保存後に一時停止し、`critical` では安全停止して続きから再開できる状態にする。
 
+自動継続判定は、`BatchOCRJobService` がJobを `completed` に保存した直後に実行する。完了カード、読取タブ表示、View更新、ユーザーが画面を開いていることには依存しない。
+
+`autoContinueEnabled` は設定値を基準に参照する。snapshotに古い `BatchOCRSeries.autoContinueEnabled` が残っていても、サービス起動時に設定値と同期し、UI上はONなのにサービス側ではOFFとして扱われる状態を避ける。
+
+条件OKの場合は、手動2,000件開始と同じ未読取候補抽出を使って次の `BatchOCRJob` を作る。条件NGの場合は `pausedDeviceCondition` または `completedNoMoreTargets` として保存し、0件Jobは作らない。
+
+DEBUGビルドでは `AUTO_CONTINUE decision` ログに、ON/OFF、完了Job ID、候補件数、thermal、低電力、空き容量、アプリ状態、既存Job状態、判断結果、理由を残す。
+
 バックグラウンド移行時は自動継続を開始せず、`pausedBackground` または `pausedDeviceCondition` として保存する。次回起動後、ユーザーが `続きから再開` を押した場合だけ、未完了Jobを優先して再開し、未完了Jobがなければ次の2,000件Jobを作る。
 
 ## P2検証
@@ -225,6 +233,8 @@ DEBUGビルド限定でP3自己検証を用意する。
 自動継続はDEBUGビルド限定の検証で確認する。
 
 - 2,000件完了後に次の2,000件Jobを作る
+- 自動継続OFFでは次Jobを作らない
+- thermal fairでは停止せず次の2,000件Jobを作る
 - 未読取0件では0件Jobを作らない
 - thermal seriousでは一時停止する
 - 低電力モードでは一時停止する

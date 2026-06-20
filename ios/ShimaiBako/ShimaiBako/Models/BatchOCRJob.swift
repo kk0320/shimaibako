@@ -434,6 +434,7 @@ struct BatchOCRAutoContinueValidationCaseResult: Codable, Equatable, Identifiabl
     var autoContinueEnabled: Bool
     var nextJobCreated: Bool
     var plannedCount: Int
+    var decisionLog: String
     var passed: Bool
     var message: String
 }

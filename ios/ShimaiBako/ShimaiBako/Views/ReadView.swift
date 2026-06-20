@@ -699,7 +699,11 @@ struct ReadView: View {
 
             Button {
                 Task {
-                    await batchOCRJobService.runAutoContinueValidationSuite(ocrService: ocrService)
+                    await batchOCRJobService.runAutoContinueValidationSuite(
+                        photoLibrary: photoLibrary,
+                        ocrService: ocrService,
+                        indexService: indexService
+                    )
                 }
             } label: {
                 Label("自動継続検証を実行", systemImage: "forward.end.circle")
