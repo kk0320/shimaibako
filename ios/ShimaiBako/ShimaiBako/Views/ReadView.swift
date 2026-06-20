@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ReadView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
@@ -56,6 +57,7 @@ struct ReadView: View {
                         targetDiagnosticsCard
                         jobStatusCard
                         #if DEBUG
+                        readStateDiagnosticsCard
                         debugValidationCard
                         #endif
                         IndexStoreStatusContainer()
@@ -219,6 +221,7 @@ struct ReadView: View {
                     ReadJobRow(title: "読取済み除外", value: "\(diagnostics.excludedAlreadyRead)件")
                     ReadJobRow(title: "文字なし除外", value: "\(diagnostics.excludedCompletedNoText)件")
                     ReadJobRow(title: "処理中除外", value: "\(diagnostics.excludedInProgress)件")
+                    ReadJobRow(title: "失敗確定除外", value: "\(diagnostics.excludedFailedPermanent)件")
                     ReadJobRow(title: "検索データのみ", value: "\(diagnostics.searchDataOnlyCandidateCount)件")
                     ReadJobRow(title: "古い状態を候補へ戻す", value: "\(diagnostics.staleCacheCandidateCount)件")
                     ReadJobRow(title: "今回対象", value: "\(diagnostics.finalTargetCount)件")
@@ -332,6 +335,105 @@ struct ReadView: View {
     }
 
     #if DEBUG
+    private var readStateDiagnosticsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("読取状態診断", systemImage: "stethoscope")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("DEBUGビルド限定です。読取対象の内訳だけを確認します。OCR結果、検索データ、分類、メモ、タグは削除しません。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 10) {
+                Button {
+                    Task {
+                        await batchOCRJobService.runReadStateDiagnostics(
+                            assets: photoLibrary.assets,
+                            ocrService: ocrService,
+                            indexService: indexService
+                        )
+                    }
+                } label: {
+                    Label("診断する", systemImage: "waveform.path.ecg")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(batchOCRJobService.isRunningReadStateDiagnostics)
+
+                Button {
+                    if let text = batchOCRJobService.readStateDiagnosticsReport?.textReport {
+                        UIPasteboard.general.string = text
+                    }
+                } label: {
+                    Label("診断結果をコピー", systemImage: "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+                .disabled(batchOCRJobService.readStateDiagnosticsReport == nil)
+            }
+
+            if batchOCRJobService.isRunningReadStateDiagnostics {
+                Label("診断中です", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let report = batchOCRJobService.readStateDiagnosticsReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    ReadJobRow(title: "写真DB件数", value: "\(report.photoDatabaseCount)件")
+                    ReadJobRow(title: "検索データ件数", value: "\(report.searchDataCount)件")
+                    ReadJobRow(title: "読取結果キャッシュ件数", value: "\(report.readResultCacheCount)件")
+                    ReadJobRow(title: "OCR本文あり件数", value: "\(report.ocrTextCount)件")
+                    ReadJobRow(title: "文字なし判定済み件数", value: "\(report.completedNoTextCount)件")
+                    ReadJobRow(title: "失敗件数", value: "\(report.failedCount)件")
+                    ReadJobRow(title: "failedRetryable件数", value: "\(report.failedRetryableCount)件")
+                    ReadJobRow(title: "failedPermanent件数", value: "\(report.failedPermanentCount)件")
+                    ReadJobRow(title: "検索データだけある件数", value: "\(report.searchDataOnlyCount)件")
+                    ReadJobRow(title: "未読取候補件数", value: "\(report.unreadCandidateCount)件")
+                    ReadJobRow(title: "処理中ジョブ対象件数", value: "\(report.activeJobTargetCount)件")
+                    ReadJobRow(title: "無効/古いジョブ件数", value: "\(report.invalidOrStaleJobCount)件")
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(report.limitDiagnostics) { limit in
+                        ReadJobRow(title: "\(limit.selectedLimit)件選択時の対象数", value: "\(limit.targetCount)件")
+                    }
+                }
+
+                if let primary = report.limitDiagnostics.first(where: { $0.selectedLimit == 2_000 })?.diagnostics {
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("2,000件選択時の除外内訳")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        ReadJobRow(title: "candidateBeforeExclusion", value: "\(primary.candidateBeforeExclusion)")
+                        ReadJobRow(title: "excludedAlreadyRead", value: "\(primary.excludedAlreadyRead)")
+                        ReadJobRow(title: "excludedCompletedNoText", value: "\(primary.excludedCompletedNoText)")
+                        ReadJobRow(title: "excludedInProgress", value: "\(primary.excludedInProgress)")
+                        ReadJobRow(title: "excludedSearchDataOnly", value: "\(primary.excludedSearchDataOnly)")
+                        ReadJobRow(title: "excludedFailedPermanent", value: "\(primary.excludedFailedPermanent)")
+                        ReadJobRow(title: "failedRetryableCount", value: "\(primary.failedRetryableCount)")
+                        ReadJobRow(title: "finalTargetCount", value: "\(primary.finalTargetCount)")
+
+                        if let reason = primary.reasonIfZero {
+                            Text(reason)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
     private var debugValidationCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("BatchOCR検証", systemImage: "wrench.and.screwdriver")

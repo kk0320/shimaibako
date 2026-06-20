@@ -47,6 +47,19 @@ struct ContentView: View {
                 }
                 #endif
                 await photoLibrary.prepare()
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRReadStateDiagnostics") {
+                    if photoLibrary.canReadPhotos, photoLibrary.assets.isEmpty {
+                        await photoLibrary.loadRecentAssets()
+                    }
+                    await waitForReadStateDiagnosticsInputs()
+                    await batchOCRJobService.runReadStateDiagnostics(
+                        assets: photoLibrary.assets,
+                        ocrService: ocrService,
+                        indexService: indexService
+                    )
+                }
+                #endif
             }
             .onChange(of: scenePhase) { _, newPhase in
                 switch newPhase {
@@ -63,6 +76,18 @@ struct ContentView: View {
             }
             .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
     }
+
+    #if DEBUG
+    private func waitForReadStateDiagnosticsInputs() async {
+        for _ in 0..<160 {
+            if photoLibrary.isLoading == false, indexService.isIndexStorePreparing == false {
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
+    #endif
 }
 
 #Preview {

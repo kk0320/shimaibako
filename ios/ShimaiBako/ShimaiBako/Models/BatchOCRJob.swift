@@ -112,6 +112,7 @@ struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
     var excludedCompletedNoText: Int
     var excludedInProgress: Int
     var excludedSearchDataOnly: Int
+    var excludedFailedPermanent: Int
     var excludedStaleCache: Int
     var searchDataOnlyCandidateCount: Int
     var staleCacheCandidateCount: Int
@@ -127,6 +128,7 @@ struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
         excludedCompletedNoText: 0,
         excludedInProgress: 0,
         excludedSearchDataOnly: 0,
+        excludedFailedPermanent: 0,
         excludedStaleCache: 0,
         searchDataOnlyCandidateCount: 0,
         staleCacheCandidateCount: 0,
@@ -260,5 +262,74 @@ struct BatchOCRTargetSelectionValidationCaseResult: Codable, Equatable, Identifi
     var excludedCompletedNoText: Int
     var passed: Bool
     var message: String
+}
+
+struct BatchOCRLimitDiagnostics: Codable, Equatable, Identifiable {
+    var id: Int {
+        selectedLimit
+    }
+
+    var selectedLimit: Int
+    var targetCount: Int
+    var diagnostics: BatchOCRTargetSelectionDiagnostics
+}
+
+struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
+    var generatedAt: Date
+    var photoDatabaseCount: Int
+    var searchDataCount: Int
+    var readResultCacheCount: Int
+    var ocrTextCount: Int
+    var completedNoTextCount: Int
+    var failedCount: Int
+    var failedRetryableCount: Int
+    var failedPermanentCount: Int
+    var searchDataOnlyCount: Int
+    var unreadCandidateCount: Int
+    var activeJobTargetCount: Int
+    var invalidOrStaleJobCount: Int
+    var limitDiagnostics: [BatchOCRLimitDiagnostics]
+
+    var textReport: String {
+        var lines = [
+            "読取状態診断",
+            "作成日時: \(Self.format(generatedAt))",
+            "写真DB: \(photoDatabaseCount)",
+            "検索データ: \(searchDataCount)",
+            "読取結果キャッシュ: \(readResultCacheCount)",
+            "OCR本文あり: \(ocrTextCount)",
+            "文字なし判定済み: \(completedNoTextCount)",
+            "失敗: \(failedCount)",
+            "failedRetryable: \(failedRetryableCount)",
+            "failedPermanent: \(failedPermanentCount)",
+            "検索データのみ: \(searchDataOnlyCount)",
+            "未読取候補: \(unreadCandidateCount)",
+            "処理中ジョブ対象: \(activeJobTargetCount)",
+            "無効/古いジョブ: \(invalidOrStaleJobCount)"
+        ]
+
+        for limit in limitDiagnostics.sorted(by: { $0.selectedLimit < $1.selectedLimit }) {
+            lines.append("")
+            lines.append("\(limit.selectedLimit)件選択時の対象数: \(limit.targetCount)")
+            lines.append("candidateBeforeExclusion: \(limit.diagnostics.candidateBeforeExclusion)")
+            lines.append("excludedAlreadyRead: \(limit.diagnostics.excludedAlreadyRead)")
+            lines.append("excludedCompletedNoText: \(limit.diagnostics.excludedCompletedNoText)")
+            lines.append("excludedInProgress: \(limit.diagnostics.excludedInProgress)")
+            lines.append("excludedSearchDataOnly: \(limit.diagnostics.excludedSearchDataOnly)")
+            lines.append("excludedFailedPermanent: \(limit.diagnostics.excludedFailedPermanent)")
+            lines.append("failedRetryableCount: \(limit.diagnostics.failedRetryableCount)")
+            lines.append("finalTargetCount: \(limit.diagnostics.finalTargetCount)")
+            lines.append("reasonIfZero: \(limit.diagnostics.reasonIfZero ?? "-")")
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private static func format(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
+        return formatter.string(from: date)
+    }
 }
 #endif

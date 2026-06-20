@@ -14,10 +14,12 @@ final class BatchOCRJobService: ObservableObject {
     @Published private(set) var p2ValidationReport: BatchOCRP2ValidationReport?
     @Published private(set) var p3ValidationReport: BatchOCRP3ValidationReport?
     @Published private(set) var targetSelectionValidationReport: BatchOCRTargetSelectionValidationReport?
+    @Published private(set) var readStateDiagnosticsReport: BatchOCRReadStateDiagnosticsReport?
     @Published private(set) var isRunningP1Validation = false
     @Published private(set) var isRunningP2Validation = false
     @Published private(set) var isRunningP3Validation = false
     @Published private(set) var isRunningTargetSelectionValidation = false
+    @Published private(set) var isRunningReadStateDiagnostics = false
     #endif
 
     private let fileManager: FileManager
@@ -28,6 +30,7 @@ final class BatchOCRJobService: ObservableObject {
     private let p2ValidationReportFileName = "batch_ocr_p2_validation_report.json"
     private let p3ValidationReportFileName = "batch_ocr_p3_validation_report.json"
     private let targetSelectionValidationReportFileName = "batch_ocr_target_selection_validation_report.json"
+    private let readStateDiagnosticsReportFileName = "batch_ocr_read_state_diagnostics_report.json"
     #endif
     private var runTask: Task<Void, Never>?
     private var lastPublishedAt = Date.distantPast
@@ -71,6 +74,20 @@ final class BatchOCRJobService: ObservableObject {
         }
 
         return max(currentJob.plannedCount - currentJob.processedCount, 0)
+    }
+
+    private var activeJobTargetCount: Int {
+        items.filter { item in
+            item.state == .pending || item.state == .processing
+        }.count
+    }
+
+    private var invalidOrStaleJobCount: Int {
+        guard let job = currentJob else {
+            return 0
+        }
+
+        return isInvalidOrStaleJob(job) ? 1 : 0
     }
 
     var activeStatusTitle: String {
@@ -187,13 +204,7 @@ final class BatchOCRJobService: ObservableObject {
             return 0
         }
 
-        let invalidLimit = allowedRequestedLimits.contains(job.requestedLimit) == false
-        let invalidEmptyJob = job.plannedCount == 0
-        let staleFullOCRText = job.filterSnapshot.contains("全数") ||
-            job.filterSnapshot.localizedCaseInsensitiveContains("full OCR") ||
-            job.filterSnapshot.localizedCaseInsensitiveContains("smart full")
-
-        guard invalidLimit || invalidEmptyJob || staleFullOCRText else {
+        guard isInvalidOrStaleJob(job) else {
             return 0
         }
 
@@ -433,6 +444,70 @@ final class BatchOCRJobService: ObservableObject {
         targetSelectionValidationReport = report
         message = report.passed ? "対象抽出検証が完了しました。" : "対象抽出検証で確認が必要です。"
         await saveTargetSelectionValidationReport(report)
+    }
+
+    func runReadStateDiagnostics(
+        assets: [PhotoAsset],
+        ocrService: OCRService,
+        indexService: PhotoIndexService
+    ) async {
+        guard isRunningReadStateDiagnostics == false else {
+            return
+        }
+
+        isRunningReadStateDiagnostics = true
+        defer {
+            isRunningReadStateDiagnostics = false
+        }
+
+        let limits = [20, 50, 100, 500, 2_000]
+        var limitDiagnostics: [BatchOCRLimitDiagnostics] = []
+
+        for limit in limits {
+            let selection = await makeSelection(
+                requestedLimit: limit,
+                assets: assets,
+                ocrService: ocrService,
+                indexService: indexService
+            )
+            limitDiagnostics.append(
+                BatchOCRLimitDiagnostics(
+                    selectedLimit: limit,
+                    targetCount: selection.candidates.count,
+                    diagnostics: selection.diagnostics
+                )
+            )
+        }
+
+        let fullSelection = await makeSelection(
+            requestedLimit: max(assets.filter { $0.mediaType == .image }.count, 1),
+            assets: assets,
+            ocrService: ocrService,
+            indexService: indexService
+        )
+        let fullDiagnostics = fullSelection.diagnostics
+
+        let report = BatchOCRReadStateDiagnosticsReport(
+            generatedAt: Date(),
+            photoDatabaseCount: indexService.indexedRecordCount,
+            searchDataCount: indexService.indexedRecordCount,
+            readResultCacheCount: ocrService.storedCompletedCount + ocrService.storedFailedCount,
+            ocrTextCount: ocrService.storedCompletedTextCount,
+            completedNoTextCount: ocrService.storedCompletedNoTextCount,
+            failedCount: ocrService.storedFailedCount,
+            failedRetryableCount: fullDiagnostics.failedRetryableCount,
+            failedPermanentCount: fullDiagnostics.failedPermanentCount,
+            searchDataOnlyCount: fullDiagnostics.searchDataOnlyCandidateCount,
+            unreadCandidateCount: fullDiagnostics.finalTargetCount,
+            activeJobTargetCount: activeJobTargetCount,
+            invalidOrStaleJobCount: invalidOrStaleJobCount,
+            limitDiagnostics: limitDiagnostics
+        )
+
+        readStateDiagnosticsReport = report
+        latestTargetDiagnostics = limitDiagnostics.first(where: { $0.selectedLimit == 500 })?.diagnostics ?? limitDiagnostics.last?.diagnostics
+        message = "読取状態診断が完了しました。"
+        await saveReadStateDiagnosticsReport(report)
     }
 
     @discardableResult
@@ -1289,6 +1364,7 @@ final class BatchOCRJobService: ObservableObject {
         var diagnostics = BatchOCRTargetSelectionDiagnostics.empty
         diagnostics.selectedLimit = requestedLimit
         diagnostics.failedPermanentCount = failedPermanentCount
+        diagnostics.excludedFailedPermanent = failedPermanentCount
 
         for asset in imageAssets {
             diagnostics.candidateBeforeExclusion += 1
@@ -1490,6 +1566,16 @@ final class BatchOCRJobService: ObservableObject {
     }
     #endif
 
+    private func isInvalidOrStaleJob(_ job: BatchOCRJob) -> Bool {
+        let invalidLimit = allowedRequestedLimits.contains(job.requestedLimit) == false
+        let invalidEmptyJob = job.plannedCount == 0
+        let staleFullOCRText = job.filterSnapshot.contains("全数") ||
+            job.filterSnapshot.localizedCaseInsensitiveContains("full OCR") ||
+            job.filterSnapshot.localizedCaseInsensitiveContains("smart full")
+
+        return invalidLimit || invalidEmptyJob || staleFullOCRText
+    }
+
     private func sourceRevision(for asset: PhotoAsset) -> String {
         [
             "\(asset.pixelWidth)x\(asset.pixelHeight)",
@@ -1622,6 +1708,20 @@ final class BatchOCRJobService: ObservableObject {
         }
     }
 
+    private func saveReadStateDiagnosticsReport(_ report: BatchOCRReadStateDiagnosticsReport) async {
+        let url = readStateDiagnosticsReportURL()
+        do {
+            let directoryURL = url.deletingLastPathComponent()
+            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(report)
+            try data.write(to: url, options: [.atomic])
+        } catch {
+            errorMessage = "読取状態診断結果を保存できませんでした: \(error.localizedDescription)"
+        }
+    }
+
     private func validationReportURL() -> URL {
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first ?? fileManager.temporaryDirectory
@@ -1652,6 +1752,14 @@ final class BatchOCRJobService: ObservableObject {
         return baseURL
             .appendingPathComponent("ShimaiBako", isDirectory: true)
             .appendingPathComponent(targetSelectionValidationReportFileName)
+    }
+
+    private func readStateDiagnosticsReportURL() -> URL {
+        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first ?? fileManager.temporaryDirectory
+        return baseURL
+            .appendingPathComponent("ShimaiBako", isDirectory: true)
+            .appendingPathComponent(readStateDiagnosticsReportFileName)
     }
     #endif
 
