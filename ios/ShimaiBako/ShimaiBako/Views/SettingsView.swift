@@ -737,28 +737,16 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 8) {
-                Button {
-                    Task {
-                        await visionClassificationBenchmarkRunner.run(limit: 20)
-                    }
-                } label: {
-                    Label("20件で実行", systemImage: "play.circle")
-                        .frame(maxWidth: .infinity)
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    visionBenchmarkButton(title: "直近20件", limit: 20, bucket: .allRecent, prominent: false)
+                    visionBenchmarkButton(title: "直近100件", limit: 100, bucket: .allRecent, prominent: true)
                 }
-                .buttonStyle(.bordered)
-                .disabled(visionClassificationBenchmarkRunner.isRunning)
 
-                Button {
-                    Task {
-                        await visionClassificationBenchmarkRunner.run(limit: 100)
-                    }
-                } label: {
-                    Label("100件で実行", systemImage: "play.circle.fill")
-                        .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    visionBenchmarkButton(title: "スクショ20件", limit: 20, bucket: .screenshot, prominent: false)
+                    visionBenchmarkButton(title: "スクショ以外20件", limit: 20, bucket: .nonScreenshot, prominent: false)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(visionClassificationBenchmarkRunner.isRunning)
             }
 
             Button {
@@ -785,14 +773,18 @@ struct SettingsView: View {
             if let report = visionClassificationBenchmarkRunner.latestReport {
                 VStack(alignment: .leading, spacing: 6) {
                     DetailInfoRow(title: "最終実行", value: DateFormatter.localizedString(from: report.finishedAt, dateStyle: .short, timeStyle: .short))
+                    DetailInfoRow(title: "Bucket", value: report.bucketTitle)
                     DetailInfoRow(title: "件数", value: "\(report.actualCount) / \(report.requestedCount)件")
                     DetailInfoRow(title: "平均", value: "\(String(format: "%.1f", report.averageMsPerAsset)) ms/件")
                     DetailInfoRow(title: "失敗", value: "\(report.failedCount)件")
                     DetailInfoRow(title: "スクショ候補", value: "\(report.screenshotCandidateCount)件")
                     DetailInfoRow(title: "人物候補", value: "\(max(report.faceDetectedCount, report.humanDetectedCount))件")
-                    DetailInfoRow(title: "書類候補", value: "\(report.likelyDocumentCount)件")
+                    DetailInfoRow(title: "書類segmentation", value: "\(report.documentSegmentationDetectedCount)件")
+                    DetailInfoRow(title: "書類label", value: "\(report.documentLabelCandidateCount)件")
+                    DetailInfoRow(title: "最終書類候補", value: "\(report.finalDocumentCandidateCount)件")
                     DetailInfoRow(title: "建物候補", value: "\(report.likelyBuildingCount)件")
                     DetailInfoRow(title: "看板候補", value: "\(report.likelySignCount)件")
+                    DetailInfoRow(title: "OCR優先候補", value: "\(report.ocrPriorityCandidateCount)件")
                     DetailInfoRow(title: "ラベル数", value: "\(report.supportedIdentifiers.totalCount)件")
                 }
                 .padding(.top, 4)
@@ -816,6 +808,42 @@ struct SettingsView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func visionBenchmarkButton(
+        title: String,
+        limit: Int,
+        bucket: VisionClassificationBenchmarkBucket,
+        prominent: Bool
+    ) -> some View {
+        Group {
+            if prominent {
+                visionBenchmarkBaseButton(title: title, limit: limit, bucket: bucket)
+                    .buttonStyle(.borderedProminent)
+            } else {
+                visionBenchmarkBaseButton(title: title, limit: limit, bucket: bucket)
+                    .buttonStyle(.bordered)
+            }
+        }
+        .disabled(visionClassificationBenchmarkRunner.isRunning)
+    }
+
+    private func visionBenchmarkBaseButton(
+        title: String,
+        limit: Int,
+        bucket: VisionClassificationBenchmarkBucket
+    ) -> some View {
+        Button {
+            Task {
+                await visionClassificationBenchmarkRunner.run(limit: limit, bucket: bucket)
+            }
+        } label: {
+            Label(title, systemImage: "play.circle")
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity)
+        }
     }
     #endif
 

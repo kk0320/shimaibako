@@ -99,10 +99,16 @@ struct ContentView: View {
                     )
                 }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmark20") {
-                    await visionClassificationBenchmarkRunner.run(limit: 20)
+                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .allRecent)
                 }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmark100") {
-                    await visionClassificationBenchmarkRunner.run(limit: 100)
+                    await visionClassificationBenchmarkRunner.run(limit: 100, bucket: .allRecent)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkScreenshot20") {
+                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .screenshot)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkNonScreenshot20") {
+                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .nonScreenshot)
                 }
                 #endif
             }

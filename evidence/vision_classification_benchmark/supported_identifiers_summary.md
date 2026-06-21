@@ -1,6 +1,6 @@
 # Supported Identifiers Summary
 
-- generatedAt: 2026-06-21T10:30:46Z
+- generatedAt: 2026-06-21T11:05:04Z
 - totalCount: 1303
 - unavailableReason: none
 
@@ -30,3 +30,18 @@
 - truck: 3 match(es) / firetruck, semi_truck, truck
 - vehicle: 3 match(es) / engine_vehicle, vehicle, vehicle_toy
 - whiteboard: 1 match(es) / whiteboard
+
+## Taxonomy Matches
+- buildingLabels: 4 / building, house_single, lighthouse, skyscraper
+- businessCardLabels: 1 / credit_card
+- constructionSiteLabels: 1 / crane_construction
+- documentLabels: 2 / document, newspaper
+- foodLabels: 2 / food, seafood
+- landscapeLabels: 4 / blue_sky, mountain, night_sky, sky
+- materialEquipmentLabels: 3 / optical_equipment, road_safety_equipment, sports_equipment
+- personLabels: 0
+- plannedButUnsupportedLabels: 10 / architecture, blackboard, business_card, excavator, face, heavy_equipment, landscape, person, poster, site
+- receiptLabels: 1 / receipt
+- signLabels: 3 / billboards, sign, street_sign
+- vehicleHeavyEquipmentLabels: 5 / engine_vehicle, firetruck, semi_truck, truck, vehicle
+- whiteboardLabels: 1 / whiteboard

@@ -410,3 +410,81 @@ spikeで分類精度・速度・発熱・誤分類を確認してから、本実
 P0ベンチ結果は、本番DBの分類結果として保存しない。OCR結果、BatchOCRJob、検索インデックス、手動分類、不要候補、メモ、タグには影響させない。
 
 K Phoneの直近100件ベンチでは、Vision解析自体は失敗0で実行できた。一方で `documentScore` は過検出気味だったため、次フェーズではカテゴリ別サンプルで精度としきい値を見直す。
+
+## P0.5結果と設計判断
+
+P0.5では、`documentScore` を分解し、スクショと書類を分離した。
+
+```text
+hasDocumentSegmentation
+documentLabelScore
+documentVisualScore
+documentScore
+ocrPriorityScore
+```
+
+K Phoneでは、`VNDetectDocumentSegmentationRequest` が直近20件、直近100件、スクショ20件、スクショ以外20件のすべてで全件反応した。したがって `hasDocumentSegmentation` は「書類らしさ」の決定打ではなく、補助信号に留める。
+
+スクショはPhotoKitの `photoScreenshot` を優先し、`documentScore` を抑制する。スクショは書類ではないが、文字検索の価値が高いため `ocrPriorityScore` は高くする。
+
+P0.5のK Phone結果:
+
+```text
+直近20件: finalDocumentCandidate 1 / ocrPriorityCandidate 15
+直近100件: finalDocumentCandidate 1 / ocrPriorityCandidate 87
+スクショ20件: finalDocumentCandidate 0 / ocrPriorityCandidate 20
+スクショ以外20件: finalDocumentCandidate 1 / ocrPriorityCandidate 0
+```
+
+この結果から、整理タブ本実装へ進む前に次を行う。
+
+- スクショ、書類、領収書、看板、白板、建物、工事現場の固定サンプルを用意する。
+- `VisionClassificationTaxonomy.swift` のラベルセットを、supportedIdentifiersで実在確認できたものだけに寄せる。
+- `documentSegmentation` は過検出信号として扱い、ラベル、視覚ルール、OCR結果候補と組み合わせる。
+- スクショは「記録・メモ」用途として独立させ、書類候補とは別集計にする。
+- OCR候補作成には `ocrPriorityScore` を使い、画像分類カテゴリとは混ぜない。
+
+P0.5でも、画像本体、サムネイル本体、顔画像、顔テンプレート、人物識別情報、大量特徴ベクトルは保存しない。本番分類DB、写真タブ、読取タブ、BatchOCRJob、検索インデックスには反映しない。
+
+## 初期taxonomyメモ
+
+Vision標準ラベルで確認できた初期候補:
+
+```text
+building
+house_single
+lighthouse
+skyscraper
+crane_construction
+billboards
+sign
+street_sign
+whiteboard
+document
+newspaper
+receipt
+credit_card
+food
+seafood
+blue_sky
+mountain
+night_sky
+sky
+```
+
+直接確認できなかった、または別信号で扱うべきもの:
+
+```text
+architecture
+blackboard
+business_card
+excavator
+face
+heavy_equipment
+landscape
+person
+poster
+site
+```
+
+人物や顔はラベルではなくVisionの矩形検出を使う。名刺は `business_card` がないため、P0.5では `credit_card` を弱い仮信号として扱うが、本番ではOCRテキストや手動レビューとの併用が必要。
