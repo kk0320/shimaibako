@@ -261,10 +261,24 @@ struct ReadView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if let remainingTitle = batchOCRJobService.autoContinueRemainingEstimateTitle {
-                Label(remainingTitle, systemImage: "tray.full")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                if let currentBatchTitle = batchOCRJobService.autoContinueCurrentBatchTitle {
+                    Label(currentBatchTitle, systemImage: "rectangle.stack")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                if let seriesProcessedTitle = batchOCRJobService.autoContinueSeriesProcessedTitle {
+                    Label(seriesProcessedTitle, systemImage: "checkmark.circle")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                if let remainingTitle = batchOCRJobService.autoContinueRemainingEstimateTitle {
+                    Label(remainingTitle, systemImage: "tray.full")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if let pausedReason = batchOCRJobService.currentSeries?.pausedReason {
@@ -366,7 +380,10 @@ struct ReadView: View {
                     ReadJobRow(title: "上限", value: "\(job.requestedLimit)件")
                     if let series = batchOCRJobService.currentSeries, series.autoContinueEnabled {
                         ReadJobRow(title: "自動継続", value: series.state.title)
-                        ReadJobRow(title: "連続処理済み", value: "\(series.totalProcessedInSeries + job.processedCount)件")
+                        ReadJobRow(title: "連続処理済み", value: "\(series.totalProcessedInSeries)件")
+                        if let remaining = series.remainingUnreadEstimate ?? series.remainingEstimate {
+                            ReadJobRow(title: "未読取の残り", value: "約\(remaining)件")
+                        }
                     }
                 }
 
@@ -537,6 +554,19 @@ struct ReadView: View {
                     ReadJobRow(title: "staleProcessingTargets", value: "\(report.staleProcessingTargets)件")
                     ReadJobRow(title: "orphanProcessingTargets", value: "\(report.orphanProcessingTargets)件")
                     ReadJobRow(title: "無効/古いジョブ件数", value: "\(report.invalidOrStaleJobCount)件")
+                    ReadJobRow(title: "seriesInitialUnreadCount", value: report.seriesInitialUnreadCount.map { "\($0)件" } ?? "-")
+                    ReadJobRow(title: "seriesTotalProcessed", value: report.seriesTotalProcessed.map { "\($0)件" } ?? "-")
+                    ReadJobRow(title: "seriesRemainingEstimate", value: report.seriesRemainingEstimate.map { "\($0)件" } ?? "-")
+                    ReadJobRow(title: "currentJobProcessed", value: report.currentJobProcessed.map { "\($0)件" } ?? "-")
+                    ReadJobRow(title: "currentJobPlannedCount", value: report.currentJobPlannedCount.map { "\($0)件" } ?? "-")
+                    ReadJobRow(title: "completedJobCount", value: report.completedJobCount.map { "\($0)件" } ?? "-")
+                    ReadJobRow(title: "autoContinueEnabled", value: report.autoContinueEnabled ? "true" : "false")
+                    ReadJobRow(
+                        title: "lastSeriesUpdateAt",
+                        value: report.lastSeriesUpdateAt.map {
+                            DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .medium)
+                        } ?? "-"
+                    )
                 }
 
                 Divider()

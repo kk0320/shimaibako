@@ -269,6 +269,15 @@ final class PhotoIndexService: ObservableObject {
         }
     }
 
+    func batchOCRCandidateCount() async -> Int {
+        do {
+            return try await store.batchOCRCandidateCount()
+        } catch {
+            errorMessage = "読取対象候補数を読み込めませんでした: \(error.localizedDescription)"
+            return 0
+        }
+    }
+
     func setDisplayState(
         _ state: PhotoDisplayState,
         for asset: PhotoAsset,

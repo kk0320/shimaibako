@@ -167,10 +167,106 @@ struct BatchOCRSeries: Codable, Identifiable, Equatable {
     var createdAt: Date
     var updatedAt: Date
     var lastJobID: String?
+    var currentJobID: String?
+    var initialUnreadCount: Int
     var totalProcessedInSeries: Int
+    var totalTextFoundInSeries: Int
+    var totalNoTextInSeries: Int
+    var totalFailedInSeries: Int
+    var completedJobCount: Int
     var remainingEstimate: Int?
+    var remainingUnreadEstimate: Int?
     var pausedReason: String?
     var pausedReasonCode: BatchOCRPausedReason?
+    var lastUpdatedAt: Date
+
+    init(
+        id: String,
+        state: BatchOCRSeriesState,
+        autoContinueEnabled: Bool,
+        batchLimit: Int,
+        createdAt: Date,
+        updatedAt: Date,
+        lastJobID: String?,
+        currentJobID: String?,
+        initialUnreadCount: Int,
+        totalProcessedInSeries: Int,
+        totalTextFoundInSeries: Int,
+        totalNoTextInSeries: Int,
+        totalFailedInSeries: Int,
+        completedJobCount: Int,
+        remainingEstimate: Int?,
+        remainingUnreadEstimate: Int?,
+        pausedReason: String?,
+        pausedReasonCode: BatchOCRPausedReason?,
+        lastUpdatedAt: Date
+    ) {
+        self.id = id
+        self.state = state
+        self.autoContinueEnabled = autoContinueEnabled
+        self.batchLimit = batchLimit
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.lastJobID = lastJobID
+        self.currentJobID = currentJobID
+        self.initialUnreadCount = initialUnreadCount
+        self.totalProcessedInSeries = totalProcessedInSeries
+        self.totalTextFoundInSeries = totalTextFoundInSeries
+        self.totalNoTextInSeries = totalNoTextInSeries
+        self.totalFailedInSeries = totalFailedInSeries
+        self.completedJobCount = completedJobCount
+        self.remainingEstimate = remainingEstimate
+        self.remainingUnreadEstimate = remainingUnreadEstimate ?? remainingEstimate
+        self.pausedReason = pausedReason
+        self.pausedReasonCode = pausedReasonCode
+        self.lastUpdatedAt = lastUpdatedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case state
+        case autoContinueEnabled
+        case batchLimit
+        case createdAt
+        case updatedAt
+        case lastJobID
+        case currentJobID
+        case initialUnreadCount
+        case totalProcessedInSeries
+        case totalTextFoundInSeries
+        case totalNoTextInSeries
+        case totalFailedInSeries
+        case completedJobCount
+        case remainingEstimate
+        case remainingUnreadEstimate
+        case pausedReason
+        case pausedReasonCode
+        case lastUpdatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        state = try container.decode(BatchOCRSeriesState.self, forKey: .state)
+        autoContinueEnabled = try container.decode(Bool.self, forKey: .autoContinueEnabled)
+        batchLimit = try container.decode(Int.self, forKey: .batchLimit)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        lastJobID = try container.decodeIfPresent(String.self, forKey: .lastJobID)
+        currentJobID = try container.decodeIfPresent(String.self, forKey: .currentJobID)
+        totalProcessedInSeries = try container.decodeIfPresent(Int.self, forKey: .totalProcessedInSeries) ?? 0
+        totalTextFoundInSeries = try container.decodeIfPresent(Int.self, forKey: .totalTextFoundInSeries) ?? 0
+        totalNoTextInSeries = try container.decodeIfPresent(Int.self, forKey: .totalNoTextInSeries) ?? 0
+        totalFailedInSeries = try container.decodeIfPresent(Int.self, forKey: .totalFailedInSeries) ?? 0
+        completedJobCount = try container.decodeIfPresent(Int.self, forKey: .completedJobCount) ?? 0
+        remainingEstimate = try container.decodeIfPresent(Int.self, forKey: .remainingEstimate)
+        remainingUnreadEstimate = try container.decodeIfPresent(Int.self, forKey: .remainingUnreadEstimate) ?? remainingEstimate
+        initialUnreadCount = try container.decodeIfPresent(Int.self, forKey: .initialUnreadCount)
+            ?? max((remainingUnreadEstimate ?? remainingEstimate ?? 0) + totalProcessedInSeries, 0)
+        pausedReason = try container.decodeIfPresent(String.self, forKey: .pausedReason)
+        pausedReasonCode = try container.decodeIfPresent(BatchOCRPausedReason.self, forKey: .pausedReasonCode)
+        lastUpdatedAt = try container.decodeIfPresent(Date.self, forKey: .lastUpdatedAt) ?? updatedAt
+    }
 }
 
 struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
@@ -380,6 +476,14 @@ struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
     var staleProcessingTargets: Int
     var orphanProcessingTargets: Int
     var invalidOrStaleJobCount: Int
+    var seriesInitialUnreadCount: Int?
+    var seriesTotalProcessed: Int?
+    var seriesRemainingEstimate: Int?
+    var currentJobProcessed: Int?
+    var currentJobPlannedCount: Int?
+    var completedJobCount: Int?
+    var autoContinueEnabled: Bool
+    var lastSeriesUpdateAt: Date?
     var limitDiagnostics: [BatchOCRLimitDiagnostics]
 
     var textReport: String {
@@ -401,7 +505,15 @@ struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
             "pausedJobPendingTargets: \(pausedJobPendingTargets)",
             "staleProcessingTargets: \(staleProcessingTargets)",
             "orphanProcessingTargets: \(orphanProcessingTargets)",
-            "無効/古いジョブ: \(invalidOrStaleJobCount)"
+            "無効/古いジョブ: \(invalidOrStaleJobCount)",
+            "seriesInitialUnreadCount: \(seriesInitialUnreadCount.map(String.init) ?? "-")",
+            "seriesTotalProcessed: \(seriesTotalProcessed.map(String.init) ?? "-")",
+            "seriesRemainingEstimate: \(seriesRemainingEstimate.map(String.init) ?? "-")",
+            "currentJobProcessed: \(currentJobProcessed.map(String.init) ?? "-")",
+            "currentJobPlannedCount: \(currentJobPlannedCount.map(String.init) ?? "-")",
+            "completedJobCount: \(completedJobCount.map(String.init) ?? "-")",
+            "autoContinueEnabled: \(autoContinueEnabled)",
+            "lastSeriesUpdateAt: \(lastSeriesUpdateAt.map(Self.format) ?? "-")"
         ]
 
         for limit in limitDiagnostics.sorted(by: { $0.selectedLimit < $1.selectedLimit }) {
@@ -431,7 +543,7 @@ struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
         return lines.joined(separator: "\n")
     }
 
-    private static func format(_ date: Date) -> String {
+    private nonisolated static func format(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ja_JP")
         formatter.dateFormat = "yyyy/MM/dd HH:mm:ss"

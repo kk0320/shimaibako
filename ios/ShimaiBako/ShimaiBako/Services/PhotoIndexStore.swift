@@ -7,6 +7,7 @@ nonisolated protocol PhotoIndexStoring: Sendable {
     func records(localIdentifiers: [String]) async throws -> [PhotoIndexRecord]
     func localIdentifierPage(matching request: PhotoIndexPageRequest) async throws -> PhotoIndexPage
     func batchOCRCandidateRecords(limit: Int) async throws -> [PhotoIndexRecord]
+    func batchOCRCandidateCount() async throws -> Int
     func saveAll(_ records: [PhotoIndexRecord]) async throws
     func upsert(_ records: [PhotoIndexRecord]) async throws
     func clearOCRResult(localIdentifier: String) async throws
@@ -249,6 +250,18 @@ actor JSONPhotoIndexStore: PhotoIndexStoring {
                 }
                 .prefix(max(limit, 1))
         )
+    }
+
+    func batchOCRCandidateCount() async throws -> Int {
+        try await loadAll()
+            .filter { record in
+                guard record.mediaTypeRawValue == 1 else {
+                    return false
+                }
+
+                return record.ocrStatus != .completed
+            }
+            .count
     }
 
     func saveAll(_ records: [PhotoIndexRecord]) async throws {

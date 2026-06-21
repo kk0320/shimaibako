@@ -230,11 +230,27 @@ final class BatchOCRJobService: ObservableObject {
     }
 
     var autoContinueRemainingEstimateTitle: String? {
-        guard let remainingEstimate = currentSeries?.remainingEstimate else {
+        guard let remainingEstimate = currentSeries?.remainingUnreadEstimate ?? currentSeries?.remainingEstimate else {
             return nil
         }
 
         return "未読取の残り 約\(remainingEstimate)件"
+    }
+
+    var autoContinueCurrentBatchTitle: String? {
+        guard let currentJob, currentJob.requestedLimit == autoContinueBatchLimit else {
+            return nil
+        }
+
+        return "現在のバッチ \(currentJob.processedCount) / \(currentJob.plannedCount)件"
+    }
+
+    var autoContinueSeriesProcessedTitle: String? {
+        guard let series = currentSeries, series.autoContinueEnabled else {
+            return nil
+        }
+
+        return "連続読取 \(series.totalProcessedInSeries)件 処理済み"
     }
 
     var autoResumeStatusTitle: String? {
@@ -276,7 +292,7 @@ final class BatchOCRJobService: ObservableObject {
             series.state = .pausedUser
             series.pausedReason = "ユーザー操作で自動継続をOFFにしました。"
             series.pausedReasonCode = .user
-            series.updatedAt = Date()
+            touchSeries(&series)
             currentSeries = series
         }
 
@@ -331,7 +347,8 @@ final class BatchOCRJobService: ObservableObject {
         let now = Date()
         let jobID = UUID().uuidString
         if requestedLimit == autoContinueBatchLimit, isAutoContinueEnabled {
-            updateSeriesForStartingJob(jobID: jobID, remainingEstimate: selection.diagnostics.photoDBTotalCount, resetTotal: true)
+            let unreadEstimate = await indexService.batchOCRCandidateCount()
+            updateSeriesForStartingJob(jobID: jobID, remainingEstimate: unreadEstimate, resetTotal: true)
         } else if requestedLimit != autoContinueBatchLimit {
             currentSeries = nil
         }
@@ -690,6 +707,14 @@ final class BatchOCRJobService: ObservableObject {
             staleProcessingTargets: staleProcessingTargetCount,
             orphanProcessingTargets: orphanProcessingTargetCount,
             invalidOrStaleJobCount: invalidOrStaleJobCount,
+            seriesInitialUnreadCount: currentSeries?.initialUnreadCount,
+            seriesTotalProcessed: currentSeries?.totalProcessedInSeries,
+            seriesRemainingEstimate: currentSeries?.remainingUnreadEstimate ?? currentSeries?.remainingEstimate,
+            currentJobProcessed: currentJob?.processedCount,
+            currentJobPlannedCount: currentJob?.plannedCount,
+            completedJobCount: currentSeries?.completedJobCount,
+            autoContinueEnabled: isAutoContinueEnabled,
+            lastSeriesUpdateAt: currentSeries?.lastUpdatedAt,
             limitDiagnostics: limitDiagnostics
         )
 
@@ -1926,7 +1951,7 @@ final class BatchOCRJobService: ObservableObject {
             series.state = .pausedDeviceCondition
             series.pausedReason = "アプリがバックグラウンドへ移行したため、自動継続を一時停止しています。"
             series.pausedReasonCode = .background
-            series.updatedAt = Date()
+            touchSeries(&series)
             currentSeries = series
             Task {
                 await saveSnapshot()
@@ -1940,7 +1965,7 @@ final class BatchOCRJobService: ObservableObject {
             series.state = .pausedUser
             series.pausedReason = "ユーザー操作で自動継続を一時停止しました。"
             series.pausedReasonCode = .user
-            series.updatedAt = Date()
+            touchSeries(&series)
             currentSeries = series
             Task {
                 await saveSnapshot()
@@ -2275,7 +2300,7 @@ final class BatchOCRJobService: ObservableObject {
             series.state = .pausedUser
             series.pausedReason = "ユーザー操作で自動継続を停止しました。"
             series.pausedReasonCode = .finishedByUser
-            series.updatedAt = Date()
+            touchSeries(&series)
             currentSeries = series
         }
         message = "読取処理を終了しました。完了済みの読取結果は保存されています。"
@@ -2484,7 +2509,9 @@ final class BatchOCRJobService: ObservableObject {
             return
         }
 
+        let previousJob = job
         job = recalculated(job)
+        updateSeriesProgress(previousJob: previousJob, updatedJob: job)
         job.state = job.failedCount == job.plannedCount ? .failed : .completed
         job.pausedReason = job.state == .failed ? "すべての対象で読取に失敗しました。" : nil
         job.pausedReasonCode = job.state == .failed ? .failedPermanent : nil
@@ -2545,11 +2572,14 @@ final class BatchOCRJobService: ObservableObject {
             return
         }
 
+        let remainingUnreadCount = await indexService.batchOCRCandidateCount()
         var series = currentSeries ?? makeSeries(state: .running)
         series.autoContinueEnabled = true
         series.lastJobID = completedJob.id
-        series.totalProcessedInSeries += completedJob.processedCount
-        series.updatedAt = Date()
+        series.currentJobID = nil
+        series.completedJobCount += 1
+        reconcileSeriesRemainingEstimate(&series, recheckedUnreadCount: remainingUnreadCount)
+        touchSeries(&series)
         currentSeries = series
 
         guard isAppActive else {
@@ -2670,8 +2700,10 @@ final class BatchOCRJobService: ObservableObject {
             var series = currentSeries ?? makeSeries(state: .completedNoMoreTargets)
             series.state = .completedNoMoreTargets
             series.remainingEstimate = 0
+            series.remainingUnreadEstimate = 0
+            series.currentJobID = nil
             series.pausedReason = nil
-            series.updatedAt = Date()
+            touchSeries(&series)
             currentSeries = series
             message = "未読取の写真はありません。すべての読取が完了しています。"
             recordAutoContinueDecision(
@@ -2687,9 +2719,10 @@ final class BatchOCRJobService: ObservableObject {
 
         let now = Date()
         let jobID = UUID().uuidString
+        let remainingUnreadCount = await indexService.batchOCRCandidateCount()
         updateSeriesForStartingJob(
             jobID: jobID,
-            remainingEstimate: max(selection.diagnostics.photoDBTotalCount - selection.diagnostics.excludedAlreadyRead - selection.diagnostics.excludedCompletedNoText, selection.diagnostics.finalTargetCount)
+            remainingEstimate: max(remainingUnreadCount, selection.diagnostics.finalTargetCount)
         )
         await createJob(
             jobID: jobID,
@@ -2734,7 +2767,7 @@ final class BatchOCRJobService: ObservableObject {
         series.state = state
         series.pausedReason = pausedReason
         series.pausedReasonCode = pausedReasonCode ?? pausedReason.map { inferredPausedReason(from: $0) }
-        series.updatedAt = Date()
+        touchSeries(&series)
         currentSeries = series
     }
 
@@ -2744,13 +2777,20 @@ final class BatchOCRJobService: ObservableObject {
         series.batchLimit = autoContinueBatchLimit
         series.state = .running
         series.lastJobID = jobID
+        series.currentJobID = jobID
         if resetTotal {
+            let initialUnreadCount = max(remainingEstimate ?? 0, 0)
+            series.initialUnreadCount = initialUnreadCount
             series.totalProcessedInSeries = 0
+            series.totalTextFoundInSeries = 0
+            series.totalNoTextInSeries = 0
+            series.totalFailedInSeries = 0
+            series.completedJobCount = 0
         }
-        series.remainingEstimate = remainingEstimate
+        reconcileSeriesRemainingEstimate(&series, recheckedUnreadCount: remainingEstimate)
         series.pausedReason = nil
         series.pausedReasonCode = nil
-        series.updatedAt = Date()
+        touchSeries(&series)
         currentSeries = series
     }
 
@@ -2764,10 +2804,18 @@ final class BatchOCRJobService: ObservableObject {
             createdAt: now,
             updatedAt: now,
             lastJobID: nil,
+            currentJobID: nil,
+            initialUnreadCount: 0,
             totalProcessedInSeries: 0,
+            totalTextFoundInSeries: 0,
+            totalNoTextInSeries: 0,
+            totalFailedInSeries: 0,
+            completedJobCount: 0,
             remainingEstimate: nil,
+            remainingUnreadEstimate: nil,
             pausedReason: nil,
-            pausedReasonCode: nil
+            pausedReasonCode: nil,
+            lastUpdatedAt: now
         )
     }
 
@@ -2778,7 +2826,7 @@ final class BatchOCRJobService: ObservableObject {
         series.state = .pausedDeviceCondition
         series.pausedReason = reason
         series.pausedReasonCode = reasonCode ?? inferredPausedReason(from: reason, state: .pausedBackground)
-        series.updatedAt = Date()
+        touchSeries(&series)
         currentSeries = series
     }
 
@@ -3082,11 +3130,68 @@ final class BatchOCRJobService: ObservableObject {
             return
         }
 
+        let previousJob = job
         job = recalculated(job)
+        updateSeriesProgress(previousJob: previousJob, updatedJob: job)
         job.updatedAt = Date()
         currentJob = job
         await saveSnapshot()
         publish(job, force: forcePublish)
+    }
+
+    private func updateSeriesProgress(previousJob: BatchOCRJob, updatedJob: BatchOCRJob) {
+        guard var series = currentSeries,
+              series.autoContinueEnabled,
+              updatedJob.requestedLimit == autoContinueBatchLimit,
+              series.currentJobID == updatedJob.id || series.lastJobID == updatedJob.id else {
+            return
+        }
+
+        let processedDelta = max(updatedJob.processedCount - previousJob.processedCount, 0)
+        let textDelta = max(updatedJob.completedTextCount - previousJob.completedTextCount, 0)
+        let noTextDelta = max(updatedJob.completedNoTextCount - previousJob.completedNoTextCount, 0)
+        let failedDelta = max(updatedJob.failedCount - previousJob.failedCount, 0)
+
+        guard processedDelta > 0 || textDelta > 0 || noTextDelta > 0 || failedDelta > 0 else {
+            return
+        }
+
+        series.totalProcessedInSeries += processedDelta
+        series.totalTextFoundInSeries += textDelta
+        series.totalNoTextInSeries += noTextDelta
+        series.totalFailedInSeries += failedDelta
+        if let remaining = series.remainingUnreadEstimate ?? series.remainingEstimate {
+            let nextRemaining = max(remaining - processedDelta, 0)
+            series.remainingUnreadEstimate = nextRemaining
+            series.remainingEstimate = nextRemaining
+        } else {
+            let nextRemaining = max(series.initialUnreadCount - series.totalProcessedInSeries, 0)
+            series.remainingUnreadEstimate = nextRemaining
+            series.remainingEstimate = nextRemaining
+        }
+        touchSeries(&series)
+        currentSeries = series
+    }
+
+    private func reconcileSeriesRemainingEstimate(_ series: inout BatchOCRSeries, recheckedUnreadCount: Int?) {
+        if let recheckedUnreadCount {
+            let normalizedCount = max(recheckedUnreadCount, 0)
+            let minimumInitialCount = series.totalProcessedInSeries + normalizedCount
+            if series.initialUnreadCount < minimumInitialCount {
+                series.initialUnreadCount = minimumInitialCount
+            }
+            let projectedRemaining = max(series.initialUnreadCount - series.totalProcessedInSeries, 0)
+            series.remainingUnreadEstimate = min(projectedRemaining, normalizedCount)
+        } else {
+            series.remainingUnreadEstimate = max(series.initialUnreadCount - series.totalProcessedInSeries, 0)
+        }
+        series.remainingEstimate = series.remainingUnreadEstimate
+    }
+
+    private func touchSeries(_ series: inout BatchOCRSeries) {
+        let now = Date()
+        series.updatedAt = now
+        series.lastUpdatedAt = now
     }
 
     private func createJob(
@@ -3495,7 +3600,7 @@ final class BatchOCRJobService: ObservableObject {
         if var series = currentSeries, series.autoContinueEnabled {
             series.state = .pausedDeviceCondition
             series.pausedReason = "前回の読取処理が中断されました。続きから再開できます。"
-            series.updatedAt = Date()
+            touchSeries(&series)
             currentSeries = series
         }
         runTask = nil

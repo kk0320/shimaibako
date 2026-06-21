@@ -190,6 +190,16 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         )
     }
 
+    func batchOCRCandidateCount() async throws -> Int {
+        try openIfNeeded()
+        try await migrateLegacyJSONIfNeeded()
+
+        return try scalarInt(
+            "SELECT COUNT(*) FROM photo_records WHERE media_type = 1 AND ocr_status != ?",
+            bindings: [OCRStatus.completed.rawValue]
+        )
+    }
+
     func displayStateCounts() async throws -> [PhotoDisplayState: Int] {
         try openIfNeeded()
         try await migrateLegacyJSONIfNeeded()
