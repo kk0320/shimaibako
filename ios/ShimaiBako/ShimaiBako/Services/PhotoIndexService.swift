@@ -85,6 +85,34 @@ final class PhotoIndexService: ObservableObject {
         return makeRecord(for: asset, ocrService: ocrService)
     }
 
+    func recordsByLocalIdentifier(localIdentifiers: [String]) async -> [String: PhotoIndexRecord] {
+        guard localIdentifiers.isEmpty == false else {
+            return [:]
+        }
+
+        var nextRecords: [String: PhotoIndexRecord] = [:]
+        let chunkSize = 500
+
+        for startIndex in stride(from: 0, to: localIdentifiers.count, by: chunkSize) {
+            let endIndex = min(startIndex + chunkSize, localIdentifiers.count)
+            let chunk = Array(localIdentifiers[startIndex..<endIndex])
+
+            do {
+                let records = try await store.records(localIdentifiers: chunk)
+                updateRecordCache(with: records)
+                for record in records {
+                    nextRecords[record.localIdentifier] = record
+                }
+            } catch {
+                errorMessage = "表示用インデックスを読み込めませんでした: \(error.localizedDescription)"
+            }
+
+            await Task.yield()
+        }
+
+        return nextRecords
+    }
+
     func category(for asset: PhotoAsset, ocrService: OCRService) -> PhotoCategory {
         record(for: asset, ocrService: ocrService).inferredCategory
     }
@@ -229,6 +257,24 @@ final class PhotoIndexService: ObservableObject {
         } catch {
             errorMessage = "写真一覧を読み込めませんでした: \(error.localizedDescription)"
             return PhotoIndexPage(localIdentifiers: [], totalCount: 0)
+        }
+    }
+
+    func batchOCRCandidateRecords(limit: Int) async -> [PhotoIndexRecord] {
+        do {
+            return try await store.batchOCRCandidateRecords(limit: limit)
+        } catch {
+            errorMessage = "読取対象候補を読み込めませんでした: \(error.localizedDescription)"
+            return []
+        }
+    }
+
+    func batchOCRCandidateCount() async -> Int {
+        do {
+            return try await store.batchOCRCandidateCount()
+        } catch {
+            errorMessage = "読取対象候補数を読み込めませんでした: \(error.localizedDescription)"
+            return 0
         }
     }
 
@@ -488,6 +534,86 @@ final class PhotoIndexService: ObservableObject {
 
     func rebuildSearchIndex(for assets: [PhotoAsset], ocrService: OCRService) async {
         await rebuild(for: assets, ocrService: ocrService)
+    }
+
+    func repairReadState(for assets: [PhotoAsset], ocrService: OCRService) async -> ReadStateRepairSummary {
+        let imageAssets = assets.filter { $0.mediaType == .image }
+        guard imageAssets.isEmpty == false else {
+            return ReadStateRepairSummary(
+                scannedCount: 0,
+                repairedStaleCompletedCount: 0,
+                repairedStaleProcessingCount: 0,
+                preservedOCRResultCount: 0,
+                preservedManualDataCount: 0,
+                updatedIndexRecordCount: 0
+            )
+        }
+
+        let recordsByIdentifier = await recordsByLocalIdentifier(localIdentifiers: imageAssets.map(\.localIdentifier))
+        var changedRecords: [PhotoIndexRecord] = []
+        var repairedStaleCompletedCount = 0
+        var repairedStaleProcessingCount = 0
+        var preservedOCRResultCount = 0
+        var preservedManualDataCount = 0
+
+        for (index, asset) in imageAssets.enumerated() {
+            let existingRecord = recordsByIdentifier[asset.localIdentifier] ?? recordsByAssetID[asset.id]
+            let ocrResult = ocrService.result(for: asset)
+
+            if preservesManualData(existingRecord) {
+                preservedManualDataCount += 1
+            }
+
+            if let existingRecord {
+                recordsByAssetID[asset.id] = existingRecord
+            }
+
+            if let ocrResult {
+                if ocrResult.ocrStatus == .completed || ocrResult.ocrStatus == .failed {
+                    preservedOCRResultCount += 1
+                }
+
+                let record = makeRecord(for: asset, ocrService: ocrService)
+                if existingRecord != record {
+                    recordsByAssetID[asset.id] = record
+                    changedRecords.append(record)
+                }
+            } else if let existingRecord, isStaleCompletedOCRRecord(existingRecord) {
+                let record = existingRecord.clearingOCR()
+                recordsByAssetID[asset.id] = record
+                changedRecords.append(record)
+                repairedStaleCompletedCount += 1
+            } else if let existingRecord, isStaleProcessingOCRRecord(existingRecord, ocrService: ocrService, asset: asset) {
+                let record = existingRecord.clearingOCR()
+                recordsByAssetID[asset.id] = record
+                changedRecords.append(record)
+                repairedStaleProcessingCount += 1
+            }
+
+            if index.isMultiple(of: 500) {
+                await Task.yield()
+            }
+        }
+
+        if changedRecords.isEmpty == false {
+            refreshSummary()
+            await persistRecords(changedRecords)
+        } else {
+            do {
+                try await refreshStoreStats()
+            } catch {
+                errorMessage = "読取状態を再確認できませんでした: \(error.localizedDescription)"
+            }
+        }
+
+        return ReadStateRepairSummary(
+            scannedCount: imageAssets.count,
+            repairedStaleCompletedCount: repairedStaleCompletedCount,
+            repairedStaleProcessingCount: repairedStaleProcessingCount,
+            preservedOCRResultCount: preservedOCRResultCount,
+            preservedManualDataCount: preservedManualDataCount,
+            updatedIndexRecordCount: changedRecords.count
+        )
     }
 
     func clearOCRResult(localIdentifier: String) async {
@@ -833,6 +959,41 @@ final class PhotoIndexService: ObservableObject {
             lastSeenAt: now,
             updatedAt: now
         )
+    }
+
+    private func isStaleCompletedOCRRecord(_ record: PhotoIndexRecord) -> Bool {
+        guard record.ocrStatus == .completed else {
+            return false
+        }
+
+        let text = record.ocrText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.isEmpty else {
+            return false
+        }
+
+        return record.ocrProcessedAt == nil &&
+            record.ocrLanguage == nil &&
+            record.ocrErrorMessage == nil
+    }
+
+    private func isStaleProcessingOCRRecord(
+        _ record: PhotoIndexRecord,
+        ocrService: OCRService,
+        asset: PhotoAsset
+    ) -> Bool {
+        record.ocrStatus == .processing && ocrService.isProcessing(asset) == false
+    }
+
+    private func preservesManualData(_ record: PhotoIndexRecord?) -> Bool {
+        guard let record else {
+            return false
+        }
+
+        return record.manualCategory != nil ||
+            record.manualScreenshotSubcategory != nil ||
+            record.userMemo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ||
+            record.userTags.isEmpty == false ||
+            record.displayState != .active
     }
 
     private func cleanedUserTags(_ tags: [String]) -> [String] {

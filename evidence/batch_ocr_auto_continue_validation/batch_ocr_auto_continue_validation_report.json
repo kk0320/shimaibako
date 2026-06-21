@@ -1,0 +1,75 @@
+{
+  "cases" : [
+    {
+      "autoContinueEnabled" : true,
+      "decisionLog" : "AUTO_CONTINUE decision\nenabled=true\nseriesEnabled=true\ncompletedJobID=debug-auto-first-7F886B62-0E40-4FAA-975E-1BD9429BBF46\nrequestedLimit=2000\nremainingCandidates=2000\nthermal=nominal\nlowPower=false\nfreeStorage=4000000000\nappState=active\nexistingJobState=preparing\ndecision=startNextBatch\nreason=created next 2,000 batch",
+      "message" : "次の2,000件ジョブ作成PASS",
+      "name" : "自動継続ON: 2,000件完了後に次の2,000件を作る",
+      "nextJobCreated" : true,
+      "passed" : true,
+      "plannedCount" : 2000,
+      "seriesState" : "running"
+    },
+    {
+      "autoContinueEnabled" : true,
+      "decisionLog" : "AUTO_CONTINUE decision\nenabled=true\nseriesEnabled=true\ncompletedJobID=debug-auto-first-317037C1-FBFD-4344-9DC3-B0F580BFACCF\nrequestedLimit=2000\nremainingCandidates=2000\nthermal=fair\nlowPower=false\nfreeStorage=4000000000\nappState=active\nexistingJobState=preparing\ndecision=startNextBatch\nreason=created next 2,000 batch",
+      "message" : "次の2,000件ジョブ作成PASS",
+      "name" : "自動継続ON: thermal fairでは低速次job作成",
+      "nextJobCreated" : true,
+      "passed" : true,
+      "plannedCount" : 2000,
+      "seriesState" : "running"
+    },
+    {
+      "autoContinueEnabled" : false,
+      "decisionLog" : "AUTO_CONTINUE decision\nenabled=false\nseriesEnabled=false\ncompletedJobID=debug-auto-off-first-60D71D37-8134-4EF4-934A-EBECF27A202D\nrequestedLimit=2000\nremainingCandidates=unknown\nthermal=nominal\nlowPower=false\nfreeStorage=4000000000\nappState=active\nexistingJobState=completed\ndecision=skip\nreason=autoContinueEnabled is false",
+      "message" : "OFF時の停止PASS",
+      "name" : "自動継続OFF: 次jobを作らない",
+      "nextJobCreated" : false,
+      "passed" : true,
+      "plannedCount" : 2000
+    },
+    {
+      "autoContinueEnabled" : true,
+      "decisionLog" : "AUTO_CONTINUE decision\nenabled=true\nseriesEnabled=true\ncompletedJobID=debug-auto-none-first-EA84FEEB-D418-4989-8367-F6DA21CA29A8\nrequestedLimit=2000\nremainingCandidates=0\nthermal=nominal\nlowPower=false\nfreeStorage=4000000000\nappState=active\nexistingJobState=completed\ndecision=stopNoTargets\nreason=no unread candidates",
+      "message" : "0件ジョブ未作成PASS",
+      "name" : "自動継続: 未読取0件で停止",
+      "nextJobCreated" : false,
+      "passed" : true,
+      "plannedCount" : 2000,
+      "seriesState" : "completedNoMoreTargets"
+    },
+    {
+      "autoContinueEnabled" : true,
+      "decisionLog" : "AUTO_CONTINUE decision\nenabled=true\nseriesEnabled=true\ncompletedJobID=debug-auto-thermal-first-1BA3BCCE-29E7-40AD-B97F-8E8CA5BA28BE\nrequestedLimit=2000\nremainingCandidates=unknown\nthermal=serious\nlowPower=false\nfreeStorage=4000000000\nappState=active\nexistingJobState=completed\ndecision=pause\nreason=端末温度が高いため、自動継続を一時停止しています。",
+      "message" : "発熱一時停止PASS",
+      "name" : "自動継続: thermal seriousで停止",
+      "nextJobCreated" : false,
+      "passed" : true,
+      "plannedCount" : 2000,
+      "seriesState" : "pausedDeviceCondition"
+    },
+    {
+      "autoContinueEnabled" : true,
+      "decisionLog" : "AUTO_CONTINUE decision\nenabled=true\nseriesEnabled=true\ncompletedJobID=debug-auto-low-first-3BF02C04-948A-4A6E-8212-B99F8617ECF1\nrequestedLimit=2000\nremainingCandidates=unknown\nthermal=nominal\nlowPower=true\nfreeStorage=4000000000\nappState=active\nexistingJobState=completed\ndecision=pause\nreason=低電力モードのため一時停止しています。",
+      "message" : "低電力一時停止PASS",
+      "name" : "自動継続: low powerで停止",
+      "nextJobCreated" : false,
+      "passed" : true,
+      "plannedCount" : 2000,
+      "seriesState" : "pausedDeviceCondition"
+    },
+    {
+      "autoContinueEnabled" : true,
+      "decisionLog" : "AUTO_CONTINUE decision\nenabled=true\nseriesEnabled=true\ncompletedJobID=-\nrequestedLimit=0\nremainingCandidates=unknown\nthermal=nominal\nlowPower=false\nfreeStorage=4000000000\nappState=active\nexistingJobState=pausedBackground\ndecision=pause\nreason=existing paused job has priority",
+      "message" : "既存job優先PASS",
+      "name" : "自動継続: 途中jobがある場合は既存jobを再開",
+      "nextJobCreated" : false,
+      "passed" : true,
+      "plannedCount" : 2000,
+      "seriesState" : "idle"
+    }
+  ],
+  "finishedAt" : 803638621.860238,
+  "startedAt" : 803638603.324945
+}

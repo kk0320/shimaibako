@@ -178,6 +178,28 @@ actor SQLitePhotoIndexStore: PhotoIndexStoring {
         }
     }
 
+    func batchOCRCandidateRecords(limit: Int) async throws -> [PhotoIndexRecord] {
+        try openIfNeeded()
+        try await migrateLegacyJSONIfNeeded()
+
+        return try records(
+            whereClause: "media_type = 1 AND ocr_status != ?",
+            bindings: [OCRStatus.completed.rawValue],
+            orderAndLimit: "ORDER BY creation_date DESC, asset_identifier DESC LIMIT ?",
+            limitBindings: [max(limit, 1)]
+        )
+    }
+
+    func batchOCRCandidateCount() async throws -> Int {
+        try openIfNeeded()
+        try await migrateLegacyJSONIfNeeded()
+
+        return try scalarInt(
+            "SELECT COUNT(*) FROM photo_records WHERE media_type = 1 AND ocr_status != ?",
+            bindings: [OCRStatus.completed.rawValue]
+        )
+    }
+
     func displayStateCounts() async throws -> [PhotoDisplayState: Int] {
         try openIfNeeded()
         try await migrateLegacyJSONIfNeeded()

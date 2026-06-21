@@ -8,12 +8,9 @@ struct PhotoDetailView: View {
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     let asset: PhotoAsset
-    let automaticallyRunOCR: Bool
 
     @State private var displayImage: UIImage?
     @State private var isLoadingImage = false
-    @State private var didRunAutomaticOCR = false
-    @State private var showingClearOCRConfirmation = false
     @State private var showingResetCategoryConfirmation = false
     @State private var showingMoveToUnwantedConfirmation = false
     @State private var undoDisplayStateChange: PhotoStateMutation?
@@ -25,15 +22,13 @@ struct PhotoDetailView: View {
         ocrService: OCRService,
         indexService: PhotoIndexService,
         learningService: ManualCategoryLearningService,
-        asset: PhotoAsset,
-        automaticallyRunOCR: Bool = false
+        asset: PhotoAsset
     ) {
         self.photoLibrary = photoLibrary
         self.ocrService = ocrService
         self.indexService = indexService
         self.learningService = learningService
         self.asset = asset
-        self.automaticallyRunOCR = automaticallyRunOCR
     }
 
     var body: some View {
@@ -108,16 +103,6 @@ struct PhotoDetailView: View {
         }
         .navigationTitle("詳細")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("OCR結果を削除しますか？", isPresented: $showingClearOCRConfirmation) {
-            Button("キャンセル", role: .cancel) {}
-            Button("OCR結果を削除", role: .destructive) {
-                Task {
-                    await clearOCRResult()
-                }
-            }
-        } message: {
-            Text("元写真・元動画は削除・変更されません。しまい箱に保存されたOCR文字だけを削除し、この写真を未処理に戻します。")
-        }
         .alert("分類を未分類に戻しますか？", isPresented: $showingResetCategoryConfirmation) {
             Button("キャンセル", role: .cancel) {}
             Button("未分類に戻す", role: .destructive) {
@@ -143,38 +128,7 @@ struct PhotoDetailView: View {
             isLoadingImage = true
             displayImage = await photoLibrary.requestDisplayImage(for: asset)
             isLoadingImage = false
-
-            if automaticallyRunOCR {
-                await runOCRIfPossible()
-            }
         }
-    }
-
-    private func runOCRIfPossible() async {
-        guard let displayImage,
-              asset.mediaType == .image,
-              ocrService.isProcessing(asset) == false else {
-            return
-        }
-
-        if automaticallyRunOCR {
-            guard didRunAutomaticOCR == false else {
-                return
-            }
-
-            didRunAutomaticOCR = true
-        }
-
-        await ocrService.recognize(asset: asset, image: displayImage)
-        await indexService.update(asset: asset, ocrService: ocrService)
-    }
-
-    private func clearOCRResult() async {
-        guard ocrService.isProcessing(asset) == false else {
-            return
-        }
-
-        await indexService.clearOCRResult(for: asset, ocrService: ocrService)
     }
 
     private var categorySourceTitle: String {
@@ -417,7 +371,7 @@ struct PhotoDetailView: View {
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("端末内OCR", systemImage: "text.viewfinder")
+                Label("読取結果", systemImage: "text.viewfinder")
                     .font(.headline)
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
@@ -430,9 +384,10 @@ struct PhotoDetailView: View {
                     .minimumScaleFactor(0.85)
             }
 
-            Text("この写真を1枚だけ端末内で読み取ります。外部OCR APIは使いません。")
+            Text("保存済みの読取結果を確認できます。読取の実行は「読取」タブ、キャッシュ管理は設定タブに集約しています。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: 6) {
                 OCRInfoRow(title: "状態", value: status.title)
@@ -449,35 +404,8 @@ struct PhotoDetailView: View {
             .padding(12)
             .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 8))
 
-            Button {
-                Task {
-                    await runOCRIfPossible()
-                }
-            } label: {
-                Label(ocrButtonTitle(for: status), systemImage: "doc.text.viewfinder")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(displayImage == nil || asset.mediaType != .image || ocrService.isProcessing(asset))
-
-            if status == .completed || status == .failed {
-                Button(role: .destructive) {
-                    showingClearOCRConfirmation = true
-                } label: {
-                    Label("OCR結果を削除", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .disabled(ocrService.isProcessing(asset))
-
-                Text("削除するのはしまい箱内のOCR文字だけです。元写真・元動画は削除・変更されません。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
             if status == .processing {
-                ProgressView("OCR処理中")
+                ProgressView("読取中")
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else if let result, result.ocrStatus == .completed {
                 Text(result.ocrText)
@@ -493,24 +421,13 @@ struct PhotoDetailView: View {
                     .foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                Text(asset.mediaType == .image ? "OCR結果はここに表示されます。" : "動画はOCR対象外です。")
+                Text(asset.mediaType == .image ? "読取結果はここに表示されます。" : "動画は読取対象外です。")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
         }
         .padding(16)
         .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private func ocrButtonTitle(for status: OCRStatus) -> String {
-        switch status {
-        case .unprocessed:
-            "この写真をOCR"
-        case .processing:
-            "OCR中"
-        case .completed, .failed:
-            "再OCR"
-        }
     }
 
     private func statusColor(_ status: OCRStatus) -> Color {

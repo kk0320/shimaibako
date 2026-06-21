@@ -1,0 +1,58 @@
+{
+  "cases" : [
+    {
+      "completedNoTextCount" : 8,
+      "completedTextCount" : 29,
+      "failedCount" : 0,
+      "jobState" : "pausedBackground",
+      "message" : "途中停止PASS",
+      "name" : "P2: pausedBackground",
+      "passed" : true,
+      "pendingCount" : 63,
+      "plannedCount" : 100,
+      "processedCount" : 37,
+      "processingCount" : 0
+    },
+    {
+      "completedNoTextCount" : 20,
+      "completedTextCount" : 80,
+      "failedCount" : 0,
+      "jobState" : "completed",
+      "message" : "続き再開PASS",
+      "name" : "P2: 続き再開",
+      "passed" : true,
+      "pendingCount" : 0,
+      "plannedCount" : 100,
+      "processedCount" : 100,
+      "processingCount" : 0
+    },
+    {
+      "completedNoTextCount" : 0,
+      "completedTextCount" : 0,
+      "failedCount" : 0,
+      "jobState" : "pausedBackground",
+      "message" : "processing復旧PASS",
+      "name" : "P2: processing復旧",
+      "passed" : true,
+      "pendingCount" : 10,
+      "plannedCount" : 10,
+      "processedCount" : 0,
+      "processingCount" : 0
+    },
+    {
+      "completedNoTextCount" : 5,
+      "completedTextCount" : 20,
+      "failedCount" : 0,
+      "jobState" : "completed",
+      "message" : "終了検証PASS",
+      "name" : "P2: この処理を終了",
+      "passed" : true,
+      "pendingCount" : 75,
+      "plannedCount" : 100,
+      "processedCount" : 25,
+      "processingCount" : 0
+    }
+  ],
+  "finishedAt" : 803613046.203656,
+  "startedAt" : 803613042.441188
+}

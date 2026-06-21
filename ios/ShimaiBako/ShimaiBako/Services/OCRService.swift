@@ -11,17 +11,30 @@ final class OCRService: ObservableObject {
     @Published var errorMessage: String?
 
     private let resultStore: OCRResultStore
+    private var loadTask: Task<Void, Never>?
 
     init(resultStore: OCRResultStore = OCRResultStore()) {
         self.resultStore = resultStore
 
-        Task {
+        loadTask = Task {
             await loadPersistedResults()
         }
     }
 
     var storedCompletedCount: Int {
         resultsByAssetID.values.filter { $0.ocrStatus == .completed }.count
+    }
+
+    var storedCompletedTextCount: Int {
+        resultsByAssetID.values.filter { result in
+            result.ocrStatus == .completed && Self.isNoTextResult(result) == false
+        }.count
+    }
+
+    var storedCompletedNoTextCount: Int {
+        resultsByAssetID.values.filter { result in
+            result.ocrStatus == .completed && Self.isNoTextResult(result)
+        }.count
     }
 
     var storedFailedCount: Int {
@@ -32,12 +45,20 @@ final class OCRService: ObservableObject {
         resultsByAssetID[asset.id]
     }
 
+    func result(localIdentifier: String) -> OCRResultRecord? {
+        resultsByAssetID[localIdentifier]
+    }
+
     func text(for asset: PhotoAsset) -> String? {
         resultsByAssetID[asset.id]?.ocrText
     }
 
     func isProcessing(_ asset: PhotoAsset) -> Bool {
         processingAssetIDs.contains(asset.id)
+    }
+
+    func isProcessing(localIdentifier: String) -> Bool {
+        processingAssetIDs.contains(localIdentifier)
     }
 
     func status(for asset: PhotoAsset) -> OCRStatus {
@@ -54,6 +75,11 @@ final class OCRService: ObservableObject {
         }
 
         return resultsByAssetID[asset.id]?.ocrText ?? ""
+    }
+
+    nonisolated static func isNoTextResult(_ result: OCRResultRecord) -> Bool {
+        let text = result.ocrText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty || text == "テキストは見つかりませんでした。"
     }
 
     func summary(for assets: [PhotoAsset]) -> OCRSummary {
@@ -165,6 +191,69 @@ final class OCRService: ObservableObject {
         resultsByAssetID = [:]
         processingAssetIDs = []
         await persistResults()
+    }
+
+    #if DEBUG
+    @discardableResult
+    func saveValidationResult(localIdentifier: String, text: String) async -> OCRResultRecord {
+        await ensureLoaded()
+
+        let result = OCRResultRecord(
+            photoLocalIdentifier: localIdentifier,
+            ocrText: text,
+            ocrStatus: .completed,
+            ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
+            processedAt: Date(),
+            errorMessage: nil
+        )
+
+        resultsByAssetID[localIdentifier] = result
+        processingAssetIDs.remove(localIdentifier)
+        await persistResults()
+
+        return result
+    }
+
+    @discardableResult
+    func saveValidationResults(localIdentifiers: [String], textProvider: (Int) -> String) async -> Int {
+        await ensureLoaded()
+
+        guard localIdentifiers.allSatisfy({ $0.hasPrefix("debug-batch-ocr-") }) else {
+            return 0
+        }
+
+        for (index, localIdentifier) in localIdentifiers.enumerated() {
+            resultsByAssetID[localIdentifier] = OCRResultRecord(
+                photoLocalIdentifier: localIdentifier,
+                ocrText: textProvider(index),
+                ocrStatus: .completed,
+                ocrLanguage: OCRConfiguration.recognitionLanguages.joined(separator: ","),
+                processedAt: Date(),
+                errorMessage: nil
+            )
+            processingAssetIDs.remove(localIdentifier)
+        }
+
+        await persistResults()
+        return localIdentifiers.count
+    }
+
+    func validationResultExists(localIdentifier: String) -> Bool {
+        resultsByAssetID[localIdentifier]?.ocrStatus == .completed
+    }
+
+    func clearValidationResults(localIdentifiers: [String]) async {
+        guard localIdentifiers.allSatisfy({ $0.hasPrefix("debug-batch-ocr-") }) else {
+            return
+        }
+
+        await clearResults(localIdentifiers: localIdentifiers)
+    }
+    #endif
+
+    private func ensureLoaded() async {
+        await loadTask?.value
+        loadTask = nil
     }
 
     private func loadPersistedResults() async {

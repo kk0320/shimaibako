@@ -1,0 +1,62 @@
+{
+  "cases" : [
+    {
+      "completedNoTextCount" : 100,
+      "completedTextCount" : 400,
+      "failedCount" : 0,
+      "jobState" : "completed",
+      "message" : "500件読取PASS",
+      "name" : "P3: 500件読取検証",
+      "passed" : true,
+      "pendingCount" : 0,
+      "plannedCount" : 500,
+      "processedCount" : 500,
+      "processingCount" : 0,
+      "requestedLimit" : 500
+    },
+    {
+      "completedNoTextCount" : 400,
+      "completedTextCount" : 1600,
+      "failedCount" : 0,
+      "jobState" : "completed",
+      "message" : "2000件読取PASS",
+      "name" : "P3: 2000件読取検証",
+      "passed" : true,
+      "pendingCount" : 0,
+      "plannedCount" : 2000,
+      "processedCount" : 2000,
+      "processingCount" : 0,
+      "requestedLimit" : 2000
+    },
+    {
+      "completedNoTextCount" : 100,
+      "completedTextCount" : 400,
+      "failedCount" : 0,
+      "jobState" : "completed",
+      "message" : "500件中断・再開PASS",
+      "name" : "P3: 500件中断・再開検証",
+      "passed" : true,
+      "pendingCount" : 0,
+      "plannedCount" : 500,
+      "processedCount" : 500,
+      "processingCount" : 0,
+      "requestedLimit" : 500
+    },
+    {
+      "completedNoTextCount" : 400,
+      "completedTextCount" : 1600,
+      "failedCount" : 0,
+      "jobState" : "completed",
+      "message" : "2000件中断・再開PASS",
+      "name" : "P3: 2000件中断・再開検証",
+      "passed" : true,
+      "pendingCount" : 0,
+      "plannedCount" : 2000,
+      "processedCount" : 2000,
+      "processingCount" : 0,
+      "requestedLimit" : 2000
+    }
+  ],
+  "finishedAt" : 803613854.446849,
+  "startedAt" : 803613845.12936
+}

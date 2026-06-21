@@ -220,7 +220,10 @@ let accuracyDeleteDoesNotTouchProtectedData =
     && accuracyDeleteAlert.contains("clearAllOCRResults") == false
     && accuracyDeleteAlert.contains("clearResult") == false
     && accuracyDeleteAlert.contains("resetCategory") == false
-    && accuracyDeleteAlert.contains("元写真・元動画、OCR結果、手動分類、写真アプリ側のデータは削除されません")
+    && (
+        accuracyDeleteAlert.contains("元写真・元動画、OCR結果、手動分類、写真アプリ側のデータは削除されません") ||
+        accuracyDeleteAlert.contains("元写真・元動画、読取結果、手動分類、写真アプリ側のデータは削除されません")
+    )
 
 let manualClassificationIsProtected =
     service.contains("indexService.hasManualClassification(for: asset)")
