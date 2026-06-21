@@ -10,6 +10,7 @@ struct SettingsView: View {
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var visionClassificationBenchmarkRunner: VisionClassificationBenchmarkRunner
     @Environment(\.openURL) private var openURL
     @State private var pendingReadMode: PhotoReadMode?
     @State private var showingLargeModeSafety = false
@@ -58,6 +59,9 @@ struct SettingsView: View {
                         accuracyImprovementCard
                         ocrSettingsCard
                         cacheMaintenanceCard
+                        #if DEBUG
+                        visionClassificationBenchmarkCard
+                        #endif
                         deviceSafetyCard
                         permissionCard
                         safetyPolicyCard
@@ -720,6 +724,100 @@ struct SettingsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
     }
+
+    #if DEBUG
+    private var visionClassificationBenchmarkCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Vision分類ベンチ", systemImage: "eye")
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("DEBUGビルド限定です。Vision標準機能で分類材料だけを測ります。画像本体、サムネイル、顔画像、顔テンプレートは保存しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                Button {
+                    Task {
+                        await visionClassificationBenchmarkRunner.run(limit: 20)
+                    }
+                } label: {
+                    Label("20件で実行", systemImage: "play.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(visionClassificationBenchmarkRunner.isRunning)
+
+                Button {
+                    Task {
+                        await visionClassificationBenchmarkRunner.run(limit: 100)
+                    }
+                } label: {
+                    Label("100件で実行", systemImage: "play.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(visionClassificationBenchmarkRunner.isRunning)
+            }
+
+            Button {
+                visionClassificationBenchmarkRunner.refreshSupportedIdentifiersOnly()
+            } label: {
+                Label("ラベル棚卸しを保存", systemImage: "list.bullet.rectangle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(visionClassificationBenchmarkRunner.isRunning)
+
+            if visionClassificationBenchmarkRunner.isRunning {
+                Label(visionClassificationBenchmarkRunner.progressText ?? "実行中", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let status = visionClassificationBenchmarkRunner.latestStatus {
+                Text(status)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let report = visionClassificationBenchmarkRunner.latestReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    DetailInfoRow(title: "最終実行", value: DateFormatter.localizedString(from: report.finishedAt, dateStyle: .short, timeStyle: .short))
+                    DetailInfoRow(title: "件数", value: "\(report.actualCount) / \(report.requestedCount)件")
+                    DetailInfoRow(title: "平均", value: "\(String(format: "%.1f", report.averageMsPerAsset)) ms/件")
+                    DetailInfoRow(title: "失敗", value: "\(report.failedCount)件")
+                    DetailInfoRow(title: "スクショ候補", value: "\(report.screenshotCandidateCount)件")
+                    DetailInfoRow(title: "人物候補", value: "\(max(report.faceDetectedCount, report.humanDetectedCount))件")
+                    DetailInfoRow(title: "書類候補", value: "\(report.likelyDocumentCount)件")
+                    DetailInfoRow(title: "建物候補", value: "\(report.likelyBuildingCount)件")
+                    DetailInfoRow(title: "看板候補", value: "\(report.likelySignCount)件")
+                    DetailInfoRow(title: "ラベル数", value: "\(report.supportedIdentifiers.totalCount)件")
+                }
+                .padding(.top, 4)
+            }
+
+            if let outputPath = visionClassificationBenchmarkRunner.latestOutputDirectoryPath {
+                Text("保存先: \(outputPath)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let errorMessage = visionClassificationBenchmarkRunner.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+    #endif
 
     private var deviceSafetyCard: some View {
         VStack(alignment: .leading, spacing: 12) {

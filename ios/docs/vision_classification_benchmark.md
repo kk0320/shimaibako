@@ -232,3 +232,183 @@ git diff --check
 ```
 
 加えて、warning/error抽出、禁止表現チェック、`xcuserdata` / `UserInterfaceState` 混入チェック、Simulator install / launch、K Phone build / install / launchを行う。
+
+## P0ベンチ実装
+
+`spike/vision-classification-benchmark` では、Settings内にDEBUG限定の「Vision分類ベンチ」カードを追加した。Release相当の通常UIには表示しない。
+
+実行できる内容:
+
+```text
+20件で実行
+100件で実行
+ラベル棚卸しを保存
+```
+
+起動引数でもDEBUGビルド限定で実行できる。
+
+```text
+-ShimaiBakoOpenSettingsTab
+-ShimaiBakoRunVisionClassificationBenchmark20
+-ShimaiBakoRunVisionClassificationBenchmark100
+```
+
+このベンチは本番分類結果を保存しない。写真タブ、整理タブ、OCRジョブ、検索インデックスには反映しない。
+
+## 使用したVision request
+
+P0では次を1枚ずつ実行する。
+
+```text
+VNClassifyImageRequest
+VNDetectFaceRectanglesRequest
+VNDetectHumanRectanglesRequest
+VNDetectDocumentSegmentationRequest
+VNClassifyImageRequest.supportedIdentifiers()
+```
+
+画像取得はPhotoKitから最大640px程度の解析用画像を1枚ずつ取得する。`PHImageRequestOptions.isNetworkAccessAllowed` は `false` とし、iCloud上にしかない画像を無理に取得しない。
+
+## 取得した信号
+
+保存する軽量情報:
+
+- ハッシュ化したasset identifier
+- pixelWidth / pixelHeight
+- mediaType / mediaSubtypes
+- isScreenshot
+- creationDate有無
+- Vision分類ラベル上位5件
+- 顔数、人物矩形数、書類セグメント数
+- Vision requestごとの処理時間
+- 仮スコア
+  - screenshotScore
+  - documentScore
+  - personScore
+  - foodScore
+  - landscapeScore
+  - buildingScore
+  - constructionSiteScore
+  - signScore
+  - whiteboardScore
+  - businessCardScore
+  - receiptScore
+  - ocrPriorityScore
+
+保存しない情報:
+
+- 写真本体
+- サムネイル本体
+- 顔画像
+- 顔テンプレート
+- 人物識別情報
+- 画像特徴ベクトル
+- 生のasset identifierを含むevidence
+
+## evidence出力
+
+出力先:
+
+```text
+evidence/vision_classification_benchmark/
+```
+
+アプリ実行時はApplication Support内へ保存し、実機検証では `devicectl` でrepo側のevidenceへコピーした。
+
+出力形式:
+
+```text
+JSON
+Markdown
+CSV
+supported_identifiers_summary.md
+```
+
+## supportedIdentifiers棚卸し結果
+
+K Phone / Debug実行時点では、`VNClassifyImageRequest.supportedIdentifiers()` は `1303` 件を返した。
+
+確認キーワードの例:
+
+```text
+billboards
+building
+crane_construction
+document
+food
+receipt
+sign
+street_sign
+truck
+vehicle
+whiteboard
+```
+
+一方で、`person`、`face`、`architecture`、`landscape` はキーワード一致が0件だった。人物や顔は `VNDetectFaceRectanglesRequest` / `VNDetectHumanRectanglesRequest` の検出結果で扱う。
+
+## K Phoneベンチ結果
+
+検証端末:
+
+```text
+K Phone
+photoAuthorizationStatus: authorized
+totalAvailableImageCount: 26992
+```
+
+20件:
+
+```text
+actualCount: 20
+averageMsPerAsset: 349.6
+maxMsPerAsset: 1473.7
+failedCount: 0
+screenshotCandidateCount: 15
+faceDetectedCount: 1
+humanDetectedCount: 2
+likelyDocumentCount: 20
+likelyBuildingCount: 5
+likelySignCount: 0
+likelyFoodCount: 0
+likelyConstructionSiteCount: 0
+```
+
+100件:
+
+```text
+actualCount: 100
+averageMsPerAsset: 265.0
+maxMsPerAsset: 1424.4
+failedCount: 0
+screenshotCandidateCount: 87
+faceDetectedCount: 1
+humanDetectedCount: 2
+likelyDocumentCount: 100
+likelyBuildingCount: 15
+likelySignCount: 0
+likelyFoodCount: 0
+likelyConstructionSiteCount: 0
+```
+
+所感:
+
+- 100件規模ではVision標準機能の逐次解析は実行可能だった。
+- 直近100件にスクリーンショットが多く、`screenshotScore` はPhotoKitメタデータで安定して取れた。
+- `likelyDocumentCount` は100件中100件となり、P0の仮 `documentScore` は過検出気味である。`VNDetectDocumentSegmentationRequest` とラベルキーワードをそのまま強く使うだけでは、書類候補としては緩すぎる可能性がある。
+- 食べ物、看板、工事現場は今回の直近100件では十分なサンプルが取れていない。次フェーズではサンプルセットをカテゴリ別に固定して再評価する。
+
+## Simulator確認メモ
+
+Simulatorでは、CLIから写真権限付与とサンプル画像投入を試したが、アプリ内の `photoAuthorizationStatus` が `notDetermined` のままで、PhotoKitから取得できた画像数は0件だった。
+
+このため、Simulatorではアプリの起動とファイル出力経路、および `supportedIdentifiers()` の棚卸しを確認し、実画像20件/100件のベンチ結果はK Phone実機結果を採用した。
+
+## 次フェーズへの判断
+
+次に進む場合の優先事項:
+
+- カテゴリ別の固定サンプルセットを用意する。
+- `documentScore` の過検出を下げるため、ラベル、縦横比、明るさ、OCR候補情報を組み合わせる。
+- 建物 / 工事現場 / 看板 / 食べ物は、十分なサンプルを分けて評価する。
+- 本番保存はまだ行わず、手動分類を上書きしない設計を維持する。
+- 500件以上の分類ジョブは、発熱・バッテリー・中断復旧の設計が固まってから扱う。

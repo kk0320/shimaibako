@@ -384,3 +384,29 @@ feature/local-image-classification
 ```
 
 spikeで分類精度・速度・発熱・誤分類を確認してから、本実装ブランチへ進む。
+
+## P0ベンチ境界
+
+`spike/vision-classification-benchmark` では、Vision標準機能の信号確認だけを行う。
+
+実装するもの:
+
+- DEBUG限定のVision分類ベンチ
+- 20件 / 100件の小規模解析
+- `VNClassifyImageRequest` のラベル棚卸し
+- 顔検出、人物矩形検出、書類セグメント検出の件数記録
+- ハッシュ化したasset identifierと軽量な解析結果のevidence保存
+
+実装しないもの:
+
+- 整理タブの本実装
+- 5タブ化の本実装
+- ClassificationJobの本格実装
+- 2,000件分類ジョブ
+- 画像分類結果の写真タブ反映
+- OCR候補への自動投入
+- 外部Core MLモデルの同梱
+
+P0ベンチ結果は、本番DBの分類結果として保存しない。OCR結果、BatchOCRJob、検索インデックス、手動分類、不要候補、メモ、タグには影響させない。
+
+K Phoneの直近100件ベンチでは、Vision解析自体は失敗0で実行できた。一方で `documentScore` は過検出気味だったため、次フェーズではカテゴリ別サンプルで精度としきい値を見直す。

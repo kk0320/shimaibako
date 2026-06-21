@@ -10,6 +10,7 @@ struct ContentView: View {
     @StateObject private var batchOCRJobService: BatchOCRJobService
     @StateObject private var deviceSafety: DeviceSafetyService
     @StateObject private var deviceConditionMonitor: DeviceConditionMonitor
+    @StateObject private var visionClassificationBenchmarkRunner: VisionClassificationBenchmarkRunner
 
     init() {
         let learningService = ManualCategoryLearningService()
@@ -21,6 +22,7 @@ struct ContentView: View {
         _batchOCRJobService = StateObject(wrappedValue: BatchOCRJobService())
         _deviceSafety = StateObject(wrappedValue: DeviceSafetyService())
         _deviceConditionMonitor = StateObject(wrappedValue: DeviceConditionMonitor())
+        _visionClassificationBenchmarkRunner = StateObject(wrappedValue: VisionClassificationBenchmarkRunner())
     }
 
     var body: some View {
@@ -31,7 +33,8 @@ struct ContentView: View {
             learningService: learningService,
             accuracyImprovementService: accuracyImprovementService,
             batchOCRJobService: batchOCRJobService,
-            deviceSafety: deviceSafety
+            deviceSafety: deviceSafety,
+            visionClassificationBenchmarkRunner: visionClassificationBenchmarkRunner
         )
             .task {
                 #if DEBUG
@@ -94,6 +97,12 @@ struct ContentView: View {
                         ocrService: ocrService,
                         indexService: indexService
                     )
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmark20") {
+                    await visionClassificationBenchmarkRunner.run(limit: 20)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmark100") {
+                    await visionClassificationBenchmarkRunner.run(limit: 100)
                 }
                 #endif
             }

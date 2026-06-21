@@ -16,6 +16,7 @@ struct HomeView: View {
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    @ObservedObject var visionClassificationBenchmarkRunner: VisionClassificationBenchmarkRunner
     @State private var selectedTab = HomeTab.initialSelection
 
     var body: some View {
@@ -64,7 +65,8 @@ struct HomeView: View {
                 learningService: learningService,
                 accuracyImprovementService: accuracyImprovementService,
                 batchOCRJobService: batchOCRJobService,
-                deviceSafety: deviceSafety
+                deviceSafety: deviceSafety,
+                visionClassificationBenchmarkRunner: visionClassificationBenchmarkRunner
             )
                 .tabItem {
                     Label("設定", systemImage: "gearshape")

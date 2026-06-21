@@ -159,6 +159,7 @@ let metadataWrites = photoMetadataMatches.filter { line in
     line.contains("=") &&
     line.contains("self.creationDate = asset.creationDate") == false &&
     line.contains("self.isFavorite = asset.isFavorite") == false
+    && line.contains("hasCreationDate: asset.creationDate != nil") == false
 }
 
 let removeItemMatches = lineMatches(files: appFiles, patterns: ["removeItem"])
