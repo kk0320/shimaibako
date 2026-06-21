@@ -555,3 +555,90 @@ site
 - スクショ抑制により、スクショはOCR候補として残しつつ、書類候補から外せた。
 - 直近サンプルでは建物、工事現場、看板、白板の実例が足りないため、P1前にカテゴリ別サンプルを用意する。
 - 本番DB保存、整理タブ本実装、OCRジョブ連携はまだ行わない。
+
+## P0.6実装
+
+P0.6では、速度と精度評価のために次を追加した。
+
+- `fullProbe` / `gatedProbe` の2モード
+- Vision処理の時間内訳
+- スクショ高速パス
+- documentSegmentationの弱寄与化と、無効時スコア `documentScoreWithoutSegmentation`
+- DEBUG限定の手動正解ラベルUI
+- 正解ラベル付きprecision / recall評価の出力
+- 建物、工事現場、看板、白板、図面、名刺、レシート、OCR必要判定の評価列
+
+`fullProbe` は画像取得、画像分類、顔検出、人物矩形検出、書類セグメント検出、視覚特徴、スコアリングを実行する。
+
+`gatedProbe` はスクショの場合に画像取得と重いVision requestを省略し、PhotoKitの `photoScreenshot` だけで次のように扱う。
+
+```text
+screenshotScore = 1.0
+documentScore = 0.0
+ocrPriorityScore = 0.85
+```
+
+スクショ以外では、P0.6時点の `gatedProbe` は `fullProbe` と同じ解析経路を使う。つまりP0.6の高速化対象はスクショである。
+
+## P0.6時間内訳
+
+K Phoneで実行した結果:
+
+| bucket | mode | count | avg ms | image | classify | face | human | doc seg | visual | scoring |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| スクショ | fullProbe | 20 | 527.8 | 241.5 | 30.2 | 9.0 | 3.6 | 3.7 | 0.2 | 0.0 |
+| スクショ | gatedProbe | 20 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| 直近 | fullProbe | 100 | 55.1 | 12.3 | 26.7 | 4.6 | 3.8 | 3.0 | 0.2 | 0.0 |
+| 直近 | gatedProbe | 100 | 7.8 | 2.2 | 2.0 | 1.0 | 0.5 | 0.6 | 0.0 | 0.0 |
+| スクショ以外 | fullProbe | 20 | 52.8 | 18.6 | 11.9 | 6.1 | 4.0 | 4.0 | 0.2 | 0.0 |
+| スクショ以外 | gatedProbe | 20 | 49.3 | 16.0 | 11.3 | 6.0 | 4.0 | 3.9 | 0.2 | 0.0 |
+
+直近100件ではスクショが多かったため、gatedProbeで平均55.1msから7.8msへ短縮できた。スクショ20件では画像取得とVision requestを省略できるため、ほぼ0msになった。
+
+## P0.6信号評価
+
+| bucket | mode | screenshots | finalDocument | ocrPriority | building | sign | whiteboard | receipt | businessCard | construction |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| スクショ | fullProbe | 20 | 0 | 20 | 0 | 0 | 0 | 0 | 0 | 0 |
+| スクショ | gatedProbe | 20 | 0 | 20 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 直近 | fullProbe | 87 | 1 | 87 | 0 | 0 | 0 | 1 | 0 | 0 |
+| 直近 | gatedProbe | 87 | 1 | 87 | 0 | 0 | 0 | 1 | 0 | 0 |
+| スクショ以外 | fullProbe | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
+| スクショ以外 | gatedProbe | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
+
+P0.6でもdocumentSegmentationは過検出傾向が残るため、final document判定の主信号にはしない。P0.6では寄与を0.08まで下げ、`documentScoreWithoutSegmentation` を併記した。
+
+## 手動正解ラベル
+
+DEBUG限定のSettingsカードに、最新ベンチ結果の先頭20件へ正解ラベルを付けるUIを追加した。表示するのはサムネイル、top labels、主要score、スクショ/OCR優先/書類などの信号である。
+
+保存先:
+
+```text
+Application Support/ShimaiBako/vision_benchmark_ground_truth.json
+```
+
+保存するもの:
+
+- ハッシュ化asset identifier
+- 正解ラベル
+- 任意メモ
+- 作成/更新日時
+
+保存しないもの:
+
+- 画像本体
+- サムネイル本体
+- 顔画像
+- 顔テンプレート
+- 人物識別情報
+
+CLIからK Phone画面を手動操作できないため、今回のK Phone evidenceでは手動ラベル件数は0件である。UIから20件以上の手動ラベルを付けると、次回ベンチ出力にprecision / recallが含まれる。
+
+## P0.6判断
+
+- スクショはPhotoKitメタデータで高速判定し、重いVision分類を原則かけない。
+- スクショは書類ではなくOCR優先として扱う。
+- documentSegmentationはfinal document判定には使わない、または0.0〜0.1の弱い補助に留める。
+- 建物、工事現場、看板、白板、図面は今回サンプル不足のため、Vision標準だけで十分とはまだ判断しない。
+- 本実装に進む前に、人間が手動ラベルを付けた固定サンプルでprecision / recallを再評価する。

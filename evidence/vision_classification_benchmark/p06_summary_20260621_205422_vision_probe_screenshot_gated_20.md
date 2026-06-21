@@ -1,7 +1,7 @@
 # Vision Classification Benchmark
 
 ## Run
-- runID: 20260621_210245_vision_probe_screenshot_gated_20
+- runID: 20260621_205422_vision_probe_screenshot_gated_20
 - bucketName: screenshot
 - bucketTitle: スクショ
 - probeMode: gatedProbe

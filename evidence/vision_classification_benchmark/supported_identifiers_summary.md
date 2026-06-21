@@ -1,6 +1,6 @@
 # Supported Identifiers Summary
 
-- generatedAt: 2026-06-21T11:05:04Z
+- generatedAt: 2026-06-21T12:02:45Z
 - totalCount: 1303
 - unavailableReason: none
 
@@ -40,7 +40,7 @@
 - landscapeLabels: 4 / blue_sky, mountain, night_sky, sky
 - materialEquipmentLabels: 3 / optical_equipment, road_safety_equipment, sports_equipment
 - personLabels: 0
-- plannedButUnsupportedLabels: 10 / architecture, blackboard, business_card, excavator, face, heavy_equipment, landscape, person, poster, site
+- plannedButUnsupportedLabels: 12 / architecture, blackboard, business_card, construction, drawing, excavator, face, heavy_equipment, landscape, person, poster, site
 - receiptLabels: 1 / receipt
 - signLabels: 3 / billboards, sign, street_sign
 - vehicleHeavyEquipmentLabels: 5 / engine_vehicle, firetruck, semi_truck, truck, vehicle

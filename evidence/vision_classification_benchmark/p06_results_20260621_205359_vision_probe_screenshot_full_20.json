@@ -1,0 +1,1826 @@
+{
+  "actualCount" : 20,
+  "averageClassifyImageMs" : 30.165892839431763,
+  "averageDocumentSegmentationMs" : 3.744310140609741,
+  "averageFaceDetectionMs" : 8.995300531387329,
+  "averageHumanDetectionMs" : 3.6030054092407227,
+  "averageImageRequestMs" : 241.4900541305542,
+  "averageMsPerAsset" : 527.7845501899719,
+  "averageScoringMs" : 0.01679062843322754,
+  "averageVisualFeatureMs" : 0.1558065414428711,
+  "bucketName" : "screenshot",
+  "bucketTitle" : "スクショ",
+  "deviceName" : "iPhone",
+  "documentLabelCandidateCount" : 20,
+  "documentSegmentationDetectedCount" : 20,
+  "faceDetectedCount" : 0,
+  "failedCount" : 0,
+  "finalDocumentCandidateCount" : 0,
+  "finishedAt" : "2026-06-21T11:54:15Z",
+  "groundTruthEvaluation" : {
+    "evaluatedAt" : "2026-06-21T11:54:15Z",
+    "labeledAssetCount" : 0,
+    "metrics" : [
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "screenshot",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "document",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "drawing",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "businessCard",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "receipt",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "sign",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "whiteboard",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "building",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "constructionSite",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "person",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "vehicleHeavyEquipment",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "materialEquipment",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "food",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "landscape",
+        "truePositive" : 0
+      },
+      {
+        "falseNegative" : 0,
+        "falsePositive" : 0,
+        "tag" : "ocrNeeded",
+        "truePositive" : 0
+      }
+    ]
+  },
+  "humanDetectedCount" : 0,
+  "likelyBuildingCount" : 0,
+  "likelyBusinessCardCount" : 0,
+  "likelyConstructionSiteCount" : 0,
+  "likelyDocumentCount" : 0,
+  "likelyFoodCount" : 0,
+  "likelyMaterialEquipmentCount" : 0,
+  "likelyReceiptCount" : 0,
+  "likelySignCount" : 0,
+  "likelyVehicleHeavyEquipmentCount" : 0,
+  "likelyWhiteboardCount" : 0,
+  "maxMsPerAsset" : 1079.7500610351562,
+  "nonScreenshotCount" : 0,
+  "ocrPriorityCandidateCount" : 20,
+  "outputDirectoryPath" : "\/var\/mobile\/Containers\/Data\/Application\/8DB98131-843F-4161-BF40-EF6A4E16CA33\/Library\/Application Support\/ShimaiBako\/vision_classification_benchmark",
+  "photoAuthorizationStatus" : "authorized",
+  "probeMode" : "full",
+  "probeModeTitle" : "fullProbe",
+  "requestedCount" : 20,
+  "results" : [
+    {
+      "assetIdentifierHash" : "e14caba05d6802e1559ba027a8dd33572ed6b8ad1745a6dc4452a51df2750d22",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 110.49401760101318,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 27.083992958068848,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 417.0039892196655,
+      "faceCount" : 0,
+      "faceElapsedMs" : 110.09800434112549,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 7.618069648742676,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.6948242783546448,
+        "documentScore" : 0.3474121391773224,
+        "documentScoreWithoutSegmentation" : 0.6948242783546448,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 110.49401760101318,
+        "documentSegmentationMs" : 27.083992958068848,
+        "faceDetectionMs" : 110.09800434112549,
+        "humanDetectionMs" : 7.618069648742676,
+        "imageRequestMs" : 116.88005924224854,
+        "scoringMs" : 0.04696846008300781,
+        "totalElapsedMs" : 417.0039892196655,
+        "visualFeatureMs" : 0.38993358612060547
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.6948243,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.6948242,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.06640625,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.04272461,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.04272461,
+          "identifier" : "diagram"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "2f3a806b765052ab05e4e24ab296ea67de7c15464500be2bad044962dadaa641",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 25.846004486083984,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.6509761810302734,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 375.1490116119385,
+      "faceCount" : 0,
+      "faceElapsedMs" : 4.023909568786621,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.383040428161621,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.6113284826278687,
+        "documentScore" : 0.3056642413139343,
+        "documentScoreWithoutSegmentation" : 0.6113284826278687,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 25.846004486083984,
+        "documentSegmentationMs" : 2.6509761810302734,
+        "faceDetectionMs" : 4.023909568786621,
+        "humanDetectionMs" : 3.383040428161621,
+        "imageRequestMs" : 74.51999187469482,
+        "scoringMs" : 0.012993812561035156,
+        "totalElapsedMs" : 375.1490116119385,
+        "visualFeatureMs" : 0.15401840209960938
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.6113285,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.6113281,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.044926256,
+          "identifier" : "structure"
+        },
+        {
+          "confidence" : 0.044922702,
+          "identifier" : "conveyance"
+        },
+        {
+          "confidence" : 0.044922695,
+          "identifier" : "portal"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "7278646435480aee39f1225f81e4d09298d58993c094d2e571f7a021344b7d52",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 26.68893337249756,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.8280019760131836,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 996.5910911560059,
+      "faceCount" : 0,
+      "faceElapsedMs" : 4.434943199157715,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.6219358444213867,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.50390625,
+        "documentScore" : 0.251953125,
+        "documentScoreWithoutSegmentation" : 0.50390625,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.05,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 26.68893337249756,
+        "documentSegmentationMs" : 2.8280019760131836,
+        "faceDetectionMs" : 4.434943199157715,
+        "humanDetectionMs" : 3.6219358444213867,
+        "imageRequestMs" : 448.030948638916,
+        "scoringMs" : 0.029087066650390625,
+        "totalElapsedMs" : 996.5910911560059,
+        "visualFeatureMs" : 0.14698505401611328
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.50390625,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.50390625,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.26834458,
+          "identifier" : "consumer_electronics"
+        },
+        {
+          "confidence" : 0.26834458,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.26824903,
+          "identifier" : "computer"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "add127c426fd413902facaa3d19af4460b517fbe127f59591e876423d84dd00a",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 25.74598789215088,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.9200315475463867,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 967.6029682159424,
+      "faceCount" : 0,
+      "faceElapsedMs" : 4.217028617858887,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.939986228942871,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.6557825207710266,
+        "documentScore" : 0.3278912603855133,
+        "documentScoreWithoutSegmentation" : 0.6557825207710266,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 25.74598789215088,
+        "documentSegmentationMs" : 2.9200315475463867,
+        "faceDetectionMs" : 4.217028617858887,
+        "humanDetectionMs" : 3.939986228942871,
+        "imageRequestMs" : 470.9029197692871,
+        "scoringMs" : 0.015974044799804688,
+        "totalElapsedMs" : 967.6029682159424,
+        "visualFeatureMs" : 0.15807151794433594
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.6557825,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.6557617,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.30395508,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.05859375,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.05859375,
+          "identifier" : "diagram"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "ca3de16df96f8099caa6486832c4defa9966d7e6e05dfc8a39124c7a771d992e",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 25.307059288024902,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.5370121002197266,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 1079.7500610351562,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.6460161209106445,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.1800270080566406,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.6240234375,
+        "documentScore" : 0.31201171875,
+        "documentScoreWithoutSegmentation" : 0.6240234375,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 25.307059288024902,
+        "documentSegmentationMs" : 2.5370121002197266,
+        "faceDetectionMs" : 3.6460161209106445,
+        "humanDetectionMs" : 3.1800270080566406,
+        "imageRequestMs" : 502.49993801116943,
+        "scoringMs" : 0.012993812561035156,
+        "totalElapsedMs" : 1079.7500610351562,
+        "visualFeatureMs" : 0.1399517059326172
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.62402344,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.62402344,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.10961914,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.042236336,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.042236328,
+          "identifier" : "diagram"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "1f470e928b096d3e72ff7cd4a93b0446cde367de2cfb397f4eba9f42f4b85f06",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 27.359962463378906,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.7430057525634766,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 1078.4059762954712,
+      "faceCount" : 0,
+      "faceElapsedMs" : 4.250049591064453,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.751993179321289,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.80908203125,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.80908203125,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 27.359962463378906,
+        "documentSegmentationMs" : 2.7430057525634766,
+        "faceDetectionMs" : 4.250049591064453,
+        "humanDetectionMs" : 3.751993179321289,
+        "imageRequestMs" : 504.8729181289673,
+        "scoringMs" : 0.015974044799804688,
+        "totalElapsedMs" : 1078.4059762954712,
+        "visualFeatureMs" : 0.1609325408935547
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.80908203,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.80908203,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.08251953,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.045166016,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.045166016,
+          "identifier" : "diagram"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "5208c211645dcfb2a1f91561c7780c32af32da15c896702ea17028c8681836f7",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 25.663018226623535,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.5310516357421875,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 1015.9789323806763,
+      "faceCount" : 0,
+      "faceElapsedMs" : 4.0999650955200195,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.4279823303222656,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.6372072100639343,
+        "documentScore" : 0.31860360503196716,
+        "documentScoreWithoutSegmentation" : 0.6372072100639343,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 25.663018226623535,
+        "documentSegmentationMs" : 2.5310516357421875,
+        "faceDetectionMs" : 4.0999650955200195,
+        "humanDetectionMs" : 3.4279823303222656,
+        "imageRequestMs" : 510.3919506072998,
+        "scoringMs" : 0.013947486877441406,
+        "totalElapsedMs" : 1015.9789323806763,
+        "visualFeatureMs" : 0.13506412506103516
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.6372072,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.63720703,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.032040797,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.0320362,
+          "identifier" : "consumer_electronics"
+        },
+        {
+          "confidence" : 0.03203514,
+          "identifier" : "computer"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "fba95c9a7d3d6031b28c4f63e7a881600b931f0eddac0ec3b5b5429d832c6d4d",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 26.249051094055176,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.7790069580078125,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 1039.3919944763184,
+      "faceCount" : 0,
+      "faceElapsedMs" : 4.008054733276367,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.6640167236328125,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.5849609971046448,
+        "documentScore" : 0.2924804985523224,
+        "documentScoreWithoutSegmentation" : 0.5849609971046448,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 26.249051094055176,
+        "documentSegmentationMs" : 2.7790069580078125,
+        "faceDetectionMs" : 4.008054733276367,
+        "humanDetectionMs" : 3.6640167236328125,
+        "imageRequestMs" : 509.1060400009155,
+        "scoringMs" : 0.012993812561035156,
+        "totalElapsedMs" : 1039.3919944763184,
+        "visualFeatureMs" : 0.1380443572998047
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.584961,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.58496094,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.061035156,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.037597723,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.037597656,
+          "identifier" : "diagram"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "ffce1d9775826d5467d474ebd30caa1356022bf944f634df66e65157b817d155",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 24.999022483825684,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.7860403060913086,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 948.6600160598755,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.811001777648926,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.4520626068115234,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.5214856266975403,
+        "documentScore" : 0.26074281334877014,
+        "documentScoreWithoutSegmentation" : 0.5214856266975403,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 24.999022483825684,
+        "documentSegmentationMs" : 2.7860403060913086,
+        "faceDetectionMs" : 3.811001777648926,
+        "humanDetectionMs" : 3.4520626068115234,
+        "imageRequestMs" : 577.7710676193237,
+        "scoringMs" : 0.013947486877441406,
+        "totalElapsedMs" : 948.6600160598755,
+        "visualFeatureMs" : 0.1430511474609375
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.5214856,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.5214844,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.051818643,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.051818147,
+          "identifier" : "consumer_electronics"
+        },
+        {
+          "confidence" : 0.05181787,
+          "identifier" : "computer"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "692d98eecc15e823a1511d31b53ddb75ad86009d3e314dba0a9ed83728e72120",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 23.58090877532959,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.358078956604004,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 251.3558864593506,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.2989978790283203,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.258943557739258,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.7944336533546448,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.7944336533546448,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 23.58090877532959,
+        "documentSegmentationMs" : 2.358078956604004,
+        "faceDetectionMs" : 3.2989978790283203,
+        "humanDetectionMs" : 3.258943557739258,
+        "imageRequestMs" : 103.80697250366211,
+        "scoringMs" : 0.013947486877441406,
+        "totalElapsedMs" : 251.3558864593506,
+        "visualFeatureMs" : 0.13208389282226562
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.79443365,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.7944336,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.1352539,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.044966076,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.044144273,
+          "identifier" : "consumer_electronics"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "21f2d239d0341fae27241844724102ed207e0a6334ca058dddd252efaa63f550",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 22.374987602233887,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.277970314025879,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 245.44000625610352,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.365039825439453,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.152012825012207,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.564456582069397,
+        "documentScore" : 0.2822282910346985,
+        "documentScoreWithoutSegmentation" : 0.564456582069397,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 22.374987602233887,
+        "documentSegmentationMs" : 2.277970314025879,
+        "faceDetectionMs" : 3.365039825439453,
+        "humanDetectionMs" : 3.152012825012207,
+        "imageRequestMs" : 111.14799976348877,
+        "scoringMs" : 0.015020370483398438,
+        "totalElapsedMs" : 245.44000625610352,
+        "visualFeatureMs" : 0.14603137969970703
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.5644566,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.5644531,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.25439453,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.07036155,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.07029283,
+          "identifier" : "consumer_electronics"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "838a749d14b407c91cd38b1bb4fb0fc14d9648cdc5dc0bd0356d82160c438cdb",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 22.615909576416016,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.29799747467041,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 282.4469804763794,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.394007682800293,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.1609535217285156,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.7436525225639343,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.7436525225639343,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.35,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 22.615909576416016,
+        "documentSegmentationMs" : 2.29799747467041,
+        "faceDetectionMs" : 3.394007682800293,
+        "humanDetectionMs" : 3.1609535217285156,
+        "imageRequestMs" : 127.35402584075928,
+        "scoringMs" : 0.015020370483398438,
+        "totalElapsedMs" : 282.4469804763794,
+        "visualFeatureMs" : 0.1329183578491211
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.7436525,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.74365234,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.31298828,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.03051684,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.030509185,
+          "identifier" : "consumer_electronics"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "7716e6c2a2919bab1eea08d766c90747bfb1766eabda32dda139454be92a9dcf",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 47.81806468963623,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.7550458908081055,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 280.25901317596436,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.802061080932617,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.6690235137939453,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.7597657442092896,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.7597657442092896,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 47.81806468963623,
+        "documentSegmentationMs" : 2.7550458908081055,
+        "faceDetectionMs" : 3.802061080932617,
+        "humanDetectionMs" : 3.6690235137939453,
+        "imageRequestMs" : 110.87203025817871,
+        "scoringMs" : 0.01800060272216797,
+        "totalElapsedMs" : 280.25901317596436,
+        "visualFeatureMs" : 0.15592575073242188
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.75976574,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.7597656,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.33911133,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.049460042,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.049444072,
+          "identifier" : "consumer_electronics"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "ae95c8ee33af265cad5dc8a03f54f15bc64ae7b5014bbe44f92518464bf16926",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 24.057984352111816,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.3620128631591797,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 279.98900413513184,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.4580230712890625,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.2629966735839844,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.7290039658546448,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.7290039658546448,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.35,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 24.057984352111816,
+        "documentSegmentationMs" : 2.3620128631591797,
+        "faceDetectionMs" : 3.4580230712890625,
+        "humanDetectionMs" : 3.2629966735839844,
+        "imageRequestMs" : 109.69102382659912,
+        "scoringMs" : 0.015020370483398438,
+        "totalElapsedMs" : 279.98900413513184,
+        "visualFeatureMs" : 0.14507770538330078
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.72900397,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.7290039,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.28857422,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.032226626,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.032226562,
+          "identifier" : "diagram"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "3612c6785922008d7335c310d20608fff3699534cfb2d0f2c4ba127aacf1e58d",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 24.1929292678833,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.345919609069824,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 105.3609848022461,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.264904022216797,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.2548904418945312,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.7597663998603821,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.7597663998603821,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 24.1929292678833,
+        "documentSegmentationMs" : 2.345919609069824,
+        "faceDetectionMs" : 3.264904022216797,
+        "humanDetectionMs" : 3.2548904418945312,
+        "imageRequestMs" : 61.37406826019287,
+        "scoringMs" : 0.014901161193847656,
+        "totalElapsedMs" : 105.3609848022461,
+        "visualFeatureMs" : 0.13709068298339844
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.7597664,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.7597656,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.12841797,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.071649745,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.07161596,
+          "identifier" : "consumer_electronics"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "8834233000e61157e6b7e04d6e4bf7eefd4faac0389b5d98230a9f9687ffb4c8",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 27.33790874481201,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.5080442428588867,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 305.7640790939331,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.690004348754883,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.5380125045776367,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.7358400821685791,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.7358400821685791,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 27.33790874481201,
+        "documentSegmentationMs" : 2.5080442428588867,
+        "faceDetectionMs" : 3.690004348754883,
+        "humanDetectionMs" : 3.5380125045776367,
+        "imageRequestMs" : 157.81402587890625,
+        "scoringMs" : 0.01609325408935547,
+        "totalElapsedMs" : 305.7640790939331,
+        "visualFeatureMs" : 0.1499652862548828
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.7358401,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.73583984,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.111328125,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.04938115,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.04936493,
+          "identifier" : "consumer_electronics"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "dc0d4ecbd0d43414c363aa5896aee892efdafc82edba4e556cccff69aaff0004",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 23.815035820007324,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.2749900817871094,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 253.20303440093994,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.337979316711426,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.1909942626953125,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.7202150821685791,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.7202150821685791,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 23.815035820007324,
+        "documentSegmentationMs" : 2.2749900817871094,
+        "faceDetectionMs" : 3.337979316711426,
+        "humanDetectionMs" : 3.1909942626953125,
+        "imageRequestMs" : 59.77296829223633,
+        "scoringMs" : 0.012993812561035156,
+        "totalElapsedMs" : 253.20303440093994,
+        "visualFeatureMs" : 0.13899803161621094
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.7202151,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.72021484,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.038337044,
+          "identifier" : "structure"
+        },
+        {
+          "confidence" : 0.03833176,
+          "identifier" : "conveyance"
+        },
+        {
+          "confidence" : 0.038331732,
+          "identifier" : "portal"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "b9a5933c5ebd92d23a31b7e51bd8f8b4ca768fd4e32279e98c597da922dd4daa",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 24.514079093933105,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.266049385070801,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 249.5189905166626,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.2199621200561523,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.2100677490234375,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.80712890625,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.80712890625,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 24.514079093933105,
+        "documentSegmentationMs" : 2.266049385070801,
+        "faceDetectionMs" : 3.2199621200561523,
+        "humanDetectionMs" : 3.2100677490234375,
+        "imageRequestMs" : 111.35303974151611,
+        "scoringMs" : 0.015020370483398438,
+        "totalElapsedMs" : 249.5189905166626,
+        "visualFeatureMs" : 0.13589859008789062
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.8071289,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.8071289,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.048912235,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.04890979,
+          "identifier" : "consumer_electronics"
+        },
+        {
+          "confidence" : 0.048909277,
+          "identifier" : "computer"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "40e0c718a6ff63404cb29af054985f7d3bff2290767d142d6b084d52a0636903",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 22.135019302368164,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.254009246826172,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 233.7789535522461,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.3330917358398438,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.198981285095215,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.7314453125,
+        "documentScore" : 0.35,
+        "documentScoreWithoutSegmentation" : 0.7314453125,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 22.135019302368164,
+        "documentSegmentationMs" : 2.254009246826172,
+        "faceDetectionMs" : 3.3330917358398438,
+        "humanDetectionMs" : 3.198981285095215,
+        "imageRequestMs" : 104.40301895141602,
+        "scoringMs" : 0.012993812561035156,
+        "totalElapsedMs" : 233.7789535522461,
+        "visualFeatureMs" : 0.1360177993774414
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.7314453,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.7314453,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.0769043,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.03710938,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.037109375,
+          "identifier" : "diagram"
+        }
+      ]
+    },
+    {
+      "assetIdentifierHash" : "cc422926b58bb384abf227b722ccb1a150ae16eae0f04f35ef98c7ea5f48d1ae",
+      "bucketName" : "screenshot",
+      "classifyElapsedMs" : 22.52197265625,
+      "classifyRevision" : 2,
+      "documentElapsedMs" : 2.32696533203125,
+      "documentSegmentCount" : 1,
+      "elapsedMs" : 150.04003047943115,
+      "faceCount" : 0,
+      "faceElapsedMs" : 3.1529664993286133,
+      "hasCreationDate" : true,
+      "hasDocumentSegment" : true,
+      "hasFace" : false,
+      "hasHuman" : false,
+      "humanCount" : 0,
+      "humanElapsedMs" : 3.124117851257324,
+      "isScreenshot" : true,
+      "mediaSubtypesRawValue" : 4,
+      "mediaType" : "image",
+      "pixelHeight" : 2556,
+      "pixelWidth" : 1179,
+      "probeMode" : "full",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentLabelScore" : 0.6904343366622925,
+        "documentScore" : 0.34521716833114624,
+        "documentScoreWithoutSegmentation" : 0.6904343366622925,
+        "documentSegmentationScore" : 0.08,
+        "documentVisualScore" : 0.5,
+        "foodScore" : 0,
+        "landscapeScore" : 0,
+        "materialEquipmentScore" : 0,
+        "ocrPriorityScore" : 0.85,
+        "personScore" : 0,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "vehicleHeavyEquipmentScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "timing" : {
+        "classifyImageMs" : 22.52197265625,
+        "documentSegmentationMs" : 2.32696533203125,
+        "faceDetectionMs" : 3.1529664993286133,
+        "humanDetectionMs" : 3.124117851257324,
+        "imageRequestMs" : 57.23607540130615,
+        "scoringMs" : 0.011920928955078125,
+        "totalElapsedMs" : 150.04003047943115,
+        "visualFeatureMs" : 0.14007091522216797
+      },
+      "topVisualLabels" : [
+        {
+          "confidence" : 0.69043434,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.6904297,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.16503906,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.03418001,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.034179688,
+          "identifier" : "diagram"
+        }
+      ]
+    }
+  ],
+  "runID" : "20260621_205359_vision_probe_screenshot_full_20",
+  "screenshotCandidateCount" : 20,
+  "startedAt" : "2026-06-21T11:53:59Z",
+  "supportedIdentifiers" : {
+    "generatedAt" : "2026-06-21T11:53:59Z",
+    "keywordMatches" : {
+      "architecture" : [
+
+      ],
+      "billboard" : [
+        "billboards"
+      ],
+      "blackboard" : [
+
+      ],
+      "building" : [
+        "building"
+      ],
+      "card" : [
+        "cardboard_box",
+        "credit_card",
+        "gift_card",
+        "play_card"
+      ],
+      "construction" : [
+        "crane_construction"
+      ],
+      "dish" : [
+        "dishwasher",
+        "radish"
+      ],
+      "document" : [
+        "document"
+      ],
+      "equipment" : [
+        "optical_equipment",
+        "road_safety_equipment",
+        "ski_equipment",
+        "sports_equipment"
+      ],
+      "face" : [
+
+      ],
+      "food" : [
+        "food",
+        "seafood"
+      ],
+      "house" : [
+        "birdhouse",
+        "boathouse",
+        "greenhouse",
+        "house_single",
+        "houseboat",
+        "housewares",
+        "lighthouse"
+      ],
+      "landscape" : [
+
+      ],
+      "meal" : [
+        "oatmeal"
+      ],
+      "mountain" : [
+        "bernese_mountain",
+        "mountain"
+      ],
+      "paper" : [
+        "newspaper",
+        "paper_bag"
+      ],
+      "person" : [
+
+      ],
+      "receipt" : [
+        "receipt"
+      ],
+      "sea" : [
+        "car_seat",
+        "seabass",
+        "seafood",
+        "seahorse",
+        "seal",
+        "sealion",
+        "seashell",
+        "seasonings",
+        "seat",
+        "seaweed",
+        "toilet_seat"
+      ],
+      "sign" : [
+        "sign",
+        "street_sign"
+      ],
+      "site" : [
+
+      ],
+      "sky" : [
+        "blue_sky",
+        "husky",
+        "night_sky",
+        "sky",
+        "skydiving",
+        "skyscraper"
+      ],
+      "truck" : [
+        "firetruck",
+        "semi_truck",
+        "truck"
+      ],
+      "vehicle" : [
+        "engine_vehicle",
+        "vehicle",
+        "vehicle_toy"
+      ],
+      "whiteboard" : [
+        "whiteboard"
+      ]
+    },
+    "taxonomyMatches" : {
+      "buildingLabels" : [
+        "building",
+        "house_single",
+        "lighthouse",
+        "skyscraper"
+      ],
+      "businessCardLabels" : [
+        "credit_card"
+      ],
+      "constructionSiteLabels" : [
+        "crane_construction"
+      ],
+      "documentLabels" : [
+        "document",
+        "newspaper"
+      ],
+      "foodLabels" : [
+        "food",
+        "seafood"
+      ],
+      "landscapeLabels" : [
+        "blue_sky",
+        "mountain",
+        "night_sky",
+        "sky"
+      ],
+      "materialEquipmentLabels" : [
+        "optical_equipment",
+        "road_safety_equipment",
+        "sports_equipment"
+      ],
+      "personLabels" : [
+
+      ],
+      "plannedButUnsupportedLabels" : [
+        "architecture",
+        "blackboard",
+        "business_card",
+        "construction",
+        "drawing",
+        "excavator",
+        "face",
+        "heavy_equipment",
+        "landscape",
+        "person",
+        "poster",
+        "site"
+      ],
+      "receiptLabels" : [
+        "receipt"
+      ],
+      "signLabels" : [
+        "billboards",
+        "sign",
+        "street_sign"
+      ],
+      "vehicleHeavyEquipmentLabels" : [
+        "engine_vehicle",
+        "firetruck",
+        "semi_truck",
+        "truck",
+        "vehicle"
+      ],
+      "whiteboardLabels" : [
+        "whiteboard"
+      ]
+    },
+    "totalCount" : 1303
+  },
+  "totalAvailableImageCount" : 26992
+}
