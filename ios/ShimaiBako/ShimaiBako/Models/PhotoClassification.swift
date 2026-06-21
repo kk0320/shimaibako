@@ -237,9 +237,46 @@ struct PhotoClassification: Identifiable, Codable, Hashable {
 
 struct PhotoClassificationSummary {
     let totalCount: Int
+    let classifiedCount: Int
     let manualCount: Int
     let screenshotCount: Int
     let readCandidateCount: Int
     let needsReviewCount: Int
     let unorganizedCount: Int
 }
+
+struct PhotoClassificationUpdateSummary: Equatable {
+    var processedCount: Int
+    var totalCount: Int
+    var screenshotCount: Int
+    var readCandidateCount: Int
+    var needsReviewCount: Int
+    var unorganizedCount: Int
+    var manualProtectedCount: Int
+
+    static let empty = PhotoClassificationUpdateSummary(
+        processedCount: 0,
+        totalCount: 0,
+        screenshotCount: 0,
+        readCandidateCount: 0,
+        needsReviewCount: 0,
+        unorganizedCount: 0,
+        manualProtectedCount: 0
+    )
+}
+
+#if DEBUG
+struct PhotoClassificationSelfTestReport: Equatable {
+    var manualOverridesAutomatic: Bool
+    var automaticUsedWhenManualMissing: Bool
+    var metadataRefreshKeepsManual: Bool
+
+    var passed: Bool {
+        manualOverridesAutomatic && automaticUsedWhenManualMissing && metadataRefreshKeepsManual
+    }
+
+    var message: String {
+        passed ? "手動分類優先セルフテスト PASS" : "手動分類優先セルフテストで確認が必要です"
+    }
+}
+#endif

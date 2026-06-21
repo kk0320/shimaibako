@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OrganizationView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
+    @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var classificationService: PhotoClassificationService
 
     private var summary: PhotoClassificationSummary {
@@ -16,6 +17,14 @@ struct OrganizationView: View {
         max(0, photoLibrary.loadedAssetCount - summary.totalCount)
     }
 
+    private var totalCountForDisplay: Int {
+        max(photoLibrary.loadedAssetCount, summary.totalCount)
+    }
+
+    private var classifiedProgressTitle: String {
+        "\(summary.classifiedCount) / \(max(totalCountForDisplay, 0))件"
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -25,9 +34,13 @@ struct OrganizationView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         header
                         statusCard
+                        metadataUpdateCard
                         availableClassificationsCard
                         evaluationNoticeCard
                         dataPolicyCard
+                        #if DEBUG
+                        manualPrioritySelfTestCard
+                        #endif
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
@@ -59,9 +72,19 @@ struct OrganizationView: View {
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 OrganizationMetricTile(
+                    title: "分類済み",
+                    value: classifiedProgressTitle,
+                    caption: "読み込み済み範囲"
+                )
+                OrganizationMetricTile(
+                    title: "全体件数",
+                    value: "\(totalCountForDisplay)件",
+                    caption: "現在の対象範囲"
+                )
+                OrganizationMetricTile(
                     title: "スクショ",
                     value: "\(max(summary.screenshotCount, loadedScreenshotCount))件",
-                    caption: "PhotoKitのメタデータを優先"
+                    caption: "メタデータ判定"
                 )
                 OrganizationMetricTile(
                     title: "読取候補",
@@ -90,6 +113,95 @@ struct OrganizationView: View {
                 Text(errorMessage)
                     .font(.caption)
                     .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16)
+        .background(.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.06))
+        )
+    }
+
+    private var metadataUpdateCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("軽量整理", systemImage: "arrow.triangle.2.circlepath")
+                .font(.headline)
+
+            Text("スクショなど、写真のメタデータだけで分かる範囲を整理します。画像認識や読取は実行しません。元写真・元動画は変更しません。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if classificationService.isUpdatingMetadata {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("軽量整理中...")
+                        .font(.caption.weight(.semibold))
+                    ProgressView(
+                        value: Double(classificationService.metadataUpdateProcessedCount),
+                        total: Double(max(classificationService.metadataUpdateTotalCount, 1))
+                    )
+                    .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
+                    Text("処理済み \(classificationService.metadataUpdateProcessedCount) / \(classificationService.metadataUpdateTotalCount)件")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if classificationService.lastUpdateSummary.processedCount > 0 {
+                let updateSummary = classificationService.lastUpdateSummary
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("前回更新")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                    Text("処理済み \(updateSummary.processedCount)件 / スクショ \(updateSummary.screenshotCount)件 / 読取候補 \(updateSummary.readCandidateCount)件")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("手動分類保護 \(updateSummary.manualProtectedCount)件")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let lastMetadataUpdatedAt = classificationService.lastMetadataUpdatedAt {
+                Text("最終更新: \(DateFormatter.localizedString(from: lastMetadataUpdatedAt, dateStyle: .short, timeStyle: .short))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Task {
+                        await classificationService.updateMetadataOnly(
+                            assets: photoLibrary.assets,
+                            indexService: indexService
+                        )
+                    }
+                } label: {
+                    Label("軽量整理を更新", systemImage: "play.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(classificationService.isUpdatingMetadata || photoLibrary.assets.isEmpty)
+
+                if classificationService.isUpdatingMetadata {
+                    Button(role: .cancel) {
+                        classificationService.cancelMetadataUpdate()
+                    } label: {
+                        Label("中止", systemImage: "xmark.circle")
+                            .labelStyle(.iconOnly)
+                            .frame(width: 42)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
+            if photoLibrary.assets.isEmpty {
+                Text("写真タブで写真を読み込むと、読み込み済み範囲を軽量整理できます。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -160,6 +272,40 @@ struct OrganizationView: View {
                 .stroke(Color.black.opacity(0.06))
         )
     }
+
+    #if DEBUG
+    private var manualPrioritySelfTestCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("手動分類優先セルフテスト", systemImage: "checkmark.shield")
+                .font(.headline)
+
+            Text("自動分類より手動分類が優先されることを、軽量なモデル操作だけで確認します。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let report = classificationService.selfTestReport {
+                Text(report.message)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(report.passed ? Color(red: 0.16, green: 0.42, blue: 0.75) : .red)
+            }
+
+            Button {
+                classificationService.runManualPrioritySelfTest()
+            } label: {
+                Label("セルフテストを実行", systemImage: "play.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(16)
+        .background(.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.06))
+        )
+    }
+    #endif
 }
 
 private struct OrganizationMetricTile: View {

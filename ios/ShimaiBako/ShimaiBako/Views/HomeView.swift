@@ -36,6 +36,7 @@ struct HomeView: View {
 
             OrganizationView(
                 photoLibrary: photoLibrary,
+                indexService: indexService,
                 classificationService: classificationService
             )
                 .tabItem {

@@ -425,12 +425,12 @@ struct SettingsView: View {
             DetailInfoRow(title: "要確認", value: "\(summary.needsReviewCount)件")
             DetailInfoRow(title: "保存先", value: "端末内")
 
-            Text("分類カテゴリ、タグ、スコア、状態、更新日時、バージョン、写真の識別子だけを保存します。")
+            Text("画像整理データには、スクショ判定、読取候補、分類状態、スコアなどの軽量データのみ保存します。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("元写真・元動画、サムネイル本体、顔画像、顔テンプレート、人物識別データ、大量特徴ベクトルは保存しません。")
+            Text("写真本体、動画本体、サムネイル本体、顔画像、顔テンプレート、人物識別データ、大量特徴ベクトルは保存しません。元写真・元動画は変更されません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

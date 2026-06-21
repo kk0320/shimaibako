@@ -69,6 +69,10 @@ struct ContentView: View {
                         )
                     }
                 }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunClassificationSelfTest") {
+                    let report = classificationService.runManualPrioritySelfTest()
+                    print("LOCAL_IMAGE_CLASSIFICATION_SELFTEST \(report.passed ? "PASS" : "FAIL")")
+                }
                 #endif
                 await photoLibrary.prepare()
                 deviceConditionMonitor.start(deviceSafety: deviceSafety) {
