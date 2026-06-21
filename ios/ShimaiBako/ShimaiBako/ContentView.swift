@@ -119,6 +119,16 @@ struct ContentView: View {
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkNonScreenshot20Gated") {
                     await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .nonScreenshot, mode: .gated)
                 }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkP08Smoke") {
+                    await visionClassificationBenchmarkRunner.runReviewQueue(
+                        title: "P0.8 smoke",
+                        limit: 20,
+                        bucket: .screenshot,
+                        mode: .gated
+                    )
+                    visionClassificationBenchmarkRunner.evaluateLatestGroundTruth()
+                    visionClassificationBenchmarkRunner.exportLatestGroundTruthEvaluation()
+                }
                 #endif
             }
             .onChange(of: scenePhase) { _, newPhase in

@@ -754,6 +754,8 @@ struct SettingsView: View {
                 }
             }
 
+            visionReviewQueueControls
+
             Button {
                 visionClassificationBenchmarkRunner.refreshSupportedIdentifiersOnly()
             } label: {
@@ -860,6 +862,96 @@ struct SettingsView: View {
         }
     }
 
+    private var visionReviewQueueControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            Label("レビュー対象キュー", systemImage: "square.stack.3d.up")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("人間が正解ラベルを付けるためのDEBUGキューです。画像本体やサムネイル本体は保存しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    visionReviewRunButton(title: "直近20", limit: 20, bucket: .allRecent, mode: .gated)
+                    visionReviewRunButton(title: "直近50", limit: 50, bucket: .allRecent, mode: .gated)
+                    visionReviewRunButton(title: "直近100", limit: 100, bucket: .allRecent, mode: .gated)
+                }
+
+                HStack(spacing: 8) {
+                    visionReviewRunButton(title: "スクショ20", limit: 20, bucket: .screenshot, mode: .gated)
+                    visionReviewRunButton(title: "非スクショ20", limit: 20, bucket: .nonScreenshot, mode: .full)
+                }
+            }
+
+            if visionClassificationBenchmarkRunner.latestReport != nil {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        visionFilteredQueueButton(title: "OCR優先20", kind: .ocrPriority)
+                        visionFilteredQueueButton(title: "建物20", kind: .building)
+                        visionFilteredQueueButton(title: "工事20", kind: .constructionSite)
+                        visionFilteredQueueButton(title: "看板20", kind: .sign)
+                        visionFilteredQueueButton(title: "白板20", kind: .whiteboard)
+                        visionFilteredQueueButton(title: "書類20", kind: .document)
+                    }
+                    .padding(.vertical, 2)
+                }
+                .frame(height: 40)
+                .clipped()
+            } else {
+                Text("候補別キューは、先に直近100件などのベンチを実行すると作れます。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func visionReviewRunButton(
+        title: String,
+        limit: Int,
+        bucket: VisionClassificationBenchmarkBucket,
+        mode: VisionClassificationProbeMode
+    ) -> some View {
+        Button {
+            Task {
+                await visionClassificationBenchmarkRunner.runReviewQueue(
+                    title: title,
+                    limit: limit,
+                    bucket: bucket,
+                    mode: mode
+                )
+            }
+        } label: {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .disabled(visionClassificationBenchmarkRunner.isRunning)
+    }
+
+    private func visionFilteredQueueButton(
+        title: String,
+        kind: VisionBenchmarkReviewQueueKind
+    ) -> some View {
+        Button {
+            visionClassificationBenchmarkRunner.prepareReviewQueue(kind: kind, limit: 20)
+        } label: {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .buttonStyle(.bordered)
+        .disabled(visionClassificationBenchmarkRunner.isRunning)
+    }
+
     @ViewBuilder
     private func visionGroundTruthReview(report: VisionClassificationBenchmarkReport) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -869,19 +961,92 @@ struct SettingsView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            Text("最新ベンチの先頭20件に手動ラベルを付けます。保存するのはハッシュ化IDとラベルだけで、画像本体やサムネイルは保存しません。")
+            Text("保存するのはハッシュ化IDと正解ラベルだけです。サムネイルは表示のみで、画像本体・サムネイル本体・顔画像・顔テンプレートは保存しません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            ForEach(Array(report.results.prefix(20))) { result in
-                VisionGroundTruthReviewRow(
-                    result: result,
+            visionGroundTruthSummary
+
+            DetailInfoRow(title: "現在のキュー", value: visionClassificationBenchmarkRunner.reviewQueueTitle)
+            DetailInfoRow(title: "レビュー済み", value: "\(visionClassificationBenchmarkRunner.reviewQueueLabeledCount) / \(visionClassificationBenchmarkRunner.reviewQueueCount)件")
+            DetailInfoRow(title: "未ラベル", value: "\(visionClassificationBenchmarkRunner.reviewQueueUnlabeledCount)件")
+
+            if visionClassificationBenchmarkRunner.reviewQueueCount == 0 {
+                Text("レビュー対象キューがありません。上の「レビュー対象キュー」から直近20件などを作成してください。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if let current = visionClassificationBenchmarkRunner.currentReviewResult {
+                VisionGroundTruthReviewCard(
+                    result: current,
                     runner: visionClassificationBenchmarkRunner
                 )
             }
+
+            HStack(spacing: 8) {
+                Button {
+                    visionClassificationBenchmarkRunner.evaluateLatestGroundTruth()
+                } label: {
+                    Label("ラベル済みデータで評価", systemImage: "chart.bar.doc.horizontal")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    visionClassificationBenchmarkRunner.exportLatestGroundTruthEvaluation()
+                } label: {
+                    Label("評価をexport", systemImage: "square.and.arrow.down")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            if visionClassificationBenchmarkRunner.latestGroundTruthEvaluation?.labeledAssetCount == 0 {
+                Text("正解ラベルがないため評価できません。20〜50件ほど手動ラベルを付けるとprecision / recallを確認できます。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.top, 8)
+    }
+
+    private var visionGroundTruthSummary: some View {
+        let summary = visionClassificationBenchmarkRunner.groundTruthSummary
+        let visibleTags: [VisionBenchmarkGroundTruthTag] = [
+            .screenshot,
+            .ocrNeeded,
+            .document,
+            .receipt,
+            .sign,
+            .whiteboard,
+            .building,
+            .constructionSite,
+            .unknown
+        ]
+
+        return VStack(alignment: .leading, spacing: 6) {
+            DetailInfoRow(title: "合計レビュー済み", value: "\(summary.reviewedCount)件")
+            DetailInfoRow(title: "評価対象", value: "\(summary.evaluableCount)件")
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 6)], spacing: 6) {
+                ForEach(visibleTags) { tag in
+                    let count = summary.tagSummaries.first { $0.tag == tag }?.count ?? 0
+                    Text("\(tag.title): \(count)")
+                        .font(.caption2.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                }
+            }
+        }
     }
     #endif
 
@@ -1243,13 +1408,31 @@ private struct DetailInfoRow: View {
 }
 
 #if DEBUG
-private struct VisionGroundTruthReviewRow: View {
+private struct VisionGroundTruthReviewCard: View {
     let result: VisionClassificationProbeResult
     @ObservedObject var runner: VisionClassificationBenchmarkRunner
     @State private var thumbnail: UIImage?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label(
+                    "\(runner.currentReviewNumber) / \(runner.reviewQueueCount)件",
+                    systemImage: "photo.on.rectangle"
+                )
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                Spacer()
+
+                Text(runner.isGroundTruthTagSelected(.unknown, for: result) ? "判定不能" : "レビュー中")
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.75), in: Capsule())
+                    .foregroundStyle(.secondary)
+            }
+
             HStack(alignment: .top, spacing: 10) {
                 Group {
                     if let thumbnail {
@@ -1273,18 +1456,24 @@ private struct VisionGroundTruthReviewRow: View {
                         .font(.caption2.monospaced())
                         .foregroundStyle(.secondary)
 
-                    Text(result.topVisualLabels.prefix(3).map { label in
+                    Text(result.topVisualLabels.prefix(5).map { label in
                         "\(label.identifier) \(String(format: "%.2f", label.confidence))"
-                    }.joined(separator: ", ").isEmpty ? "ラベルなし" : result.topVisualLabels.prefix(3).map { label in
+                    }.joined(separator: ", ").isEmpty ? "ラベルなし" : result.topVisualLabels.prefix(5).map { label in
                         "\(label.identifier) \(String(format: "%.2f", label.confidence))"
                     }.joined(separator: ", "))
                         .font(.caption2)
                         .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
-                        .lineLimit(2)
+                        .lineLimit(3)
 
-                    Text("mode \(result.probeMode) / OCR \(String(format: "%.2f", result.scores.ocrPriorityScore)) / doc \(String(format: "%.2f", result.scores.documentScore))")
+                    Text("推定: \(predictedTagsText)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
+
+                    Text("screenshot \(result.isScreenshot ? "true" : "false") / OCR \(String(format: "%.2f", result.scores.ocrPriorityScore)) / doc \(String(format: "%.2f", result.scores.documentScore)) / building \(String(format: "%.2f", result.scores.buildingScore))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
             }
 
@@ -1315,6 +1504,55 @@ private struct VisionGroundTruthReviewRow: View {
             }
             .frame(height: 30)
             .clipped()
+
+            HStack(spacing: 8) {
+                Button {
+                    runner.moveToPreviousReviewItem()
+                } label: {
+                    Label("前へ", systemImage: "chevron.left")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    runner.skipCurrentReviewItem()
+                } label: {
+                    Label("スキップ", systemImage: "forward")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    runner.saveCurrentReviewAndAdvance()
+                } label: {
+                    Label("保存して次へ", systemImage: "checkmark")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    runner.markCurrentReviewUnknown()
+                } label: {
+                    Label("判定不能", systemImage: "questionmark.circle")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button(role: .destructive) {
+                    runner.clearGroundTruthTags(for: result)
+                } label: {
+                    Label("ラベルをクリア", systemImage: "eraser")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .padding(10)
         .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
@@ -1325,6 +1563,11 @@ private struct VisionGroundTruthReviewRow: View {
 
     private func isSelected(_ tag: VisionBenchmarkGroundTruthTag) -> Bool {
         runner.isGroundTruthTagSelected(tag, for: result)
+    }
+
+    private var predictedTagsText: String {
+        let tags = result.predictedGroundTruthTags.map(\.title).sorted()
+        return tags.isEmpty ? "なし" : tags.joined(separator: "、")
     }
 }
 #endif

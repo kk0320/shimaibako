@@ -1,0 +1,16 @@
+tag,support,truePositive,falsePositive,falseNegative,precision,recall
+"screenshot",0,0,0,0,0.0000,0.0000
+"document",0,0,0,0,0.0000,0.0000
+"drawing",0,0,0,0,0.0000,0.0000
+"businessCard",0,0,0,0,0.0000,0.0000
+"receipt",0,0,0,0,0.0000,0.0000
+"sign",0,0,0,0,0.0000,0.0000
+"whiteboard",0,0,0,0,0.0000,0.0000
+"building",0,0,0,0,0.0000,0.0000
+"constructionSite",0,0,0,0,0.0000,0.0000
+"person",0,0,0,0,0.0000,0.0000
+"vehicleHeavyEquipment",0,0,0,0,0.0000,0.0000
+"materialEquipment",0,0,0,0,0.0000,0.0000
+"food",0,0,0,0,0.0000,0.0000
+"landscape",0,0,0,0,0.0000,0.0000
+"ocrNeeded",0,0,0,0,0.0000,0.0000

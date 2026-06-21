@@ -87,6 +87,37 @@ enum VisionClassificationProbeMode: String, CaseIterable, Codable, Identifiable 
     }
 }
 
+enum VisionBenchmarkReviewQueueKind: String, CaseIterable, Identifiable {
+    case all
+    case ocrPriority
+    case building
+    case constructionSite
+    case sign
+    case whiteboard
+    case document
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all:
+            return "最新ベンチ"
+        case .ocrPriority:
+            return "OCR優先候補"
+        case .building:
+            return "建物候補"
+        case .constructionSite:
+            return "工事現場候補"
+        case .sign:
+            return "看板候補"
+        case .whiteboard:
+            return "白板候補"
+        case .document:
+            return "書類候補"
+        }
+    }
+}
+
 struct VisionProbeTimingBreakdown: Codable, Hashable {
     let imageRequestMs: Double
     let classifyImageMs: Double
@@ -224,6 +255,10 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
     @Published private(set) var latestOutputDirectoryPath: String?
     @Published private(set) var groundTruthEntries: [String: VisionBenchmarkGroundTruthEntry]
     @Published private(set) var latestGroundTruthEvaluation: VisionBenchmarkGroundTruthEvaluation?
+    @Published private(set) var reviewQueueResults: [VisionClassificationProbeResult] = []
+    @Published private(set) var reviewQueueTitle = "未作成"
+    @Published private(set) var reviewIndex = 0
+    @Published private(set) var latestEvaluationExportPath: String?
     @Published var errorMessage: String?
 
     private let fileManager: FileManager
@@ -236,6 +271,41 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         self.probeService = VisionClassificationProbeService()
         self.groundTruthStore = VisionBenchmarkGroundTruthStore(fileManager: fileManager)
         self.groundTruthEntries = groundTruthStore.load()
+    }
+
+    var currentReviewResult: VisionClassificationProbeResult? {
+        guard reviewQueueResults.indices.contains(reviewIndex) else {
+            return nil
+        }
+        return reviewQueueResults[reviewIndex]
+    }
+
+    var reviewQueueCount: Int {
+        reviewQueueResults.count
+    }
+
+    var currentReviewNumber: Int {
+        guard reviewQueueResults.isEmpty == false else {
+            return 0
+        }
+        return reviewIndex + 1
+    }
+
+    var reviewQueueLabeledCount: Int {
+        reviewQueueResults.filter { result in
+            guard let entry = groundTruthEntries[result.assetIdentifierHash] else {
+                return false
+            }
+            return entry.tags.isEmpty == false
+        }.count
+    }
+
+    var reviewQueueUnlabeledCount: Int {
+        max(0, reviewQueueResults.count - reviewQueueLabeledCount)
+    }
+
+    var groundTruthSummary: VisionBenchmarkGroundTruthSummary {
+        VisionBenchmarkGroundTruthEvaluator.summarize(entriesByHash: groundTruthEntries)
     }
 
     func run(
@@ -350,6 +420,148 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         isRunning = false
     }
 
+    func runReviewQueue(
+        title: String,
+        limit: Int,
+        bucket: VisionClassificationBenchmarkBucket,
+        mode: VisionClassificationProbeMode
+    ) async {
+        await run(limit: limit, bucket: bucket, mode: mode)
+        prepareReviewQueue(kind: .all, limit: limit, titleOverride: title)
+    }
+
+    func prepareReviewQueue(
+        kind: VisionBenchmarkReviewQueueKind,
+        limit: Int = 20,
+        titleOverride: String? = nil
+    ) {
+        guard let latestReport else {
+            latestStatus = "先にVision分類ベンチを実行してください"
+            return
+        }
+
+        let matchedResults = latestReport.results.filter { result in
+            Self.result(result, matches: kind)
+        }
+        let queue = Array(matchedResults.prefix(max(1, limit)))
+        reviewQueueResults = queue
+        reviewIndex = 0
+        reviewQueueTitle = titleOverride ?? "\(kind.title)\(min(limit, matchedResults.count))件"
+
+        if queue.isEmpty {
+            latestStatus = "\(kind.title)は見つかりませんでした。別のキューか直近100件を試してください"
+        } else {
+            latestStatus = "\(reviewQueueTitle)を作成しました"
+        }
+    }
+
+    func moveToNextReviewItem() {
+        guard reviewQueueResults.isEmpty == false else {
+            return
+        }
+        reviewIndex = min(reviewIndex + 1, reviewQueueResults.count - 1)
+    }
+
+    func moveToPreviousReviewItem() {
+        guard reviewQueueResults.isEmpty == false else {
+            return
+        }
+        reviewIndex = max(reviewIndex - 1, 0)
+    }
+
+    func saveCurrentReviewAndAdvance() {
+        latestStatus = "正解ラベルを保存しました"
+        moveToNextReviewItem()
+    }
+
+    func skipCurrentReviewItem() {
+        latestStatus = "この写真をスキップしました"
+        moveToNextReviewItem()
+    }
+
+    func markCurrentReviewUnknown() {
+        guard let currentReviewResult else {
+            return
+        }
+        setGroundTruthTags([.unknown], for: currentReviewResult)
+        moveToNextReviewItem()
+    }
+
+    func clearGroundTruthTags(for result: VisionClassificationProbeResult) {
+        setGroundTruthTags([], for: result)
+    }
+
+    func evaluateLatestGroundTruth() {
+        recomputeGroundTruthEvaluation()
+        if latestGroundTruthEvaluation?.labeledAssetCount == 0 {
+            latestStatus = "正解ラベルがないため評価できません"
+        } else {
+            latestStatus = "ラベル済みデータで評価しました"
+        }
+    }
+
+    func exportLatestGroundTruthEvaluation() {
+        guard let latestReport else {
+            latestStatus = "先にVision分類ベンチを実行してください"
+            return
+        }
+
+        let evaluation = VisionBenchmarkGroundTruthEvaluator.evaluate(
+            results: latestReport.results,
+            entriesByHash: groundTruthEntries
+        )
+        latestGroundTruthEvaluation = evaluation
+
+        let outputDirectory = outputDirectoryURL()
+        let runID = Self.p08RunID()
+        let entries = groundTruthEntries.values.sorted { lhs, rhs in
+            lhs.assetIdentifierHash < rhs.assetIdentifierHash
+        }
+        let summary = groundTruthSummary
+
+        do {
+            try fileManager.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+            let groundTruthData = try encoder.encode(entries)
+            try groundTruthData.write(
+                to: outputDirectory.appendingPathComponent("p08_ground_truth_export_\(runID).json"),
+                options: [.atomic]
+            )
+
+            try groundTruthSummaryMarkdown(summary: summary, evaluation: evaluation).write(
+                to: outputDirectory.appendingPathComponent("p08_ground_truth_summary_\(runID).md"),
+                atomically: true,
+                encoding: .utf8
+            )
+            try p08EvaluationMarkdown(evaluation: evaluation, report: latestReport).write(
+                to: outputDirectory.appendingPathComponent("p08_evaluation_\(runID).md"),
+                atomically: true,
+                encoding: .utf8
+            )
+            try p08EvaluationCSV(evaluation: evaluation).write(
+                to: outputDirectory.appendingPathComponent("p08_evaluation_\(runID).csv"),
+                atomically: true,
+                encoding: .utf8
+            )
+            try reviewQueueSummaryMarkdown(report: latestReport).write(
+                to: outputDirectory.appendingPathComponent("p08_review_queue_summary_\(runID).md"),
+                atomically: true,
+                encoding: .utf8
+            )
+
+            latestOutputDirectoryPath = outputDirectory.path
+            latestEvaluationExportPath = outputDirectory.path
+            latestStatus = evaluation.labeledAssetCount == 0
+                ? "正解ラベルがないため評価は空でexportしました"
+                : "P0.8評価結果をexportしました"
+        } catch {
+            errorMessage = "P0.8評価結果のexportに失敗しました: \(error.localizedDescription)"
+        }
+    }
+
     func refreshSupportedIdentifiersOnly() {
         let summary = Self.makeSupportedIdentifierSummary()
         let outputDirectory = outputDirectoryURL()
@@ -391,7 +603,10 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
 
         if entry.tags.contains(tag) {
             entry.tags.remove(tag)
+        } else if tag == .unknown {
+            entry.tags = [.unknown]
         } else {
+            entry.tags.remove(.unknown)
             entry.tags.insert(tag)
         }
         entry.updatedAt = now
@@ -407,6 +622,36 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             groundTruthEntries = entries
             recomputeGroundTruthEvaluation()
             latestStatus = "正解ラベルを保存しました"
+        } catch {
+            errorMessage = "正解ラベルの保存に失敗しました: \(error.localizedDescription)"
+        }
+    }
+
+    private func setGroundTruthTags(
+        _ tags: Set<VisionBenchmarkGroundTruthTag>,
+        for result: VisionClassificationProbeResult
+    ) {
+        var entries = groundTruthEntries
+        let now = Date()
+
+        if tags.isEmpty {
+            entries.removeValue(forKey: result.assetIdentifierHash)
+        } else {
+            let existing = entries[result.assetIdentifierHash]
+            entries[result.assetIdentifierHash] = VisionBenchmarkGroundTruthEntry(
+                assetIdentifierHash: result.assetIdentifierHash,
+                tags: tags,
+                note: existing?.note ?? "",
+                createdAt: existing?.createdAt ?? now,
+                updatedAt: now
+            )
+        }
+
+        do {
+            try groundTruthStore.save(entries)
+            groundTruthEntries = entries
+            recomputeGroundTruthEvaluation()
+            latestStatus = tags.isEmpty ? "正解ラベルをクリアしました" : "正解ラベルを保存しました"
         } catch {
             errorMessage = "正解ラベルの保存に失敗しました: \(error.localizedDescription)"
         }
@@ -674,7 +919,7 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         }
 
         let lines = evaluation.metrics.map { metric in
-            "- \(metric.tag.rawValue): TP \(metric.truePositive), FP \(metric.falsePositive), FN \(metric.falseNegative), precision \(String(format: "%.2f", metric.precision)), recall \(String(format: "%.2f", metric.recall))"
+            "- \(metric.tag.rawValue): support \(metric.support), TP \(metric.truePositive), FP \(metric.falsePositive), FN \(metric.falseNegative), precision \(String(format: "%.2f", metric.precision)), recall \(String(format: "%.2f", metric.recall))"
         }
         .joined(separator: "\n")
 
@@ -722,6 +967,101 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         ## Safety
         - ground truth stores hashed asset identifiers and labels only.
         - image bodies, thumbnails, face images, and face templates are not saved.
+        """
+    }
+
+    private func groundTruthSummaryMarkdown(
+        summary: VisionBenchmarkGroundTruthSummary,
+        evaluation: VisionBenchmarkGroundTruthEvaluation
+    ) -> String {
+        let tagLines = summary.tagSummaries.map { item in
+            "- \(item.tag.title): \(item.count)"
+        }.joined(separator: "\n")
+
+        return """
+        # P0.8 Ground Truth Summary
+
+        - reviewedCount: \(summary.reviewedCount)
+        - evaluableCount: \(summary.evaluableCount)
+        - unknownCount: \(summary.unknownCount)
+        - evaluatedAt: \(ISO8601DateFormatter().string(from: evaluation.evaluatedAt))
+
+        ## Tags
+        \(tagLines.isEmpty ? "- none" : tagLines)
+
+        ## Notes
+        - asset identifiers are hashed.
+        - image bodies and thumbnails are not exported.
+        - face images and face templates are not exported.
+        """
+    }
+
+    private func p08EvaluationMarkdown(
+        evaluation: VisionBenchmarkGroundTruthEvaluation,
+        report: VisionClassificationBenchmarkReport
+    ) -> String {
+        """
+        # P0.8 Ground Truth Evaluation
+
+        - sourceRunID: \(report.runID)
+        - bucket: \(report.bucketTitle)
+        - probeMode: \(report.probeModeTitle)
+        - labeledAssets: \(evaluation.labeledAssetCount)
+        - evaluatedAt: \(ISO8601DateFormatter().string(from: evaluation.evaluatedAt))
+
+        ## Metrics
+        \(groundTruthEvaluationMarkdown(evaluation))
+
+        ## Empty Label Handling
+        \(evaluation.labeledAssetCount == 0 ? "- 正解ラベルがないためprecision / recallは参考値なしです。" : "- ラベル済みデータで再評価しました。")
+
+        ## Safety
+        - 画像本体は出力しません。
+        - サムネイル本体は出力しません。
+        - 顔画像/顔テンプレートは出力しません。
+        """
+    }
+
+    private func p08EvaluationCSV(evaluation: VisionBenchmarkGroundTruthEvaluation) -> String {
+        var lines = [
+            "tag,support,truePositive,falsePositive,falseNegative,precision,recall"
+        ]
+        for metric in evaluation.metrics {
+            lines.append([
+                Self.csvEscape(metric.tag.rawValue),
+                "\(metric.support)",
+                "\(metric.truePositive)",
+                "\(metric.falsePositive)",
+                "\(metric.falseNegative)",
+                String(format: "%.4f", metric.precision),
+                String(format: "%.4f", metric.recall)
+            ].joined(separator: ","))
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    private func reviewQueueSummaryMarkdown(report: VisionClassificationBenchmarkReport) -> String {
+        let queueLines = reviewQueueResults.enumerated().map { index, result in
+            let predicted = result.predictedGroundTruthTags.map(\.rawValue).sorted().joined(separator: "|")
+            let labels = groundTruthEntries[result.assetIdentifierHash]?.tags.map(\.rawValue).sorted().joined(separator: "|") ?? ""
+            return "- \(index + 1). \(result.assetIdentifierHash.prefix(12)) predicted=\(predicted.isEmpty ? "none" : predicted) labels=\(labels.isEmpty ? "none" : labels)"
+        }.joined(separator: "\n")
+
+        return """
+        # P0.8 Review Queue Summary
+
+        - sourceRunID: \(report.runID)
+        - queueTitle: \(reviewQueueTitle)
+        - queueCount: \(reviewQueueResults.count)
+        - labeledInQueue: \(reviewQueueLabeledCount)
+        - unlabeledInQueue: \(reviewQueueUnlabeledCount)
+
+        ## Items
+        \(queueLines.isEmpty ? "- none" : queueLines)
+
+        ## Safety
+        - asset identifiers are hashed.
+        - no image or thumbnail data is exported.
         """
     }
 
@@ -888,6 +1228,13 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         return "\(formatter.string(from: startedAt))_vision_probe_\(bucket.runIDComponent)_\(mode.runIDComponent)_\(limit)"
     }
 
+    private static func p08RunID() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        return "\(formatter.string(from: Date()))_p08_ground_truth"
+    }
+
     private static func deviceName() -> String {
         #if targetEnvironment(simulator)
         return "Simulator \(UIDevice.current.model)"
@@ -906,6 +1253,28 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             return 0
         }
         return values.reduce(0, +) / Double(values.count)
+    }
+
+    private static func result(
+        _ result: VisionClassificationProbeResult,
+        matches kind: VisionBenchmarkReviewQueueKind
+    ) -> Bool {
+        switch kind {
+        case .all:
+            return true
+        case .ocrPriority:
+            return result.scores.ocrPriorityScore >= 0.75
+        case .building:
+            return result.scores.buildingScore >= 0.45
+        case .constructionSite:
+            return result.scores.constructionSiteScore >= 0.35
+        case .sign:
+            return result.scores.signScore >= 0.45
+        case .whiteboard:
+            return result.scores.whiteboardScore >= 0.45
+        case .document:
+            return result.scores.documentScore >= 0.55
+        }
     }
 
     private static func makeSupportedIdentifierSummary() -> VisionSupportedIdentifierSummary {

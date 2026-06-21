@@ -46,6 +46,43 @@ Additional smoke check after adding ground-truth export:
 - `p06_ground_truth_20260621_210245_vision_probe_screenshot_gated_20.json`
 - Purpose: confirm K Phone build/install/launch and the P0.6 ground-truth export format. The exported ground-truth file contains no image bodies, thumbnails, or raw asset identifiers.
 
+## K Phone P0.8
+
+P0.8 adds a DEBUG-only manual review queue workflow and evaluation re-export for hand-labeled assets. It still does not write production classification data, PhotoGrid categories, OCR jobs, or SearchDocument rows.
+
+Smoke run:
+
+- source run: `20260621_212016_vision_probe_screenshot_gated_20`
+- bucket: screenshot
+- mode: gatedProbe
+- queue title: P0.8 smoke
+- queue count: 20
+- labeled in queue: 0
+- unlabeled in queue: 20
+- labeled assets for evaluation: 0
+
+Exported files:
+
+- `p08_ground_truth_summary_20260621_212018_p08_ground_truth.md`
+- `p08_ground_truth_export_20260621_212018_p08_ground_truth.json`
+- `p08_evaluation_20260621_212018_p08_ground_truth.md`
+- `p08_evaluation_20260621_212018_p08_ground_truth.csv`
+- `p08_review_queue_summary_20260621_212018_p08_ground_truth.md`
+
+P0.8 zero-label behavior:
+
+- Evaluation and export complete without crashing when no hand labels exist.
+- The exported evaluation states that precision / recall are not meaningful because there are no ground-truth labels.
+- Metrics include `support`, `TP`, `FP`, `FN`, `precision`, and `recall`.
+
+P0.8 safety:
+
+- Asset identifiers are hashed.
+- Image bodies are not exported.
+- Thumbnails are not exported.
+- Face images and face templates are not exported.
+- The review thumbnail is display-only inside the DEBUG UI.
+
 ## P0.6 Notes
 
 - `gatedProbe` is the production candidate for screenshots: it skips image loading and heavy Vision requests, keeps OCR priority, and prevents screenshots from becoming final document candidates.

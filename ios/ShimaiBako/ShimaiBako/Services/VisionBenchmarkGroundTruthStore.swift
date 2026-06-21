@@ -70,6 +70,20 @@ struct VisionBenchmarkGroundTruthEntry: Codable, Hashable {
     var updatedAt: Date
 }
 
+struct VisionBenchmarkGroundTruthTagSummary: Codable, Hashable, Identifiable {
+    var id: String { tag.rawValue }
+
+    let tag: VisionBenchmarkGroundTruthTag
+    let count: Int
+}
+
+struct VisionBenchmarkGroundTruthSummary: Codable, Hashable {
+    let reviewedCount: Int
+    let evaluableCount: Int
+    let unknownCount: Int
+    let tagSummaries: [VisionBenchmarkGroundTruthTagSummary]
+}
+
 struct VisionBenchmarkEvaluationMetric: Codable, Hashable, Identifiable {
     var id: String { tag.rawValue }
 
@@ -77,6 +91,7 @@ struct VisionBenchmarkEvaluationMetric: Codable, Hashable, Identifiable {
     let truePositive: Int
     let falsePositive: Int
     let falseNegative: Int
+    let support: Int
 
     var precision: Double {
         let denominator = truePositive + falsePositive
@@ -177,10 +192,14 @@ enum VisionBenchmarkGroundTruthEvaluator {
             var truePositive = 0
             var falsePositive = 0
             var falseNegative = 0
+            var support = 0
 
             for result in labeledResults {
                 let expected = entriesByHash[result.assetIdentifierHash]?.tags.contains(tag) ?? false
                 let predicted = result.predictedGroundTruthTags.contains(tag)
+                if expected {
+                    support += 1
+                }
 
                 if expected && predicted {
                     truePositive += 1
@@ -195,7 +214,8 @@ enum VisionBenchmarkGroundTruthEvaluator {
                 tag: tag,
                 truePositive: truePositive,
                 falsePositive: falsePositive,
-                falseNegative: falseNegative
+                falseNegative: falseNegative,
+                support: support
             )
         }
 
@@ -203,6 +223,25 @@ enum VisionBenchmarkGroundTruthEvaluator {
             labeledAssetCount: labeledResults.count,
             evaluatedAt: Date(),
             metrics: metrics
+        )
+    }
+
+    static func summarize(entriesByHash: [String: VisionBenchmarkGroundTruthEntry]) -> VisionBenchmarkGroundTruthSummary {
+        let reviewedEntries = entriesByHash.values.filter { $0.tags.isEmpty == false }
+        let evaluableEntries = reviewedEntries.filter { $0.tags.contains(.unknown) == false }
+        let unknownCount = reviewedEntries.filter { $0.tags.contains(.unknown) }.count
+        let tagSummaries = VisionBenchmarkGroundTruthTag.allCases.map { tag in
+            VisionBenchmarkGroundTruthTagSummary(
+                tag: tag,
+                count: reviewedEntries.filter { $0.tags.contains(tag) }.count
+            )
+        }
+
+        return VisionBenchmarkGroundTruthSummary(
+            reviewedCount: reviewedEntries.count,
+            evaluableCount: evaluableEntries.count,
+            unknownCount: unknownCount,
+            tagSummaries: tagSummaries
         )
     }
 }
