@@ -102,6 +102,16 @@ struct ContentView: View {
                         indexService: indexService
                     )
                 }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunMetadataOnlyOrganizationValidation") {
+                    if photoLibrary.canReadPhotos, photoLibrary.assets.isEmpty {
+                        await photoLibrary.loadRecentAssets()
+                    }
+                    await waitForMetadataOnlyOrganizationValidationInputs()
+                    await classificationService.runMetadataOnlyOrganizationValidation(
+                        assets: photoLibrary.assets,
+                        indexService: indexService
+                    )
+                }
                 #endif
             }
             .onChange(of: scenePhase) { _, newPhase in
@@ -156,6 +166,18 @@ struct ContentView: View {
     private func waitForReadStateDiagnosticsInputs() async {
         for _ in 0..<160 {
             if photoLibrary.isLoading == false, indexService.isIndexStorePreparing == false {
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
+
+    private func waitForMetadataOnlyOrganizationValidationInputs() async {
+        for _ in 0..<240 {
+            if photoLibrary.isLoading == false,
+               indexService.isIndexStorePreparing == false,
+               classificationService.isLoading == false {
                 return
             }
 

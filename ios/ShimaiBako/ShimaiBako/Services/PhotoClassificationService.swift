@@ -13,6 +13,7 @@ final class PhotoClassificationService: ObservableObject {
     @Published var errorMessage: String?
     #if DEBUG
     @Published private(set) var selfTestReport: PhotoClassificationSelfTestReport?
+    @Published private(set) var metadataValidationReport: MetadataOnlyOrganizationValidationReport?
     #endif
 
     private let store: PhotoClassificationStoring
@@ -208,9 +209,133 @@ final class PhotoClassificationService: ObservableObject {
         selfTestReport = report
         return report
     }
+
+    @discardableResult
+    func runMetadataOnlyOrganizationValidation(
+        assets: [PhotoAsset],
+        indexService: PhotoIndexService
+    ) async -> MetadataOnlyOrganizationValidationReport {
+        let manualReport = runManualPrioritySelfTest()
+        await updateMetadataOnly(assets: assets, indexService: indexService)
+
+        let summary = self.summary
+        var failureReasons: [String] = []
+        if assets.isEmpty {
+            failureReasons.append("totalAssets is 0")
+        }
+        if summary.totalCount == 0 {
+            failureReasons.append("summaryTotalCount is 0")
+        }
+        if summary.classifiedCount < 0 ||
+            summary.screenshotCount < 0 ||
+            summary.readCandidateCount < 0 ||
+            summary.needsReviewCount < 0 ||
+            summary.unorganizedCount < 0 {
+            failureReasons.append("summary contains negative count")
+        }
+        if summary.classifiedCount > summary.totalCount {
+            failureReasons.append("classifiedCount exceeds summaryTotalCount")
+        }
+        if summary.screenshotCount > summary.totalCount {
+            failureReasons.append("screenshotCount exceeds summaryTotalCount")
+        }
+        if summary.readCandidateCount > summary.totalCount {
+            failureReasons.append("readCandidateCount exceeds summaryTotalCount")
+        }
+        if summary.needsReviewCount > summary.totalCount {
+            failureReasons.append("needsReviewCount exceeds summaryTotalCount")
+        }
+        if summary.unorganizedCount > summary.totalCount {
+            failureReasons.append("unorganizedCount exceeds summaryTotalCount")
+        }
+        if manualReport.passed == false {
+            failureReasons.append("manualPrioritySelfTest failed")
+        }
+
+        let report = MetadataOnlyOrganizationValidationReport(
+            generatedAt: Date(),
+            totalAssets: assets.count,
+            summaryTotalCount: summary.totalCount,
+            classifiedCount: summary.classifiedCount,
+            screenshotCount: summary.screenshotCount,
+            readCandidateCount: summary.readCandidateCount,
+            needsReviewCount: summary.needsReviewCount,
+            unorganizedCount: summary.unorganizedCount,
+            updatedClassifications: lastUpdateSummary.processedCount,
+            skippedManualClassifications: lastUpdateSummary.manualProtectedCount,
+            usedVision: false,
+            usedImageBody: false,
+            usedThumbnailBody: false,
+            usedPhotoKitWriteAPI: false,
+            manualPrioritySelfTest: manualReport.passed ? "PASS" : "FAIL",
+            result: failureReasons.isEmpty ? "PASS" : "FAIL",
+            failureReasons: failureReasons
+        )
+
+        metadataValidationReport = report
+        await saveMetadataValidationReport(report)
+        print("METADATA_ORGANIZATION_VALIDATION \(report.result) totalAssets=\(report.totalAssets) classified=\(report.classifiedCount) screenshot=\(report.screenshotCount) readCandidate=\(report.readCandidateCount) unorganized=\(report.unorganizedCount)")
+        return report
+    }
     #endif
 
     private static let readCandidateTag = "readCandidate"
+
+    #if DEBUG
+    private func saveMetadataValidationReport(_ report: MetadataOnlyOrganizationValidationReport) async {
+        let urls = metadataValidationReportURLs()
+        var lastError: Error?
+
+        for url in urls {
+            do {
+                let directoryURL = url.deletingLastPathComponent()
+                try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+
+                let data = try encoder.encode(report)
+                try data.write(to: url, options: [.atomic])
+                print("METADATA_ORGANIZATION_VALIDATION_REPORT_SAVED path=\(url.path)")
+                return
+            } catch {
+                lastError = error
+            }
+        }
+
+        if let lastError {
+            errorMessage = "軽量整理検証結果を保存できませんでした: \(lastError.localizedDescription)"
+            print("METADATA_ORGANIZATION_VALIDATION_REPORT_SAVE_FAILED error=\(lastError.localizedDescription)")
+        } else {
+            errorMessage = "軽量整理検証結果を保存できませんでした。"
+            print("METADATA_ORGANIZATION_VALIDATION_REPORT_SAVE_FAILED error=unknown")
+        }
+    }
+
+    private func metadataValidationReportURLs() -> [URL] {
+        let supportBaseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first ?? FileManager.default.temporaryDirectory
+        let documentBaseURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+            .first ?? FileManager.default.temporaryDirectory
+        let cacheBaseURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
+            .first ?? FileManager.default.temporaryDirectory
+        return [
+            supportBaseURL
+                .appendingPathComponent("ShimaiBako", isDirectory: true)
+                .appendingPathComponent("debug_metadata_organization_validation.json"),
+            supportBaseURL
+                .appendingPathComponent("ShimaiBakoData", isDirectory: true)
+                .appendingPathComponent("debug_metadata_organization_validation.json"),
+            documentBaseURL
+                .appendingPathComponent("ShimaiBakoData", isDirectory: true)
+                .appendingPathComponent("debug_metadata_organization_validation.json"),
+            cacheBaseURL
+                .appendingPathComponent("ShimaiBakoData", isDirectory: true)
+                .appendingPathComponent("debug_metadata_organization_validation.json")
+        ]
+    }
+    #endif
 }
 
 private extension PhotoClassification {
@@ -265,12 +390,13 @@ private extension PhotoClassification {
     }
 
     private func updatedTags(_ tags: [String], tag: String, enabled: Bool) -> [String] {
-        var tagSet = Set(tags)
+        var nextTags = Set(tags)
         if enabled {
-            tagSet.insert(tag)
+            nextTags.insert(tag)
         } else {
-            tagSet.remove(tag)
+            nextTags.remove(tag)
         }
-        return tagSet.sorted()
+
+        return Array(nextTags).sorted()
     }
 }

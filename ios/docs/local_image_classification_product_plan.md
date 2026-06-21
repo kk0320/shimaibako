@@ -258,3 +258,67 @@ resolvedCategory = manualCategory ?? autoPrimaryCategory
 ```
 
 手動分類済みの写真は、軽量整理更新後も手動分類を表示上の分類として維持する。
+
+## P2.6 DEBUG軽量整理検証
+
+P2.6では、実機画面を自動タップできない環境でも、整理タブの「軽量整理を更新」ボタン相当の経路を確認できるようにする。DEBUGビルド限定で次の起動引数を使う。
+
+```text
+-ShimaiBakoRunMetadataOnlyOrganizationValidation
+```
+
+この起動引数では、整理タブのボタンと同じ `PhotoClassificationService.updateMetadataOnly` 経路を呼び出す。ボタン専用とは別の検証ロジックを作らず、読み込み済み写真と既存PhotoIndexメタデータだけで件数更新できることを確認する。
+
+検証結果はアプリ内の次のJSONに保存する。
+
+```text
+Application Support/ShimaiBako/debug_metadata_organization_validation.json
+```
+
+既存検証データなどの影響で上記ディレクトリに書き込めない場合は、同じApplication Support内の次の場所へフォールバックする。
+
+```text
+Application Support/ShimaiBakoData/debug_metadata_organization_validation.json
+```
+
+それでも実機環境でApplication Supportへの書き込みが拒否される場合は、アプリ内DocumentsまたはCachesの `ShimaiBakoData` 配下へ退避する。いずれもアプリ内データであり、写真本体やサムネイル本体は保存しない。
+
+JSONには次を記録する。
+
+- 全体件数
+- 分類済み件数
+- スクショ件数
+- 読取候補件数
+- 要確認件数
+- 未整理件数
+- 更新した分類件数
+- 手動分類保護件数
+- 手動分類優先セルフテスト結果
+- Vision、画像本体、サムネイル本体、PhotoKit書き込みAPIを使っていないこと
+
+必要に応じて、整理タブを開く起動引数と組み合わせる。
+
+```text
+-ShimaiBakoOpenOrganizationTab
+-ShimaiBakoRunMetadataOnlyOrganizationValidation
+```
+
+### P2.6で使わないもの
+
+- Vision分類の本番処理
+- 画像本体取得
+- サムネイル本体取得
+- 顔画像、顔テンプレート、特徴ベクトル
+- ClassificationJob
+- 読取タブ本連携
+- PhotoKit書き込み/削除API
+
+### main merge前の合格条件
+
+- DEBUG起動引数で軽量整理検証が完了する
+- `totalAssets > 0` の実機環境で検証JSONがPASSになる
+- `manualCategory` が自動分類で上書きされない
+- 整理タブsummaryが保存済み分類データから読める
+- 写真タブ、検索タブ、読取タブ、設定タブが起動できる
+- BatchOCR、検索、写真タブの性能に影響しない
+- 元写真・元動画を削除・変更しない

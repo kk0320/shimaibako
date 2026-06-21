@@ -279,4 +279,28 @@ struct PhotoClassificationSelfTestReport: Equatable {
         passed ? "手動分類優先セルフテスト PASS" : "手動分類優先セルフテストで確認が必要です"
     }
 }
+
+struct MetadataOnlyOrganizationValidationReport: Codable, Equatable {
+    var generatedAt: Date
+    var totalAssets: Int
+    var summaryTotalCount: Int
+    var classifiedCount: Int
+    var screenshotCount: Int
+    var readCandidateCount: Int
+    var needsReviewCount: Int
+    var unorganizedCount: Int
+    var updatedClassifications: Int
+    var skippedManualClassifications: Int
+    var usedVision: Bool
+    var usedImageBody: Bool
+    var usedThumbnailBody: Bool
+    var usedPhotoKitWriteAPI: Bool
+    var manualPrioritySelfTest: String
+    var result: String
+    var failureReasons: [String]
+
+    var passed: Bool {
+        result == "PASS"
+    }
+}
 #endif

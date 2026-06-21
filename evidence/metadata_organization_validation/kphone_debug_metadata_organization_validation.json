@@ -1,0 +1,21 @@
+{
+  "classifiedCount" : 81,
+  "failureReasons" : [
+
+  ],
+  "generatedAt" : "2026-06-21T23:49:44Z",
+  "manualPrioritySelfTest" : "PASS",
+  "needsReviewCount" : 0,
+  "readCandidateCount" : 81,
+  "result" : "PASS",
+  "screenshotCount" : 81,
+  "skippedManualClassifications" : 0,
+  "summaryTotalCount" : 100,
+  "totalAssets" : 100,
+  "unorganizedCount" : 19,
+  "updatedClassifications" : 100,
+  "usedImageBody" : false,
+  "usedPhotoKitWriteAPI" : false,
+  "usedThumbnailBody" : false,
+  "usedVision" : false
+}
