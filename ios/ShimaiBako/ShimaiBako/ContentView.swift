@@ -99,16 +99,25 @@ struct ContentView: View {
                     )
                 }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmark20") {
-                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .allRecent)
+                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .allRecent, mode: .full)
                 }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmark100") {
-                    await visionClassificationBenchmarkRunner.run(limit: 100, bucket: .allRecent)
+                    await visionClassificationBenchmarkRunner.run(limit: 100, bucket: .allRecent, mode: .full)
                 }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkScreenshot20") {
-                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .screenshot)
+                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .screenshot, mode: .full)
                 }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkNonScreenshot20") {
-                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .nonScreenshot)
+                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .nonScreenshot, mode: .full)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkRecent100Gated") {
+                    await visionClassificationBenchmarkRunner.run(limit: 100, bucket: .allRecent, mode: .gated)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkScreenshot20Gated") {
+                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .screenshot, mode: .gated)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionClassificationBenchmarkNonScreenshot20Gated") {
+                    await visionClassificationBenchmarkRunner.run(limit: 20, bucket: .nonScreenshot, mode: .gated)
                 }
                 #endif
             }

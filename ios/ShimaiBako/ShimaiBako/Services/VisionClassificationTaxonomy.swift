@@ -57,6 +57,8 @@ enum VisionClassificationTaxonomy {
         "architecture",
         "blackboard",
         "business_card",
+        "construction",
+        "drawing",
         "excavator",
         "face",
         "heavy_equipment",

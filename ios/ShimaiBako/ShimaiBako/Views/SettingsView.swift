@@ -739,13 +739,18 @@ struct SettingsView: View {
 
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
-                    visionBenchmarkButton(title: "直近20件", limit: 20, bucket: .allRecent, prominent: false)
-                    visionBenchmarkButton(title: "直近100件", limit: 100, bucket: .allRecent, prominent: true)
+                    visionBenchmarkButton(title: "直近100 full", limit: 100, bucket: .allRecent, mode: .full, prominent: true)
+                    visionBenchmarkButton(title: "直近100 gated", limit: 100, bucket: .allRecent, mode: .gated, prominent: false)
                 }
 
                 HStack(spacing: 8) {
-                    visionBenchmarkButton(title: "スクショ20件", limit: 20, bucket: .screenshot, prominent: false)
-                    visionBenchmarkButton(title: "スクショ以外20件", limit: 20, bucket: .nonScreenshot, prominent: false)
+                    visionBenchmarkButton(title: "スクショ full", limit: 20, bucket: .screenshot, mode: .full, prominent: false)
+                    visionBenchmarkButton(title: "スクショ gated", limit: 20, bucket: .screenshot, mode: .gated, prominent: false)
+                }
+
+                HStack(spacing: 8) {
+                    visionBenchmarkButton(title: "非スクショ full", limit: 20, bucket: .nonScreenshot, mode: .full, prominent: false)
+                    visionBenchmarkButton(title: "非スクショ gated", limit: 20, bucket: .nonScreenshot, mode: .gated, prominent: false)
                 }
             }
 
@@ -774,8 +779,12 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     DetailInfoRow(title: "最終実行", value: DateFormatter.localizedString(from: report.finishedAt, dateStyle: .short, timeStyle: .short))
                     DetailInfoRow(title: "Bucket", value: report.bucketTitle)
+                    DetailInfoRow(title: "Mode", value: report.probeModeTitle)
                     DetailInfoRow(title: "件数", value: "\(report.actualCount) / \(report.requestedCount)件")
                     DetailInfoRow(title: "平均", value: "\(String(format: "%.1f", report.averageMsPerAsset)) ms/件")
+                    DetailInfoRow(title: "画像取得", value: "\(String(format: "%.1f", report.averageImageRequestMs)) ms/件")
+                    DetailInfoRow(title: "分類", value: "\(String(format: "%.1f", report.averageClassifyImageMs)) ms/件")
+                    DetailInfoRow(title: "書類seg", value: "\(String(format: "%.1f", report.averageDocumentSegmentationMs)) ms/件")
                     DetailInfoRow(title: "失敗", value: "\(report.failedCount)件")
                     DetailInfoRow(title: "スクショ候補", value: "\(report.screenshotCandidateCount)件")
                     DetailInfoRow(title: "人物候補", value: "\(max(report.faceDetectedCount, report.humanDetectedCount))件")
@@ -785,9 +794,12 @@ struct SettingsView: View {
                     DetailInfoRow(title: "建物候補", value: "\(report.likelyBuildingCount)件")
                     DetailInfoRow(title: "看板候補", value: "\(report.likelySignCount)件")
                     DetailInfoRow(title: "OCR優先候補", value: "\(report.ocrPriorityCandidateCount)件")
+                    DetailInfoRow(title: "正解ラベル", value: "\(report.groundTruthEvaluation?.labeledAssetCount ?? 0)件")
                     DetailInfoRow(title: "ラベル数", value: "\(report.supportedIdentifiers.totalCount)件")
                 }
                 .padding(.top, 4)
+
+                visionGroundTruthReview(report: report)
             }
 
             if let outputPath = visionClassificationBenchmarkRunner.latestOutputDirectoryPath {
@@ -814,14 +826,15 @@ struct SettingsView: View {
         title: String,
         limit: Int,
         bucket: VisionClassificationBenchmarkBucket,
+        mode: VisionClassificationProbeMode,
         prominent: Bool
     ) -> some View {
         Group {
             if prominent {
-                visionBenchmarkBaseButton(title: title, limit: limit, bucket: bucket)
+                visionBenchmarkBaseButton(title: title, limit: limit, bucket: bucket, mode: mode)
                     .buttonStyle(.borderedProminent)
             } else {
-                visionBenchmarkBaseButton(title: title, limit: limit, bucket: bucket)
+                visionBenchmarkBaseButton(title: title, limit: limit, bucket: bucket, mode: mode)
                     .buttonStyle(.bordered)
             }
         }
@@ -831,11 +844,12 @@ struct SettingsView: View {
     private func visionBenchmarkBaseButton(
         title: String,
         limit: Int,
-        bucket: VisionClassificationBenchmarkBucket
+        bucket: VisionClassificationBenchmarkBucket,
+        mode: VisionClassificationProbeMode
     ) -> some View {
         Button {
             Task {
-                await visionClassificationBenchmarkRunner.run(limit: limit, bucket: bucket)
+                await visionClassificationBenchmarkRunner.run(limit: limit, bucket: bucket, mode: mode)
             }
         } label: {
             Label(title, systemImage: "play.circle")
@@ -844,6 +858,30 @@ struct SettingsView: View {
                 .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity)
         }
+    }
+
+    @ViewBuilder
+    private func visionGroundTruthReview(report: VisionClassificationBenchmarkReport) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Divider()
+
+            Label("正解ラベルレビュー", systemImage: "checklist")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("最新ベンチの先頭20件に手動ラベルを付けます。保存するのはハッシュ化IDとラベルだけで、画像本体やサムネイルは保存しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ForEach(Array(report.results.prefix(20))) { result in
+                VisionGroundTruthReviewRow(
+                    result: result,
+                    runner: visionClassificationBenchmarkRunner
+                )
+            }
+        }
+        .padding(.top, 8)
     }
     #endif
 
@@ -1203,3 +1241,90 @@ private struct DetailInfoRow: View {
         }
     }
 }
+
+#if DEBUG
+private struct VisionGroundTruthReviewRow: View {
+    let result: VisionClassificationProbeResult
+    @ObservedObject var runner: VisionClassificationBenchmarkRunner
+    @State private var thumbnail: UIImage?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                Group {
+                    if let thumbnail {
+                        Image(uiImage: thumbnail)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.black.opacity(0.08))
+                            Image(systemName: "photo")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .frame(width: 58, height: 58)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(result.assetIdentifierHash.prefix(12)))
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.secondary)
+
+                    Text(result.topVisualLabels.prefix(3).map { label in
+                        "\(label.identifier) \(String(format: "%.2f", label.confidence))"
+                    }.joined(separator: ", ").isEmpty ? "ラベルなし" : result.topVisualLabels.prefix(3).map { label in
+                        "\(label.identifier) \(String(format: "%.2f", label.confidence))"
+                    }.joined(separator: ", "))
+                        .font(.caption2)
+                        .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                        .lineLimit(2)
+
+                    Text("mode \(result.probeMode) / OCR \(String(format: "%.2f", result.scores.ocrPriorityScore)) / doc \(String(format: "%.2f", result.scores.documentScore))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(VisionBenchmarkGroundTruthTag.allCases) { tag in
+                        Button {
+                            runner.toggleGroundTruthTag(tag, for: result)
+                        } label: {
+                            Text(tag.title)
+                                .font(.caption2.weight(.semibold))
+                                .lineLimit(1)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .foregroundStyle(isSelected(tag) ? .white : Color(red: 0.09, green: 0.18, blue: 0.30))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(isSelected(tag) ? Color(red: 0.16, green: 0.42, blue: 0.75) : Color.white.opacity(0.9))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(height: 30)
+            .clipped()
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
+        .task(id: result.assetIdentifierHash) {
+            thumbnail = await runner.thumbnail(for: result)
+        }
+    }
+
+    private func isSelected(_ tag: VisionBenchmarkGroundTruthTag) -> Bool {
+        runner.isGroundTruthTagSelected(tag, for: result)
+    }
+}
+#endif

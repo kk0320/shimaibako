@@ -62,16 +62,67 @@ enum VisionClassificationBenchmarkBucket: String, CaseIterable, Codable, Identif
     }
 }
 
+enum VisionClassificationProbeMode: String, CaseIterable, Codable, Identifiable {
+    case full
+    case gated
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .full:
+            return "fullProbe"
+        case .gated:
+            return "gatedProbe"
+        }
+    }
+
+    var runIDComponent: String {
+        switch self {
+        case .full:
+            return "full"
+        case .gated:
+            return "gated"
+        }
+    }
+}
+
+struct VisionProbeTimingBreakdown: Codable, Hashable {
+    let imageRequestMs: Double
+    let classifyImageMs: Double
+    let faceDetectionMs: Double
+    let humanDetectionMs: Double
+    let documentSegmentationMs: Double
+    let visualFeatureMs: Double
+    let scoringMs: Double
+    let totalElapsedMs: Double
+
+    static let empty = VisionProbeTimingBreakdown(
+        imageRequestMs: 0,
+        classifyImageMs: 0,
+        faceDetectionMs: 0,
+        humanDetectionMs: 0,
+        documentSegmentationMs: 0,
+        visualFeatureMs: 0,
+        scoringMs: 0,
+        totalElapsedMs: 0
+    )
+}
+
 struct VisionProbeScores: Codable, Hashable {
     let screenshotScore: Double
     let documentLabelScore: Double
     let documentVisualScore: Double
+    let documentSegmentationScore: Double
+    let documentScoreWithoutSegmentation: Double
     let documentScore: Double
     let personScore: Double
     let foodScore: Double
     let landscapeScore: Double
     let buildingScore: Double
     let constructionSiteScore: Double
+    let vehicleHeavyEquipmentScore: Double
+    let materialEquipmentScore: Double
     let signScore: Double
     let whiteboardScore: Double
     let businessCardScore: Double
@@ -84,6 +135,7 @@ struct VisionClassificationProbeResult: Codable, Identifiable, Hashable {
 
     let assetIdentifierHash: String
     let bucketName: String
+    let probeMode: String
     let pixelWidth: Int
     let pixelHeight: Int
     let mediaType: String
@@ -103,6 +155,7 @@ struct VisionClassificationProbeResult: Codable, Identifiable, Hashable {
     let hasDocumentSegment: Bool
     let documentElapsedMs: Double
     let scores: VisionProbeScores
+    let timing: VisionProbeTimingBreakdown
     let elapsedMs: Double
     let errorMessage: String?
 }
@@ -119,6 +172,8 @@ struct VisionClassificationBenchmarkReport: Codable, Hashable {
     let runID: String
     let bucketName: String
     let bucketTitle: String
+    let probeMode: String
+    let probeModeTitle: String
     let deviceName: String
     let photoAuthorizationStatus: String
     let totalAvailableImageCount: Int
@@ -128,6 +183,13 @@ struct VisionClassificationBenchmarkReport: Codable, Hashable {
     let finishedAt: Date
     let averageMsPerAsset: Double
     let maxMsPerAsset: Double
+    let averageImageRequestMs: Double
+    let averageClassifyImageMs: Double
+    let averageFaceDetectionMs: Double
+    let averageHumanDetectionMs: Double
+    let averageDocumentSegmentationMs: Double
+    let averageVisualFeatureMs: Double
+    let averageScoringMs: Double
     let failedCount: Int
     let nonScreenshotCount: Int
     let screenshotCandidateCount: Int
@@ -145,6 +207,9 @@ struct VisionClassificationBenchmarkReport: Codable, Hashable {
     let likelyBusinessCardCount: Int
     let likelyFoodCount: Int
     let likelyConstructionSiteCount: Int
+    let likelyVehicleHeavyEquipmentCount: Int
+    let likelyMaterialEquipmentCount: Int
+    let groundTruthEvaluation: VisionBenchmarkGroundTruthEvaluation?
     let supportedIdentifiers: VisionSupportedIdentifierSummary
     let outputDirectoryPath: String
     let results: [VisionClassificationProbeResult]
@@ -157,19 +222,26 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
     @Published private(set) var latestStatus: String?
     @Published private(set) var progressText: String?
     @Published private(set) var latestOutputDirectoryPath: String?
+    @Published private(set) var groundTruthEntries: [String: VisionBenchmarkGroundTruthEntry]
+    @Published private(set) var latestGroundTruthEvaluation: VisionBenchmarkGroundTruthEvaluation?
     @Published var errorMessage: String?
 
     private let fileManager: FileManager
     private let probeService: VisionClassificationProbeService
+    private let groundTruthStore: VisionBenchmarkGroundTruthStore
+    private var latestReviewAssetsByHash: [String: PHAsset] = [:]
 
     init(fileManager: FileManager = .default) {
         self.fileManager = fileManager
         self.probeService = VisionClassificationProbeService()
+        self.groundTruthStore = VisionBenchmarkGroundTruthStore(fileManager: fileManager)
+        self.groundTruthEntries = groundTruthStore.load()
     }
 
     func run(
         limit: Int,
-        bucket: VisionClassificationBenchmarkBucket = .allRecent
+        bucket: VisionClassificationBenchmarkBucket = .allRecent,
+        mode: VisionClassificationProbeMode = .full
     ) async {
         guard isRunning == false else {
             return
@@ -182,10 +254,13 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
 
         let requestedCount = max(1, min(limit, 100))
         let startedAt = Date()
-        let runID = Self.runID(startedAt: startedAt, limit: requestedCount, bucket: bucket)
+        let runID = Self.runID(startedAt: startedAt, limit: requestedCount, bucket: bucket, mode: mode)
         let supportedSummary = Self.makeSupportedIdentifierSummary()
         let selection = fetchImageAssets(limit: requestedCount, bucket: bucket)
         let assets = selection.assets
+        latestReviewAssetsByHash = Dictionary(
+            uniqueKeysWithValues: assets.map { (Self.hashIdentifier($0.localIdentifier), $0) }
+        )
         var results: [VisionClassificationProbeResult] = []
         results.reserveCapacity(assets.count)
 
@@ -197,7 +272,7 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             latestStatus = "解析中"
             progressText = "\(index + 1) / \(assets.count)件"
 
-            let result = await probeService.analyze(asset: asset, bucketName: bucket.rawValue)
+            let result = await probeService.analyze(asset: asset, bucketName: bucket.rawValue, mode: mode)
             results.append(result)
             await Task.yield()
         }
@@ -207,10 +282,16 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         let average = elapsedValues.isEmpty ? 0 : elapsedValues.reduce(0, +) / Double(elapsedValues.count)
         let maxElapsed = elapsedValues.max() ?? 0
         let outputDirectory = outputDirectoryURL()
+        let evaluation = VisionBenchmarkGroundTruthEvaluator.evaluate(
+            results: results,
+            entriesByHash: groundTruthEntries
+        )
         let report = VisionClassificationBenchmarkReport(
             runID: runID,
             bucketName: bucket.rawValue,
             bucketTitle: bucket.title,
+            probeMode: mode.rawValue,
+            probeModeTitle: mode.title,
             deviceName: Self.deviceName(),
             photoAuthorizationStatus: selection.authorizationStatus,
             totalAvailableImageCount: selection.totalAvailableImageCount,
@@ -220,6 +301,13 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             finishedAt: finishedAt,
             averageMsPerAsset: average,
             maxMsPerAsset: maxElapsed,
+            averageImageRequestMs: Self.average(results.map(\.timing.imageRequestMs)),
+            averageClassifyImageMs: Self.average(results.map(\.timing.classifyImageMs)),
+            averageFaceDetectionMs: Self.average(results.map(\.timing.faceDetectionMs)),
+            averageHumanDetectionMs: Self.average(results.map(\.timing.humanDetectionMs)),
+            averageDocumentSegmentationMs: Self.average(results.map(\.timing.documentSegmentationMs)),
+            averageVisualFeatureMs: Self.average(results.map(\.timing.visualFeatureMs)),
+            averageScoringMs: Self.average(results.map(\.timing.scoringMs)),
             failedCount: results.filter { $0.errorMessage != nil }.count,
             nonScreenshotCount: results.filter { $0.isScreenshot == false }.count,
             screenshotCandidateCount: results.filter { $0.scores.screenshotScore >= 0.7 }.count,
@@ -237,6 +325,9 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             likelyBusinessCardCount: results.filter { $0.scores.businessCardScore >= 0.45 }.count,
             likelyFoodCount: results.filter { $0.scores.foodScore >= 0.45 }.count,
             likelyConstructionSiteCount: results.filter { $0.scores.constructionSiteScore >= 0.35 }.count,
+            likelyVehicleHeavyEquipmentCount: results.filter { $0.scores.vehicleHeavyEquipmentScore >= 0.45 }.count,
+            likelyMaterialEquipmentCount: results.filter { $0.scores.materialEquipmentScore >= 0.45 }.count,
+            groundTruthEvaluation: evaluation,
             supportedIdentifiers: supportedSummary,
             outputDirectoryPath: outputDirectory.path,
             results: results
@@ -247,10 +338,12 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             latestOutputDirectoryPath = outputDirectory.path
             latestStatus = "Vision分類ベンチが完了しました"
             latestReport = report
+            latestGroundTruthEvaluation = evaluation
         } catch {
             errorMessage = "ベンチ結果の保存に失敗しました: \(error.localizedDescription)"
             latestStatus = "保存に失敗しました"
             latestReport = report
+            latestGroundTruthEvaluation = evaluation
         }
 
         progressText = "\(results.count) / \(requestedCount)件"
@@ -273,6 +366,100 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         } catch {
             errorMessage = "ラベル棚卸しの保存に失敗しました: \(error.localizedDescription)"
         }
+    }
+
+    func isGroundTruthTagSelected(
+        _ tag: VisionBenchmarkGroundTruthTag,
+        for result: VisionClassificationProbeResult
+    ) -> Bool {
+        groundTruthEntries[result.assetIdentifierHash]?.tags.contains(tag) ?? false
+    }
+
+    func toggleGroundTruthTag(
+        _ tag: VisionBenchmarkGroundTruthTag,
+        for result: VisionClassificationProbeResult
+    ) {
+        var entries = groundTruthEntries
+        let now = Date()
+        var entry = entries[result.assetIdentifierHash] ?? VisionBenchmarkGroundTruthEntry(
+            assetIdentifierHash: result.assetIdentifierHash,
+            tags: [],
+            note: "",
+            createdAt: now,
+            updatedAt: now
+        )
+
+        if entry.tags.contains(tag) {
+            entry.tags.remove(tag)
+        } else {
+            entry.tags.insert(tag)
+        }
+        entry.updatedAt = now
+
+        if entry.tags.isEmpty {
+            entries.removeValue(forKey: result.assetIdentifierHash)
+        } else {
+            entries[result.assetIdentifierHash] = entry
+        }
+
+        do {
+            try groundTruthStore.save(entries)
+            groundTruthEntries = entries
+            recomputeGroundTruthEvaluation()
+            latestStatus = "正解ラベルを保存しました"
+        } catch {
+            errorMessage = "正解ラベルの保存に失敗しました: \(error.localizedDescription)"
+        }
+    }
+
+    func thumbnail(for result: VisionClassificationProbeResult) async -> UIImage? {
+        guard let asset = latestReviewAssetsByHash[result.assetIdentifierHash] else {
+            return nil
+        }
+
+        return await withCheckedContinuation { continuation in
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .fastFormat
+            options.resizeMode = .fast
+            options.isNetworkAccessAllowed = false
+            options.isSynchronous = false
+
+            var didResume = false
+            PHImageManager.default().requestImage(
+                for: asset,
+                targetSize: CGSize(width: 120, height: 120),
+                contentMode: .aspectFill,
+                options: options
+            ) { image, info in
+                guard didResume == false else {
+                    return
+                }
+                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                let isCancelled = (info?[PHImageCancelledKey] as? Bool) ?? false
+                let hasError = info?[PHImageErrorKey] != nil
+
+                if let image, isDegraded == false {
+                    didResume = true
+                    continuation.resume(returning: image)
+                } else if isCancelled || hasError {
+                    didResume = true
+                    continuation.resume(returning: image)
+                }
+            }
+        }
+    }
+
+    private func recomputeGroundTruthEvaluation() {
+        guard let latestReport else {
+            latestGroundTruthEvaluation = nil
+            return
+        }
+
+        let evaluation = VisionBenchmarkGroundTruthEvaluator.evaluate(
+            results: latestReport.results,
+            entriesByHash: groundTruthEntries
+        )
+        latestGroundTruthEvaluation = evaluation
     }
 
     private func fetchImageAssets(
@@ -343,6 +530,11 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(report)
+        let groundTruthData = try encoder.encode(
+            groundTruthEntries.values.sorted { lhs, rhs in
+                lhs.assetIdentifierHash < rhs.assetIdentifierHash
+            }
+        )
 
         let jsonName = "\(report.runID).json"
         let markdownName = "\(report.runID).md"
@@ -350,6 +542,14 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
 
         try data.write(to: directory.appendingPathComponent(jsonName), options: [.atomic])
         try data.write(to: directory.appendingPathComponent("vision_benchmark_latest.json"), options: [.atomic])
+        try data.write(
+            to: directory.appendingPathComponent("p06_results_\(report.runID).json"),
+            options: [.atomic]
+        )
+        try groundTruthData.write(
+            to: directory.appendingPathComponent("p06_ground_truth_\(report.runID).json"),
+            options: [.atomic]
+        )
 
         try markdown(for: report).write(
             to: directory.appendingPathComponent(markdownName),
@@ -361,6 +561,21 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             atomically: true,
             encoding: .utf8
         )
+        try markdown(for: report).write(
+            to: directory.appendingPathComponent("p06_summary_\(report.runID).md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try timingMarkdown(for: report).write(
+            to: directory.appendingPathComponent("p06_timing_breakdown_\(report.runID).md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try evaluationMarkdown(for: report).write(
+            to: directory.appendingPathComponent("p06_evaluation_\(report.runID).md"),
+            atomically: true,
+            encoding: .utf8
+        )
 
         try csv(for: report).write(
             to: directory.appendingPathComponent(csvName),
@@ -369,6 +584,11 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         )
         try csv(for: report).write(
             to: directory.appendingPathComponent("vision_benchmark_latest.csv"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try csv(for: report).write(
+            to: directory.appendingPathComponent("p06_results_\(report.runID).csv"),
             atomically: true,
             encoding: .utf8
         )
@@ -395,6 +615,7 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         - runID: \(report.runID)
         - bucketName: \(report.bucketName)
         - bucketTitle: \(report.bucketTitle)
+        - probeMode: \(report.probeModeTitle)
         - device: \(report.deviceName)
         - photo authorization: \(report.photoAuthorizationStatus)
         - available image count: \(report.totalAvailableImageCount)
@@ -403,6 +624,15 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         - average ms/asset: \(String(format: "%.1f", report.averageMsPerAsset))
         - max ms/asset: \(String(format: "%.1f", report.maxMsPerAsset))
         - failed: \(report.failedCount)
+
+        ## Timing Breakdown
+        - imageRequestMs avg: \(String(format: "%.1f", report.averageImageRequestMs))
+        - classifyImageMs avg: \(String(format: "%.1f", report.averageClassifyImageMs))
+        - faceDetectionMs avg: \(String(format: "%.1f", report.averageFaceDetectionMs))
+        - humanDetectionMs avg: \(String(format: "%.1f", report.averageHumanDetectionMs))
+        - documentSegmentationMs avg: \(String(format: "%.1f", report.averageDocumentSegmentationMs))
+        - visualFeatureMs avg: \(String(format: "%.1f", report.averageVisualFeatureMs))
+        - scoringMs avg: \(String(format: "%.1f", report.averageScoringMs))
 
         ## Signals
         - screenshots: \(report.screenshotCandidateCount)
@@ -421,6 +651,11 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         - likely whiteboard: \(report.likelyWhiteboardCount)
         - likely receipt: \(report.likelyReceiptCount)
         - likely business card: \(report.likelyBusinessCardCount)
+        - likely vehicle/heavy equipment: \(report.likelyVehicleHeavyEquipmentCount)
+        - likely material/equipment: \(report.likelyMaterialEquipmentCount)
+
+        ## Ground Truth Evaluation
+        \(groundTruthEvaluationMarkdown(report.groundTruthEvaluation))
 
         ## Top Label Examples
         \(topLabelExamples.isEmpty ? "- none" : topLabelExamples)
@@ -430,6 +665,63 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         - thumbnails are not saved
         - face images and face templates are not saved
         - Photos library assets are read only
+        """
+    }
+
+    private func groundTruthEvaluationMarkdown(_ evaluation: VisionBenchmarkGroundTruthEvaluation?) -> String {
+        guard let evaluation else {
+            return "- labeled assets: 0\n- evaluation: none"
+        }
+
+        let lines = evaluation.metrics.map { metric in
+            "- \(metric.tag.rawValue): TP \(metric.truePositive), FP \(metric.falsePositive), FN \(metric.falseNegative), precision \(String(format: "%.2f", metric.precision)), recall \(String(format: "%.2f", metric.recall))"
+        }
+        .joined(separator: "\n")
+
+        return """
+        - labeled assets: \(evaluation.labeledAssetCount)
+        \(lines.isEmpty ? "- metrics: none" : lines)
+        """
+    }
+
+    private func timingMarkdown(for report: VisionClassificationBenchmarkReport) -> String {
+        """
+        # P0.6 Timing Breakdown
+
+        - runID: \(report.runID)
+        - bucket: \(report.bucketTitle)
+        - probeMode: \(report.probeModeTitle)
+        - actualCount: \(report.actualCount)
+        - averageTotalMs: \(String(format: "%.1f", report.averageMsPerAsset))
+        - averageImageRequestMs: \(String(format: "%.1f", report.averageImageRequestMs))
+        - averageClassifyImageMs: \(String(format: "%.1f", report.averageClassifyImageMs))
+        - averageFaceDetectionMs: \(String(format: "%.1f", report.averageFaceDetectionMs))
+        - averageHumanDetectionMs: \(String(format: "%.1f", report.averageHumanDetectionMs))
+        - averageDocumentSegmentationMs: \(String(format: "%.1f", report.averageDocumentSegmentationMs))
+        - averageVisualFeatureMs: \(String(format: "%.1f", report.averageVisualFeatureMs))
+        - averageScoringMs: \(String(format: "%.1f", report.averageScoringMs))
+
+        ## Notes
+        - gatedProbe skips image loading and heavy Vision requests for screenshots.
+        - fullProbe runs image classification, face rectangles, human rectangles, document segmentation, visual metrics, and scoring.
+        - Images and thumbnails are not written to evidence.
+        """
+    }
+
+    private func evaluationMarkdown(for report: VisionClassificationBenchmarkReport) -> String {
+        """
+        # P0.6 Ground Truth Evaluation
+
+        - runID: \(report.runID)
+        - bucket: \(report.bucketTitle)
+        - probeMode: \(report.probeModeTitle)
+
+        ## Metrics
+        \(groundTruthEvaluationMarkdown(report.groundTruthEvaluation))
+
+        ## Safety
+        - ground truth stores hashed asset identifiers and labels only.
+        - image bodies, thumbnails, face images, and face templates are not saved.
         """
     }
 
@@ -465,6 +757,7 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             [
                 "assetHash",
                 "bucketName",
+                "probeMode",
                 "isScreenshot",
                 "pixelWidth",
                 "pixelHeight",
@@ -479,16 +772,28 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
                 "hasDocumentSegmentation",
                 "documentLabelScore",
                 "documentVisualScore",
+                "documentSegmentationScore",
+                "documentScoreWithoutSegmentation",
                 "documentScore",
                 "screenshotScore",
                 "buildingScore",
                 "constructionSiteScore",
+                "vehicleHeavyEquipmentScore",
+                "materialEquipmentScore",
                 "signScore",
                 "whiteboardScore",
                 "receiptScore",
                 "businessCardScore",
                 "ocrPriorityScore",
+                "imageRequestMs",
+                "classifyImageMs",
+                "faceDetectionMs",
+                "humanDetectionMs",
+                "documentSegmentationMs",
+                "visualFeatureMs",
+                "scoringMs",
                 "elapsedMs",
+                "predictedTags",
                 "expectedFormatTags",
                 "expectedContentTags",
                 "reviewNote",
@@ -501,6 +806,7 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
             let fields = [
                 result.assetIdentifierHash,
                 Self.csvEscape(result.bucketName),
+                Self.csvEscape(result.probeMode),
                 "\(result.isScreenshot)",
                 "\(result.pixelWidth)",
                 "\(result.pixelHeight)",
@@ -515,16 +821,28 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
                 "\(result.hasDocumentSegment)",
                 String(format: "%.3f", result.scores.documentLabelScore),
                 String(format: "%.3f", result.scores.documentVisualScore),
+                String(format: "%.3f", result.scores.documentSegmentationScore),
+                String(format: "%.3f", result.scores.documentScoreWithoutSegmentation),
                 String(format: "%.3f", result.scores.documentScore),
                 String(format: "%.3f", result.scores.screenshotScore),
                 String(format: "%.3f", result.scores.buildingScore),
                 String(format: "%.3f", result.scores.constructionSiteScore),
+                String(format: "%.3f", result.scores.vehicleHeavyEquipmentScore),
+                String(format: "%.3f", result.scores.materialEquipmentScore),
                 String(format: "%.3f", result.scores.signScore),
                 String(format: "%.3f", result.scores.whiteboardScore),
                 String(format: "%.3f", result.scores.receiptScore),
                 String(format: "%.3f", result.scores.businessCardScore),
                 String(format: "%.3f", result.scores.ocrPriorityScore),
+                String(format: "%.1f", result.timing.imageRequestMs),
+                String(format: "%.1f", result.timing.classifyImageMs),
+                String(format: "%.1f", result.timing.faceDetectionMs),
+                String(format: "%.1f", result.timing.humanDetectionMs),
+                String(format: "%.1f", result.timing.documentSegmentationMs),
+                String(format: "%.1f", result.timing.visualFeatureMs),
+                String(format: "%.1f", result.timing.scoringMs),
                 String(format: "%.1f", result.elapsedMs),
+                Self.csvEscape(result.predictedGroundTruthTags.map(\.rawValue).sorted().joined(separator: "|")),
                 "",
                 "",
                 "",
@@ -561,12 +879,13 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
     private static func runID(
         startedAt: Date,
         limit: Int,
-        bucket: VisionClassificationBenchmarkBucket
+        bucket: VisionClassificationBenchmarkBucket,
+        mode: VisionClassificationProbeMode
     ) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyyMMdd_HHmmss"
-        return "\(formatter.string(from: startedAt))_vision_probe_\(bucket.runIDComponent)_\(limit)"
+        return "\(formatter.string(from: startedAt))_vision_probe_\(bucket.runIDComponent)_\(mode.runIDComponent)_\(limit)"
     }
 
     private static func deviceName() -> String {
@@ -575,6 +894,18 @@ final class VisionClassificationBenchmarkRunner: ObservableObject {
         #else
         return UIDevice.current.name
         #endif
+    }
+
+    private static func hashIdentifier(_ identifier: String) -> String {
+        let digest = SHA256.hash(data: Data(identifier.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func average(_ values: [Double]) -> Double {
+        guard values.isEmpty == false else {
+            return 0
+        }
+        return values.reduce(0, +) / Double(values.count)
     }
 
     private static func makeSupportedIdentifierSummary() -> VisionSupportedIdentifierSummary {
@@ -625,49 +956,107 @@ final class VisionClassificationProbeService {
     private let imageManager = PHImageManager.default()
     private let targetSize = CGSize(width: 640, height: 640)
 
-    func analyze(asset: PHAsset, bucketName: String) async -> VisionClassificationProbeResult {
+    func analyze(
+        asset: PHAsset,
+        bucketName: String,
+        mode: VisionClassificationProbeMode
+    ) async -> VisionClassificationProbeResult {
         let overallStart = Date()
         let assetHash = Self.hashIdentifier(asset.localIdentifier)
         let isScreenshot = asset.mediaSubtypes.contains(.photoScreenshot)
 
-        guard let image = await requestImage(for: asset), let cgImage = image.cgImage else {
-            return VisionClassificationProbeResult(
-                assetIdentifierHash: assetHash,
+        if mode == .gated, isScreenshot {
+            let scoringStart = Date()
+            let scores = Self.makeScores(
+                isScreenshot: true,
+                labels: [],
+                faceCount: 0,
+                humanCount: 0,
+                documentSegmentCount: 0,
+                visualMetrics: .empty,
+                forceScreenshotFastPath: true
+            )
+            let elapsed = Self.elapsedMs(since: overallStart)
+            return Self.makeResult(
+                asset: asset,
+                assetHash: assetHash,
                 bucketName: bucketName,
-                pixelWidth: asset.pixelWidth,
-                pixelHeight: asset.pixelHeight,
-                mediaType: Self.mediaTypeTitle(asset.mediaType),
-                mediaSubtypesRawValue: asset.mediaSubtypes.rawValue,
-                isScreenshot: isScreenshot,
-                hasCreationDate: asset.creationDate != nil,
-                topVisualLabels: [],
+                mode: mode,
+                isScreenshot: true,
+                labels: [],
                 classifyRevision: 0,
                 classifyElapsedMs: 0,
                 faceCount: 0,
-                hasFace: false,
                 faceElapsedMs: 0,
                 humanCount: 0,
-                hasHuman: false,
                 humanElapsedMs: 0,
                 documentSegmentCount: 0,
-                hasDocumentSegment: false,
                 documentElapsedMs: 0,
-                scores: Self.makeScores(
-                    isScreenshot: isScreenshot,
-                    labels: [],
-                    faceCount: 0,
-                    humanCount: 0,
-                    documentSegmentCount: 0,
-                    visualMetrics: .empty
+                scores: scores,
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: 0,
+                    classifyImageMs: 0,
+                    faceDetectionMs: 0,
+                    humanDetectionMs: 0,
+                    documentSegmentationMs: 0,
+                    visualFeatureMs: 0,
+                    scoringMs: Self.elapsedMs(since: scoringStart),
+                    totalElapsedMs: elapsed
                 ),
-                elapsedMs: Self.elapsedMs(since: overallStart),
+                elapsedMs: elapsed,
+                errorMessage: nil
+            )
+        }
+
+        let imageResult = await requestImage(for: asset)
+        guard let image = imageResult.image, let cgImage = image.cgImage else {
+            let scoringStart = Date()
+            let scores = Self.makeScores(
+                isScreenshot: isScreenshot,
+                labels: [],
+                faceCount: 0,
+                humanCount: 0,
+                documentSegmentCount: 0,
+                visualMetrics: .empty
+            )
+            let elapsed = Self.elapsedMs(since: overallStart)
+            return Self.makeResult(
+                asset: asset,
+                assetHash: assetHash,
+                bucketName: bucketName,
+                mode: mode,
+                isScreenshot: isScreenshot,
+                labels: [],
+                classifyRevision: 0,
+                classifyElapsedMs: 0,
+                faceCount: 0,
+                faceElapsedMs: 0,
+                humanCount: 0,
+                humanElapsedMs: 0,
+                documentSegmentCount: 0,
+                documentElapsedMs: 0,
+                scores: scores,
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: imageResult.elapsedMs,
+                    classifyImageMs: 0,
+                    faceDetectionMs: 0,
+                    humanDetectionMs: 0,
+                    documentSegmentationMs: 0,
+                    visualFeatureMs: 0,
+                    scoringMs: Self.elapsedMs(since: scoringStart),
+                    totalElapsedMs: elapsed
+                ),
+                elapsedMs: elapsed,
                 errorMessage: "画像を取得できませんでした"
             )
         }
 
         do {
             let vision = try performVision(cgImage: cgImage, orientation: CGImagePropertyOrientation(image.imageOrientation))
+            let visualStart = Date()
             let visualMetrics = Self.makeVisualMetrics(cgImage: cgImage)
+            let visualElapsed = Self.elapsedMs(since: visualStart)
+            let scoringStart = Date()
             let scores = Self.makeScores(
                 isScreenshot: isScreenshot,
                 labels: vision.labels,
@@ -676,70 +1065,84 @@ final class VisionClassificationProbeService {
                 documentSegmentCount: vision.documentSegmentCount,
                 visualMetrics: visualMetrics
             )
+            let scoringElapsed = Self.elapsedMs(since: scoringStart)
+            let elapsed = Self.elapsedMs(since: overallStart)
 
-            return VisionClassificationProbeResult(
-                assetIdentifierHash: assetHash,
+            return Self.makeResult(
+                asset: asset,
+                assetHash: assetHash,
                 bucketName: bucketName,
-                pixelWidth: asset.pixelWidth,
-                pixelHeight: asset.pixelHeight,
-                mediaType: Self.mediaTypeTitle(asset.mediaType),
-                mediaSubtypesRawValue: asset.mediaSubtypes.rawValue,
+                mode: mode,
                 isScreenshot: isScreenshot,
-                hasCreationDate: asset.creationDate != nil,
-                topVisualLabels: vision.labels,
+                labels: vision.labels,
                 classifyRevision: vision.classifyRevision,
                 classifyElapsedMs: vision.classifyElapsedMs,
                 faceCount: vision.faceCount,
-                hasFace: vision.faceCount > 0,
                 faceElapsedMs: vision.faceElapsedMs,
                 humanCount: vision.humanCount,
-                hasHuman: vision.humanCount > 0,
                 humanElapsedMs: vision.humanElapsedMs,
                 documentSegmentCount: vision.documentSegmentCount,
-                hasDocumentSegment: vision.documentSegmentCount > 0,
                 documentElapsedMs: vision.documentElapsedMs,
                 scores: scores,
-                elapsedMs: Self.elapsedMs(since: overallStart),
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: imageResult.elapsedMs,
+                    classifyImageMs: vision.classifyElapsedMs,
+                    faceDetectionMs: vision.faceElapsedMs,
+                    humanDetectionMs: vision.humanElapsedMs,
+                    documentSegmentationMs: vision.documentElapsedMs,
+                    visualFeatureMs: visualElapsed,
+                    scoringMs: scoringElapsed,
+                    totalElapsedMs: elapsed
+                ),
+                elapsedMs: elapsed,
                 errorMessage: nil
             )
         } catch {
-            return VisionClassificationProbeResult(
-                assetIdentifierHash: assetHash,
-                bucketName: bucketName,
-                pixelWidth: asset.pixelWidth,
-                pixelHeight: asset.pixelHeight,
-                mediaType: Self.mediaTypeTitle(asset.mediaType),
-                mediaSubtypesRawValue: asset.mediaSubtypes.rawValue,
-                isScreenshot: isScreenshot,
-                hasCreationDate: asset.creationDate != nil,
-                topVisualLabels: [],
-                classifyRevision: 0,
-                classifyElapsedMs: 0,
-                faceCount: 0,
-                hasFace: false,
-                faceElapsedMs: 0,
-                humanCount: 0,
-                hasHuman: false,
-                humanElapsedMs: 0,
-                documentSegmentCount: 0,
-                hasDocumentSegment: false,
-                documentElapsedMs: 0,
-                scores: Self.makeScores(
+            let scoringStart = Date()
+            let scores = Self.makeScores(
                     isScreenshot: isScreenshot,
                     labels: [],
                     faceCount: 0,
                     humanCount: 0,
                     documentSegmentCount: 0,
                     visualMetrics: .empty
+            )
+            let elapsed = Self.elapsedMs(since: overallStart)
+            return Self.makeResult(
+                asset: asset,
+                assetHash: assetHash,
+                bucketName: bucketName,
+                mode: mode,
+                isScreenshot: isScreenshot,
+                labels: [],
+                classifyRevision: 0,
+                classifyElapsedMs: 0,
+                faceCount: 0,
+                faceElapsedMs: 0,
+                humanCount: 0,
+                humanElapsedMs: 0,
+                documentSegmentCount: 0,
+                documentElapsedMs: 0,
+                scores: scores,
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: imageResult.elapsedMs,
+                    classifyImageMs: 0,
+                    faceDetectionMs: 0,
+                    humanDetectionMs: 0,
+                    documentSegmentationMs: 0,
+                    visualFeatureMs: 0,
+                    scoringMs: Self.elapsedMs(since: scoringStart),
+                    totalElapsedMs: elapsed
                 ),
-                elapsedMs: Self.elapsedMs(since: overallStart),
+                elapsedMs: elapsed,
                 errorMessage: error.localizedDescription
             )
         }
     }
 
-    private func requestImage(for asset: PHAsset) async -> UIImage? {
-        await withCheckedContinuation { continuation in
+    private func requestImage(for asset: PHAsset) async -> (image: UIImage?, elapsedMs: Double) {
+        let start = Date()
+        return await withCheckedContinuation { (continuation: CheckedContinuation<(UIImage?, Double), Never>) in
             let options = PHImageRequestOptions()
             options.deliveryMode = .fastFormat
             options.resizeMode = .fast
@@ -764,13 +1167,62 @@ final class VisionClassificationProbeService {
 
                 if let image, isDegraded == false {
                     didResume = true
-                    continuation.resume(returning: image)
+                    continuation.resume(returning: (image, Self.elapsedMs(since: start)))
                 } else if isCancelled || hasError || isInCloud {
                     didResume = true
-                    continuation.resume(returning: image)
+                    continuation.resume(returning: (image, Self.elapsedMs(since: start)))
                 }
             }
         }
+    }
+
+    private static func makeResult(
+        asset: PHAsset,
+        assetHash: String,
+        bucketName: String,
+        mode: VisionClassificationProbeMode,
+        isScreenshot: Bool,
+        labels: [VisionProbeVisualLabel],
+        classifyRevision: Int,
+        classifyElapsedMs: Double,
+        faceCount: Int,
+        faceElapsedMs: Double,
+        humanCount: Int,
+        humanElapsedMs: Double,
+        documentSegmentCount: Int,
+        documentElapsedMs: Double,
+        scores: VisionProbeScores,
+        timing: VisionProbeTimingBreakdown,
+        elapsedMs: Double,
+        errorMessage: String?
+    ) -> VisionClassificationProbeResult {
+        VisionClassificationProbeResult(
+            assetIdentifierHash: assetHash,
+            bucketName: bucketName,
+            probeMode: mode.rawValue,
+            pixelWidth: asset.pixelWidth,
+            pixelHeight: asset.pixelHeight,
+            mediaType: Self.mediaTypeTitle(asset.mediaType),
+            mediaSubtypesRawValue: asset.mediaSubtypes.rawValue,
+            isScreenshot: isScreenshot,
+            hasCreationDate: asset.creationDate != nil,
+            topVisualLabels: labels,
+            classifyRevision: classifyRevision,
+            classifyElapsedMs: classifyElapsedMs,
+            faceCount: faceCount,
+            hasFace: faceCount > 0,
+            faceElapsedMs: faceElapsedMs,
+            humanCount: humanCount,
+            hasHuman: humanCount > 0,
+            humanElapsedMs: humanElapsedMs,
+            documentSegmentCount: documentSegmentCount,
+            hasDocumentSegment: documentSegmentCount > 0,
+            documentElapsedMs: documentElapsedMs,
+            scores: scores,
+            timing: timing,
+            elapsedMs: elapsedMs,
+            errorMessage: errorMessage
+        )
     }
 
     private func performVision(
@@ -836,16 +1288,48 @@ final class VisionClassificationProbeService {
         faceCount: Int,
         humanCount: Int,
         documentSegmentCount: Int,
-        visualMetrics: VisionProbeVisualMetrics
+        visualMetrics: VisionProbeVisualMetrics,
+        forceScreenshotFastPath: Bool = false
     ) -> VisionProbeScores {
         let screenshotScore = isScreenshot ? 1.0 : 0.0
+        if forceScreenshotFastPath {
+            return VisionProbeScores(
+                screenshotScore: 1.0,
+                documentLabelScore: 0,
+                documentVisualScore: 0,
+                documentSegmentationScore: 0,
+                documentScoreWithoutSegmentation: 0,
+                documentScore: 0,
+                personScore: 0,
+                foodScore: 0,
+                landscapeScore: 0,
+                buildingScore: 0,
+                constructionSiteScore: 0,
+                vehicleHeavyEquipmentScore: 0,
+                materialEquipmentScore: 0,
+                signScore: 0,
+                whiteboardScore: 0,
+                businessCardScore: 0,
+                receiptScore: 0,
+                ocrPriorityScore: 0.85
+            )
+        }
+
         let personScore = min(1.0, (faceCount > 0 ? 0.75 : 0.0) + (humanCount > 0 ? 0.65 : 0.0))
         let foodScore = VisionClassificationTaxonomy.score(labels: labels, matching: VisionClassificationTaxonomy.foodLabels)
         let landscapeScore = VisionClassificationTaxonomy.score(labels: labels, matching: VisionClassificationTaxonomy.landscapeLabels)
         let buildingScore = VisionClassificationTaxonomy.score(labels: labels, matching: VisionClassificationTaxonomy.buildingLabels)
+        let vehicleHeavyEquipmentScore = VisionClassificationTaxonomy.score(
+            labels: labels,
+            matching: VisionClassificationTaxonomy.vehicleHeavyEquipmentLabels
+        )
+        let materialEquipmentScore = VisionClassificationTaxonomy.score(
+            labels: labels,
+            matching: VisionClassificationTaxonomy.materialEquipmentLabels
+        )
         let constructionScore = max(
             VisionClassificationTaxonomy.score(labels: labels, matching: VisionClassificationTaxonomy.constructionSiteLabels),
-            VisionClassificationTaxonomy.score(labels: labels, matching: VisionClassificationTaxonomy.vehicleHeavyEquipmentLabels) * 0.35
+            vehicleHeavyEquipmentScore * 0.35
         )
         let signScore = VisionClassificationTaxonomy.score(labels: labels, matching: VisionClassificationTaxonomy.signLabels)
         let whiteboardScore = VisionClassificationTaxonomy.score(labels: labels, matching: VisionClassificationTaxonomy.whiteboardLabels)
@@ -856,10 +1340,14 @@ final class VisionClassificationProbeService {
             max(receiptScore, businessCardScore) * 0.8
         )
         let documentVisualScore = Self.documentVisualScore(from: visualMetrics)
-        let documentSegmentationScore = documentSegmentCount > 0 ? 0.35 : 0.0
-        let unsuppressedDocumentScore = max(
+        let documentSegmentationScore = documentSegmentCount > 0 ? 0.08 : 0.0
+        let documentScoreWithoutSegmentation = max(
             documentLabelScore,
             max(receiptScore, businessCardScore),
+            documentVisualScore * 0.45
+        )
+        let unsuppressedDocumentScore = max(
+            documentScoreWithoutSegmentation,
             min(1.0, documentSegmentationScore + documentVisualScore * 0.45)
         )
         let documentScore = isScreenshot
@@ -882,12 +1370,16 @@ final class VisionClassificationProbeService {
             screenshotScore: screenshotScore,
             documentLabelScore: documentLabelScore,
             documentVisualScore: documentVisualScore,
+            documentSegmentationScore: documentSegmentationScore,
+            documentScoreWithoutSegmentation: documentScoreWithoutSegmentation,
             documentScore: documentScore,
             personScore: personScore,
             foodScore: foodScore,
             landscapeScore: landscapeScore,
             buildingScore: buildingScore,
             constructionSiteScore: constructionScore,
+            vehicleHeavyEquipmentScore: vehicleHeavyEquipmentScore,
+            materialEquipmentScore: materialEquipmentScore,
             signScore: signScore,
             whiteboardScore: whiteboardScore,
             businessCardScore: businessCardScore,
@@ -978,6 +1470,13 @@ final class VisionClassificationProbeService {
 
     private static func elapsedMs(since start: Date) -> Double {
         Date().timeIntervalSince(start) * 1000
+    }
+
+    private static func average(_ values: [Double]) -> Double {
+        guard values.isEmpty == false else {
+            return 0
+        }
+        return values.reduce(0, +) / Double(values.count)
     }
 }
 
