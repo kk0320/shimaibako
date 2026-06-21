@@ -89,6 +89,15 @@ struct ReadView: View {
             } message: {
                 Text("未読取の写真を2,000件ずつ続けて読み取ります。端末が高温になった場合、低電力モードの場合、空き容量が少ない場合は自動的に一時停止します。途中で止まっても、次回続きから再開できます。元写真・元動画は変更されません。")
             }
+            .task {
+                await batchOCRJobService.checkAutoResumeIfPossible(
+                    photoLibrary: photoLibrary,
+                    ocrService: ocrService,
+                    indexService: indexService,
+                    deviceSafety: deviceSafety,
+                    trigger: "readView"
+                )
+            }
         }
     }
 
@@ -263,6 +272,35 @@ struct ReadView: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color(red: 0.75, green: 0.45, blue: 0.10))
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let autoResumeStatus = batchOCRJobService.autoResumeStatusTitle {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(autoResumeStatus, systemImage: "arrow.clockwise.circle")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color(red: 0.16, green: 0.42, blue: 0.75))
+
+                    Text("条件が整うと自動で続きから再開します。")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    if let blockedReason = batchOCRJobService.lastAutoResumeBlockedReason {
+                        Text(blockedReason)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack(spacing: 10) {
+                        if let last = batchOCRJobService.autoResumeLastCheckTitle {
+                            Text(last)
+                        }
+                        if let next = batchOCRJobService.autoResumeNextCheckTitle {
+                            Text(next)
+                        }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(12)
@@ -651,7 +689,7 @@ struct ReadView: View {
                 }
                 .buttonStyle(.bordered)
             }
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -662,7 +700,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -673,7 +711,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -684,7 +722,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -695,7 +733,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -710,7 +748,23 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+
+            Button {
+                Task {
+                    await batchOCRJobService.runAutoResumeValidationSuite(
+                        photoLibrary: photoLibrary,
+                        ocrService: ocrService,
+                        indexService: indexService,
+                        deviceSafety: deviceSafety
+                    )
+                }
+            } label: {
+                Label("自動再開検証を実行", systemImage: "arrow.clockwise.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             if batchOCRJobService.isRunningP1Validation {
                 Label("検証中です", systemImage: "hourglass")
@@ -738,6 +792,12 @@ struct ReadView: View {
 
             if batchOCRJobService.isRunningAutoContinueValidation {
                 Label("自動継続検証中です", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if batchOCRJobService.isRunningAutoResumeValidation {
+                Label("自動再開検証中です", systemImage: "hourglass")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -809,6 +869,22 @@ struct ReadView: View {
             if let report = batchOCRJobService.autoContinueValidationReport {
                 VStack(alignment: .leading, spacing: 6) {
                     Label(report.passed ? "自動継続検証: PASS" : "自動継続検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
+
+                    ForEach(report.cases) { result in
+                        ReadJobRow(
+                            title: result.name,
+                            value: result.passed ? "PASS" : "FAIL"
+                        )
+                    }
+                }
+                .padding(.top, 4)
+            }
+
+            if let report = batchOCRJobService.autoResumeValidationReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(report.passed ? "自動再開検証: PASS" : "自動再開検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
 

@@ -41,6 +41,29 @@ enum BatchOCRJobState: String, Codable, CaseIterable {
     }
 }
 
+enum BatchOCRPausedReason: String, Codable, CaseIterable {
+    case user
+    case background
+    case lowBattery
+    case lowPowerMode
+    case thermal
+    case storageLow
+    case appNotActive
+    case deviceCondition
+    case cancelling
+    case finishedByUser
+    case failedPermanent
+
+    var allowsAutoResume: Bool {
+        switch self {
+        case .lowBattery, .lowPowerMode, .thermal, .storageLow, .appNotActive, .deviceCondition, .background:
+            return true
+        case .user, .cancelling, .finishedByUser, .failedPermanent:
+            return false
+        }
+    }
+}
+
 enum BatchOCRItemState: String, Codable, CaseIterable {
     case pending
     case processing
@@ -73,6 +96,7 @@ struct BatchOCRJob: Codable, Identifiable, Equatable {
     var startedAt: Date?
     var updatedAt: Date
     var pausedReason: String?
+    var pausedReasonCode: BatchOCRPausedReason?
     var filterSnapshot: String
     var recognitionProfileVersion: String
 
@@ -146,6 +170,7 @@ struct BatchOCRSeries: Codable, Identifiable, Equatable {
     var totalProcessedInSeries: Int
     var remainingEstimate: Int?
     var pausedReason: String?
+    var pausedReasonCode: BatchOCRPausedReason?
 }
 
 struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
@@ -434,6 +459,31 @@ struct BatchOCRAutoContinueValidationCaseResult: Codable, Equatable, Identifiabl
     var autoContinueEnabled: Bool
     var nextJobCreated: Bool
     var plannedCount: Int
+    var decisionLog: String
+    var passed: Bool
+    var message: String
+}
+
+struct BatchOCRAutoResumeValidationReport: Codable, Equatable {
+    var startedAt: Date
+    var finishedAt: Date
+    var cases: [BatchOCRAutoResumeValidationCaseResult]
+
+    var passed: Bool {
+        cases.allSatisfy(\.passed)
+    }
+}
+
+struct BatchOCRAutoResumeValidationCaseResult: Codable, Equatable, Identifiable {
+    var id: String {
+        name
+    }
+
+    var name: String
+    var pausedReason: BatchOCRPausedReason?
+    var jobState: BatchOCRJobState?
+    var seriesState: BatchOCRSeriesState?
+    var autoResumeWaiting: Bool
     var decisionLog: String
     var passed: Bool
     var message: String

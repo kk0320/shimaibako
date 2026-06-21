@@ -9,6 +9,7 @@ struct ContentView: View {
     @StateObject private var accuracyImprovementService: AccuracyImprovementService
     @StateObject private var batchOCRJobService: BatchOCRJobService
     @StateObject private var deviceSafety: DeviceSafetyService
+    @StateObject private var deviceConditionMonitor: DeviceConditionMonitor
 
     init() {
         let learningService = ManualCategoryLearningService()
@@ -19,6 +20,7 @@ struct ContentView: View {
         _accuracyImprovementService = StateObject(wrappedValue: AccuracyImprovementService())
         _batchOCRJobService = StateObject(wrappedValue: BatchOCRJobService())
         _deviceSafety = StateObject(wrappedValue: DeviceSafetyService())
+        _deviceConditionMonitor = StateObject(wrappedValue: DeviceConditionMonitor())
     }
 
     var body: some View {
@@ -54,11 +56,33 @@ struct ContentView: View {
                         )
                     }
                 }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRAutoResumeValidation") {
+                    Task {
+                        await batchOCRJobService.runAutoResumeValidationSuite(
+                            photoLibrary: photoLibrary,
+                            ocrService: ocrService,
+                            indexService: indexService,
+                            deviceSafety: deviceSafety
+                        )
+                    }
+                }
                 #endif
                 await photoLibrary.prepare()
+                deviceConditionMonitor.start(deviceSafety: deviceSafety) {
+                    await batchOCRJobService.checkAutoResumeIfPossible(
+                        photoLibrary: photoLibrary,
+                        ocrService: ocrService,
+                        indexService: indexService,
+                        deviceSafety: deviceSafety,
+                        trigger: "deviceConditionMonitor"
+                    )
+                }
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRAutoContinueValidation") {
                     await waitForAutoContinueValidationReport()
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRAutoResumeValidation") {
+                    await waitForAutoResumeValidationReport()
                 }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRReadStateDiagnostics") {
                     if photoLibrary.canReadPhotos, photoLibrary.assets.isEmpty {
@@ -78,6 +102,17 @@ struct ContentView: View {
                 case .active:
                     photoLibrary.applicationDidBecomeActive()
                     batchOCRJobService.applicationDidBecomeActive()
+                    Task {
+                        await deviceConditionMonitor.checkNow(deviceSafety: deviceSafety) {
+                            await batchOCRJobService.checkAutoResumeIfPossible(
+                                photoLibrary: photoLibrary,
+                                ocrService: ocrService,
+                                indexService: indexService,
+                                deviceSafety: deviceSafety,
+                                trigger: "scenePhaseActive"
+                            )
+                        }
+                    }
                 case .background:
                     photoLibrary.applicationDidEnterBackground()
                     batchOCRJobService.pauseForBackground()
@@ -94,6 +129,16 @@ struct ContentView: View {
     private func waitForAutoContinueValidationReport() async {
         for _ in 0..<80 {
             if batchOCRJobService.autoContinueValidationReport != nil {
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
+
+    private func waitForAutoResumeValidationReport() async {
+        for _ in 0..<80 {
+            if batchOCRJobService.autoResumeValidationReport != nil {
                 return
             }
 

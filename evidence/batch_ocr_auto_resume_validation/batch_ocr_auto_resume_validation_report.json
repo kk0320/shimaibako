@@ -1,0 +1,86 @@
+{
+  "cases" : [
+    {
+      "autoResumeWaiting" : true,
+      "decisionLog" : "AUTO_RESUME check\nenabled=true\nautoResumeWaiting=true\ntrigger=debugAutoResume\npausedReason=lowBattery\nbattery=38\nbatteryState=unplugged\nthermal=nominal\nlowPower=false\nfreeStorage=4000000000\nappState=active\njobState=pausedBackground\nseriesState=completedNoMoreTargets\ndecision=wait\nreason=バッテリー残量が50%未満のため、自動継続を一時停止しています。",
+      "jobState" : "pausedBackground",
+      "message" : "待機PASS",
+      "name" : "自動再開: バッテリー50%未満では待機",
+      "passed" : true,
+      "pausedReason" : "lowBattery",
+      "seriesState" : "completedNoMoreTargets"
+    },
+    {
+      "autoResumeWaiting" : false,
+      "decisionLog" : "AUTO_RESUME check\nenabled=true\nautoResumeWaiting=false\ntrigger=autoResume\npausedReason=lowBattery\nbattery=unknown\nbatteryState=unknown\nthermal=nominal\nlowPower=false\nfreeStorage=11310510080\nappState=active\njobState=running\nseriesState=idle\ndecision=resume\nreason=resuming paused job",
+      "jobState" : "running",
+      "message" : "再開PASS",
+      "name" : "自動再開: バッテリー50%以上で再開",
+      "passed" : true,
+      "pausedReason" : "deviceCondition",
+      "seriesState" : "idle"
+    },
+    {
+      "autoResumeWaiting" : true,
+      "decisionLog" : "AUTO_RESUME check\nenabled=true\nautoResumeWaiting=true\ntrigger=debugAutoResume\npausedReason=thermal\nbattery=80\nbatteryState=charging\nthermal=serious\nlowPower=false\nfreeStorage=4000000000\nappState=active\njobState=pausedBackground\nseriesState=idle\ndecision=wait\nreason=端末温度が高いため、自動継続を一時停止しています。",
+      "jobState" : "pausedBackground",
+      "message" : "待機PASS",
+      "name" : "自動再開: thermal seriousでは待機",
+      "passed" : true,
+      "pausedReason" : "thermal",
+      "seriesState" : "idle"
+    },
+    {
+      "autoResumeWaiting" : false,
+      "decisionLog" : "AUTO_RESUME check\nenabled=true\nautoResumeWaiting=false\ntrigger=autoResume\npausedReason=thermal\nbattery=unknown\nbatteryState=unknown\nthermal=nominal\nlowPower=false\nfreeStorage=11320795136\nappState=active\njobState=running\nseriesState=idle\ndecision=resume\nreason=resuming paused job",
+      "jobState" : "running",
+      "message" : "再開PASS",
+      "name" : "自動再開: thermal normal\/fairで再開",
+      "passed" : true,
+      "pausedReason" : "deviceCondition",
+      "seriesState" : "idle"
+    },
+    {
+      "autoResumeWaiting" : true,
+      "decisionLog" : "AUTO_RESUME check\nenabled=true\nautoResumeWaiting=true\ntrigger=debugAutoResume\npausedReason=lowPowerMode\nbattery=80\nbatteryState=charging\nthermal=nominal\nlowPower=true\nfreeStorage=4000000000\nappState=active\njobState=pausedBackground\nseriesState=idle\ndecision=wait\nreason=低電力モードのため一時停止しています。",
+      "jobState" : "pausedBackground",
+      "message" : "待機PASS",
+      "name" : "自動再開: low power ONでは待機",
+      "passed" : true,
+      "pausedReason" : "lowPowerMode",
+      "seriesState" : "idle"
+    },
+    {
+      "autoResumeWaiting" : false,
+      "decisionLog" : "AUTO_RESUME check\nenabled=true\nautoResumeWaiting=false\ntrigger=autoResume\npausedReason=lowPowerMode\nbattery=unknown\nbatteryState=unknown\nthermal=nominal\nlowPower=false\nfreeStorage=11320795136\nappState=active\njobState=running\nseriesState=idle\ndecision=resume\nreason=resuming paused job",
+      "jobState" : "running",
+      "message" : "再開PASS",
+      "name" : "自動再開: low power OFFで再開",
+      "passed" : true,
+      "pausedReason" : "deviceCondition",
+      "seriesState" : "idle"
+    },
+    {
+      "autoResumeWaiting" : false,
+      "decisionLog" : "AUTO_RESUME check\nenabled=true\nautoResumeWaiting=false\ntrigger=debugAutoResume\npausedReason=user\nbattery=80\nbatteryState=charging\nthermal=nominal\nlowPower=false\nfreeStorage=4000000000\nappState=active\njobState=pausedUser\nseriesState=idle\ndecision=skip\nreason=no auto-resumable paused job or series",
+      "jobState" : "pausedUser",
+      "message" : "ユーザー停止除外PASS",
+      "name" : "自動再開: user pauseでは再開しない",
+      "passed" : true,
+      "pausedReason" : "user",
+      "seriesState" : "idle"
+    },
+    {
+      "autoResumeWaiting" : false,
+      "decisionLog" : "",
+      "jobState" : "preparing",
+      "message" : "次Batch自動再開PASS",
+      "name" : "自動再開: device pauseでは再開する",
+      "passed" : true,
+      "pausedReason" : "deviceCondition",
+      "seriesState" : "running"
+    }
+  ],
+  "finishedAt" : 803693664.921142,
+  "startedAt" : 803693661.049028
+}

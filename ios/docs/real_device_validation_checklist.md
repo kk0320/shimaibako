@@ -387,6 +387,22 @@ CLIから実機画面をタップできない場合は、DEBUGビルド限定の
 - [ ] 途中Jobがある場合は既存Jobを再開する検証がPASSになる
 - [ ] レポート内の `AUTO_CONTINUE decision` にON/OFF、候補件数、端末状態、判断結果、理由が記録される
 
+端末状態による一時停止からの自動再開は、DEBUGビルド限定の自動再開検証で確認できる。
+
+- [ ] `-ShimaiBakoOpenReadTab -ShimaiBakoRunBatchOCRAutoResumeValidation` で自動再開自己検証が実行される
+- [ ] `batch_ocr_auto_resume_validation_report.json` が作成される
+- [ ] バッテリー50%未満では待機する検証がPASSになる
+- [ ] バッテリー50%以上で再開する検証がPASSになる
+- [ ] thermal seriousでは待機する検証がPASSになる
+- [ ] thermal normal/fairで再開する検証がPASSになる
+- [ ] low power ONでは待機する検証がPASSになる
+- [ ] low power OFFで再開する検証がPASSになる
+- [ ] user pauseでは自動再開しない検証がPASSになる
+- [ ] device pauseでは条件回復後に再開する検証がPASSになる
+- [ ] レポート内の `AUTO_RESUME check` に停止理由、端末状態、判断結果、理由が記録される
+
+K Phone実機で可能なら、低電力モードONで一時停止し、低電力モードOFF後に条件が良ければ自動再開することを確認する。バッテリーや発熱の再現が難しい場合は、DEBUG検証を優先する。
+
 キャッシュ削除なしの対象抽出は、DEBUGビルド限定の対象抽出検証で確認できる。
 
 - [ ] `-ShimaiBakoOpenReadTab -ShimaiBakoRunBatchOCRTargetSelectionValidation` で対象抽出自己検証が実行される
