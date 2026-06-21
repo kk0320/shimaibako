@@ -1,0 +1,6574 @@
+{
+  "generatedAt" : "2026-06-21T22:09:43Z",
+  "rows" : [
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 461.37595176696777,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_receipt_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0.063232421875,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.20486033000000001,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.18041992000000001,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.16186523,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.063232419999999998,
+          "identifier" : "receipt"
+        },
+        {
+          "confidence" : 0.010253906,
+          "identifier" : "handwriting"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 64.015984535217285,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_receipt_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0.114990234375,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.27980783999999997,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.27270507999999999,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.14379882999999999,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.114990234,
+          "identifier" : "receipt"
+        },
+        {
+          "confidence" : 0.015625,
+          "identifier" : "calendar"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.268044471740723,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_receipt_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0.029052734375,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.31990403000000001,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.31640625,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.14599609999999999,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.029052734,
+          "identifier" : "receipt"
+        },
+        {
+          "confidence" : 0.018554688,
+          "identifier" : "handwriting"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 57.219028472900391,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_receipt_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0.02099609375,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.20994267999999999,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.1875,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.16308594000000001,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.020996094,
+          "identifier" : "receipt"
+        },
+        {
+          "confidence" : 0.0078676869999999999,
+          "identifier" : "structure"
+        }
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.802936553955078,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_receipt_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0.130126953125,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.22132766000000001,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.20166016,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.14648438,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.13012694999999999,
+          "identifier" : "receipt"
+        },
+        {
+          "confidence" : 0.013916016,
+          "identifier" : "handwriting"
+        }
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 59.251904487609863,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_businessCard_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.31774419999999998,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.27734375,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.25610351999999997,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.018310548999999999,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.018310547,
+          "identifier" : "diagram"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 142.63689517974854,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_businessCard_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.40723311603069307,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+        "document"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.45248124003410339,
+        "ocrPriorityScore" : 0.40723311603069307,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.45248124000000001,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.45068360000000002,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.16210938,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.013427827999999999,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.013427734,
+          "identifier" : "diagram"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 48.578023910522461,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_businessCard_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.33433792000000001,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.29638671999999999,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.26342773000000003,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.018938784,
+          "identifier" : "art"
+        },
+        {
+          "confidence" : 0.018798829999999999,
+          "identifier" : "decoration"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 51.152944564819336,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_businessCard_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0.020996153354644775,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.26510270000000002,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.23168944999999999,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.21313477,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.021001035000000001,
+          "identifier" : "structure"
+        },
+        {
+          "confidence" : 0.020996153,
+          "identifier" : "sign"
+        }
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 55.114984512329102,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_businessCard_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0.011230478994548321,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.3288199,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.30346679999999998,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.23852539,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.011243471999999999,
+          "identifier" : "structure"
+        },
+        {
+          "confidence" : 0.011230479,
+          "identifier" : "sign"
+        }
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 55.492997169494629,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_document_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.34934783000000003,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.34448242000000001,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.16943359999999999,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.014892578,
+          "identifier" : "handwriting"
+        },
+        {
+          "confidence" : 0.0092773449999999993,
+          "identifier" : "chart"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 56.81300163269043,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_document_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.39388842880725861,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.4376538097858429,
+        "ocrPriorityScore" : 0.39388842880725861,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.43765379999999998,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.43725586,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.10791015599999999,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.040527344,
+          "identifier" : "handwriting"
+        },
+        {
+          "confidence" : 0.01171876,
+          "identifier" : "art"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 56.049942970275879,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_document_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35567896664142612,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39519885182380676,
+        "ocrPriorityScore" : 0.35567896664142612,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.39519884999999999,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.39355469999999998,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.14257812,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.016357422,
+          "identifier" : "handwriting"
+        },
+        {
+          "confidence" : 0.013517223,
+          "identifier" : "art"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 59.746980667114258,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_document_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.32872491999999998,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.32421875,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.15869140000000001,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.013427734,
+          "identifier" : "handwriting"
+        },
+        {
+          "confidence" : 0.011718750999999999,
+          "identifier" : "chart"
+        }
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.104012489318848,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_document_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.31660833999999999,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.27734375,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.25390625,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.0126953125,
+          "identifier" : "handwriting"
+        },
+        {
+          "confidence" : 0.005859375,
+          "identifier" : "calendar"
+        }
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 51.585078239440918,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_drawing_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.13121012000000001,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.13110352,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.095534179999999996,
+          "identifier" : "art"
+        },
+        {
+          "confidence" : 0.093994140000000004,
+          "identifier" : "illustrations"
+        },
+        {
+          "confidence" : 0.047851562,
+          "identifier" : "decoration"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 71.313023567199707,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_drawing_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.18217032,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.18212890000000001,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.12062518,
+          "identifier" : "art"
+        },
+        {
+          "confidence" : 0.12060547000000001,
+          "identifier" : "illustrations"
+        },
+        {
+          "confidence" : 0.028808594,
+          "identifier" : "chart"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 53.796887397766113,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_drawing_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.21852088,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.21850586,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.17250372,
+          "identifier" : "art"
+        },
+        {
+          "confidence" : 0.17114257999999999,
+          "identifier" : "illustrations"
+        },
+        {
+          "confidence" : 0.072509766000000003,
+          "identifier" : "decoration"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 61.427950859069824,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_drawing_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.095912510000000006,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.095703125,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.085527000000000006,
+          "identifier" : "art"
+        },
+        {
+          "confidence" : 0.080078125,
+          "identifier" : "illustrations"
+        },
+        {
+          "confidence" : 0.059326172000000003,
+          "identifier" : "decoration"
+        }
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 58.179020881652832,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_drawing_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.090104980000000001,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.089599609999999996,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.081950045999999999,
+          "identifier" : "art"
+        },
+        {
+          "confidence" : 0.078613279999999994,
+          "identifier" : "illustrations"
+        },
+        {
+          "confidence" : 0.051269530000000001,
+          "identifier" : "decoration"
+        }
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 57.972073554992676,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_sign_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.21471965610980989,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.23857739567756653,
+        "ocrPriorityScore" : 0.21471965610980989,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0.024414071813225746,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.2385774,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.23071289,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.14208984,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.024416685,
+          "identifier" : "structure"
+        },
+        {
+          "confidence" : 0.024414071999999998,
+          "identifier" : "sign"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 69.265961647033691,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "scoreBelowThreshold",
+      "fixtureId" : "synthetic_sign_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.17325000000000002,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Observed score stayed below the semantic threshold; consider threshold calibration after real holdout data.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1925,
+        "ocrPriorityScore" : 0.17325000000000002,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0.050781279802322388,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.16690832,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.14941405999999999,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.12890625,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.050781399999999997,
+          "identifier" : "structure"
+        },
+        {
+          "confidence" : 0.050781279999999998,
+          "identifier" : "sign"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 42.0379638671875,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "scoreBelowThreshold",
+      "fixtureId" : "synthetic_sign_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.17325000000000002,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Observed score stayed below the semantic threshold; consider threshold calibration after real holdout data.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1925,
+        "ocrPriorityScore" : 0.17325000000000002,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.17403110999999999,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.17016602,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.079589844000000007,
+          "identifier" : "sticky_note"
+        },
+        {
+          "confidence" : 0.078857419999999998,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.025637047,
+          "identifier" : "structure"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 59.882044792175293,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_sign_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.21471965610980989,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.23857739567756653,
+        "ocrPriorityScore" : 0.21471965610980989,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0.024414071813225746,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.2385774,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.23071289,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.14208984,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.024416685,
+          "identifier" : "structure"
+        },
+        {
+          "confidence" : 0.024414071999999998,
+          "identifier" : "sign"
+        }
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.401082038879395,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_sign_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.23051357567310335,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.25612619519233704,
+        "ocrPriorityScore" : 0.23051357567310335,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.25612620000000003,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.25097656000000002,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.13549805000000001,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.01855507,
+          "identifier" : "outdoor"
+        },
+        {
+          "confidence" : 0.018555031999999999,
+          "identifier" : "sky"
+        }
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 58.008909225463867,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_whiteboard_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.1156471,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.107421875,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.080322270000000001,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.080322266000000003,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.043213002,
+          "identifier" : "art"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.474038124084473,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_whiteboard_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.19593716999999999,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.1953125,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.089111330000000002,
+          "identifier" : "art"
+        },
+        {
+          "confidence" : 0.089111330000000002,
+          "identifier" : "illustrations"
+        },
+        {
+          "confidence" : 0.054199334000000002,
+          "identifier" : "chart"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 56.458950042724609,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_whiteboard_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.20154501,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.20117188,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.1091318,
+          "identifier" : "art"
+        },
+        {
+          "confidence" : 0.10913086,
+          "identifier" : "illustrations"
+        },
+        {
+          "confidence" : 0.052734415999999999,
+          "identifier" : "chart"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 56.323051452636719,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_whiteboard_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.123550095,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.11279297000000001,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.0859375,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.0859375,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.053466797000000003,
+          "identifier" : "screenshot"
+        }
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 65.220952033996582,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_whiteboard_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.35550000000000004,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.39500000000000002,
+        "ocrPriorityScore" : 0.35550000000000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.16570562,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.16357421999999999,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.073486335999999999,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.073486330000000002,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.059082075999999997,
+          "identifier" : "art"
+        }
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.032067298889160156,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_clean_metadataAware_001",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 53.887009620666504,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_clean_imageOnly_001",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.82441406250000004,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.916015625,
+        "ocrPriorityScore" : 0.82441406250000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.91601560000000004,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.91601560000000004,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.0014648438,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.0012289205000000001,
+          "identifier" : "people"
+        },
+        {
+          "confidence" : 0.0012207031000000001,
+          "identifier" : "adult"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.031948089599609375,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_rotated_metadataAware_002",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 63.157081604003906,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_rotated_imageOnly_002",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.76904296875,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.8544921875,
+        "ocrPriorityScore" : 0.76904296875,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.85449220000000004,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.85449220000000004,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.0031738281000000001,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.0019550295999999998,
+          "identifier" : "people"
+        },
+        {
+          "confidence" : 0.001953125,
+          "identifier" : "adult"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.031948089599609375,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_blur_metadataAware_003",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 52.676081657409668,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_blur_imageOnly_003",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.79277343750000007,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.880859375,
+        "ocrPriorityScore" : 0.79277343750000007,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.88085939999999996,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.88085939999999996,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.0043945312000000002,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.0014648438,
+          "identifier" : "handwriting"
+        },
+        {
+          "confidence" : 0.001021105,
+          "identifier" : "structure"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.032067298889160156,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_shadow_metadataAware_004",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.683965682983398,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_shadow_imageOnly_004",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.82441406250000004,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.916015625,
+        "ocrPriorityScore" : 0.82441406250000004,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.91601560000000004,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.91601560000000004,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.0014648438,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.0012289205000000001,
+          "identifier" : "people"
+        },
+        {
+          "confidence" : 0.0012207031000000001,
+          "identifier" : "adult"
+        }
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.031948089599609375,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_low_contrast_metadataAware_005",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 58.165907859802246,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_low_contrast_imageOnly_005",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.82265624999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.9140625,
+        "ocrPriorityScore" : 0.82265624999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.9140625,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.9140625,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.0014696240000000001,
+          "identifier" : "people"
+        },
+        {
+          "confidence" : 0.0014648438,
+          "identifier" : "adult"
+        },
+        {
+          "confidence" : 0.0012207031000000001,
+          "identifier" : "printed_page"
+        }
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.032067298889160156,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_clean_metadataAware_001",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.614943504333496,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_appScreenshot_clean_imageOnly_001",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.60424885153770447,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+        "document"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.67138761281967163,
+        "ocrPriorityScore" : 0.60424885153770447,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.67138759999999997,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.6713867,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.030517578,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.030517578,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.025878906,
+          "identifier" : "printed_page"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.030994415283203125,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_rotated_metadataAware_002",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 63.226938247680664,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_appScreenshot_rotated_imageOnly_002",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.56162307858467109,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+        "document"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.62402564287185669,
+        "ocrPriorityScore" : 0.56162307858467109,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.62402564000000005,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.62402343999999998,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.038330077999999997,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.022216797,
+          "identifier" : "handwriting"
+        },
+        {
+          "confidence" : 0.01977539,
+          "identifier" : "chart"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.033020973205566406,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_blur_metadataAware_003",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 53.264975547790527,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_appScreenshot_blur_imageOnly_003",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.49572528004646305,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+        "document"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.55080586671829224,
+        "ocrPriorityScore" : 0.49572528004646305,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.55080587000000003,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.55078125,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.063720700000000005,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.034912110000000003,
+          "identifier" : "handwriting"
+        },
+        {
+          "confidence" : 0.020019531,
+          "identifier" : "chart"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.031948089599609375,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_shadow_metadataAware_004",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 57.834029197692871,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_appScreenshot_shadow_imageOnly_004",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.60424885153770447,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+        "document"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.67138761281967163,
+        "ocrPriorityScore" : 0.60424885153770447,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.67138759999999997,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.6713867,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.030517578,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.030517578,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.025878906,
+          "identifier" : "printed_page"
+        }
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.034093856811523438,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_low_contrast_metadataAware_005",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 59.092998504638672,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "assertionTooStrict",
+      "fixtureId" : "synthetic_appScreenshot_low_contrast_imageOnly_005",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.63984412550926206,
+      "osVersion" : "26.5",
+      "overallPass" : false,
+      "predictedTags" : [
+        "document"
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Required tag threshold is stricter than the useful OCR priority signal; treat as signal calibration, not engine failure.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.71093791723251343,
+        "ocrPriorityScore" : 0.63984412550926206,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.71093790000000001,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.7109375,
+          "identifier" : "screenshot"
+        },
+        {
+          "confidence" : 0.028076172,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.028076172,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.01928711,
+          "identifier" : "printed_page"
+        }
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "buildingLike",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 63.837051391601562,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "buildingLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_buildingLike_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.17325000000000002,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1925,
+        "ocrPriorityScore" : 0.17325000000000002,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.13849829999999999,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.13574219000000001,
+          "identifier" : "sticky_note"
+        },
+        {
+          "confidence" : 0.072509766000000003,
+          "identifier" : "calendar"
+        },
+        {
+          "confidence" : 0.029296875,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.025634779,
+          "identifier" : "outdoor"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "buildingLike",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 68.539023399353027,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "buildingLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_buildingLike_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.17325000000000002,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1925,
+        "ocrPriorityScore" : 0.17325000000000002,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.087611949999999994,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.077392580000000002,
+          "identifier" : "calendar"
+        },
+        {
+          "confidence" : 0.067392774000000003,
+          "identifier" : "machine"
+        },
+        {
+          "confidence" : 0.067383059999999995,
+          "identifier" : "computer"
+        },
+        {
+          "confidence" : 0.067383059999999995,
+          "identifier" : "consumer_electronics"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "buildingLike",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 52.459001541137695,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "buildingLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_buildingLike_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.17325000000000002,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1925,
+        "ocrPriorityScore" : 0.17325000000000002,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.094557989999999995,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.092529299999999995,
+          "identifier" : "sticky_note"
+        },
+        {
+          "confidence" : 0.050537110000000003,
+          "identifier" : "calendar"
+        },
+        {
+          "confidence" : 0.016601562,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.016362135999999999,
+          "identifier" : "machine"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "constructionLike",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 63.617944717407227,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "constructionLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_constructionLike_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.17325000000000002,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1925,
+        "ocrPriorityScore" : 0.17325000000000002,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.086972270000000004,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.07421875,
+          "identifier" : "sticky_note"
+        },
+        {
+          "confidence" : 0.065918299999999999,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.065917970000000006,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.047607422000000003,
+          "identifier" : "printed_page"
+        }
+      ],
+      "variant" : "clean",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "constructionLike",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 58.973073959350586,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "constructionLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_constructionLike_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.17325000000000002,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1925,
+        "ocrPriorityScore" : 0.17325000000000002,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.090427086000000004,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.081787170000000006,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.081787109999999996,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.063964844000000007,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.047363280000000001,
+          "identifier" : "sticky_note"
+        }
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "constructionLike",
+      "categorySignalPass" : false,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 56.697964668273926,
+      "environment" : "K Phone",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "constructionLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_constructionLike_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.17325000000000002,
+      "osVersion" : "26.5",
+      "overallPass" : true,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1925,
+        "ocrPriorityScore" : 0.17325000000000002,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_222623",
+      "topLabels" : [
+        {
+          "confidence" : 0.11844609,
+          "identifier" : "document"
+        },
+        {
+          "confidence" : 0.10693359400000001,
+          "identifier" : "printed_page"
+        },
+        {
+          "confidence" : 0.086181729999999998,
+          "identifier" : "chart"
+        },
+        {
+          "confidence" : 0.086181640000000004,
+          "identifier" : "diagram"
+        },
+        {
+          "confidence" : 0.056884766000000003,
+          "identifier" : "sticky_note"
+        }
+      ],
+      "variant" : "blur",
+      "visionRevision" : 2
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 324.86796379089355,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_receipt_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.986995697021484,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_receipt_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 50.96900463104248,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_receipt_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 55.366992950439453,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_receipt_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "receipt",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 53.898930549621582,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "receipt",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_receipt_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 51.659941673278809,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_businessCard_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 134.5360279083252,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_businessCard_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 45.84503173828125,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_businessCard_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 56.249022483825684,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_businessCard_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "businessCard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 61.653971672058105,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "businessCard",
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_businessCard_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2",
+        "documentScore > landscapeScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 58.707952499389648,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_document_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 58.977961540222168,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_document_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 52.437067031860352,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_document_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 63.986063003540039,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_document_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "document",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 53.619980812072754,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_document_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 51.514983177185059,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_drawing_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 56.913971900939941,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_drawing_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 50.953030586242676,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_drawing_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 53.084969520568848,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_drawing_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "drawing",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 69.708943367004395,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_drawing_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "documentVisualScore>=0.2",
+        "documentScore > foodScore"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.042977333068848,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_sign_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 74.109911918640137,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_sign_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 48.810005187988281,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_sign_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.338020324707031,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_sign_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "sign",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 57.253003120422363,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_sign_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 58.388948440551758,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_whiteboard_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 64.005017280578613,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_whiteboard_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 47.49298095703125,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_whiteboard_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 66.941022872924805,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_whiteboard_shadow_fileOnly_004",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "whiteboard",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 74.945926666259766,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_whiteboard_low_contrast_fileOnly_005",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:screenshot",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.12707710266113281,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_clean_metadataAware_001",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 49.654960632324219,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_chatScreenshot_clean_imageOnly_001",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.12004375457763672,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_rotated_metadataAware_002",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 54.000020027160645,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_chatScreenshot_rotated_imageOnly_002",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.11599063873291016,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_blur_metadataAware_003",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 47.17099666595459,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_chatScreenshot_blur_imageOnly_003",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.11599063873291016,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_shadow_metadataAware_004",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 59.990048408508301,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_chatScreenshot_shadow_imageOnly_004",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.15008449554443359,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_chatScreenshot_low_contrast_metadataAware_005",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "chatScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 52.961945533752441,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_chatScreenshot_low_contrast_imageOnly_005",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.12195110321044922,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_clean_metadataAware_001",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 51.964998245239258,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_appScreenshot_clean_imageOnly_001",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.13291835784912109,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_rotated_metadataAware_002",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 54.863929748535156,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_appScreenshot_rotated_imageOnly_002",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.11599063873291016,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_blur_metadataAware_003",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 46.941995620727539,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_appScreenshot_blur_imageOnly_003",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.11491775512695312,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_shadow_metadataAware_004",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 53.617000579833984,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_appScreenshot_shadow_imageOnly_004",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "shadow",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : true,
+      "contractPass" : true,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 0.11396408081054688,
+      "environment" : "Simulator",
+      "errorMessage" : null,
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "pass",
+      "fixtureId" : "synthetic_appScreenshot_low_contrast_metadataAware_005",
+      "mode" : "metadataAware",
+      "ocrPriorityPass" : true,
+      "ocrPriorityScore" : 0.84999999999999998,
+      "osVersion" : "26.3.1",
+      "overallPass" : true,
+      "predictedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "requiredAssertions" : [
+        "required:screenshot",
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.8",
+        "screenshotScore > documentScore"
+      ],
+      "reviewNote" : "No P0.10 action required.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0,
+        "ocrPriorityScore" : 0.84999999999999998,
+        "receiptScore" : 0,
+        "screenshotScore" : 1,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : true,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "appScreenshot",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 54.296016693115234,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "failedAssertions" : [
+        "requiredTags contains ocrNeeded",
+        "ocrPriorityScore >= 0.2"
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_appScreenshot_low_contrast_imageOnly_005",
+      "mode" : "imageOnly",
+      "ocrPriorityPass" : false,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "required:ocrNeeded",
+        "forbidden:receipt",
+        "ocrPriorityScore>=0.2"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "low_contrast",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "buildingLike",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 55.121898651123047,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "buildingLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_buildingLike_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "buildingLike",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 58.40301513671875,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "buildingLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_buildingLike_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "buildingLike",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 45.760989189147949,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "buildingLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_buildingLike_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "constructionLike",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 48.837065696716309,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "constructionLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_constructionLike_clean_fileOnly_001",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "clean",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "constructionLike",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 60.074925422668457,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "constructionLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_constructionLike_rotated_fileOnly_002",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "rotated",
+      "visionRevision" : 0
+    },
+    {
+      "category" : "constructionLike",
+      "categorySignalPass" : false,
+      "contractPass" : false,
+      "deviceModel" : "iPhone",
+      "elapsedMs" : 50.011992454528809,
+      "environment" : "Simulator",
+      "errorMessage" : "Failed to create espresso context.",
+      "expectedTags" : [
+        "constructionLike"
+      ],
+      "failedAssertions" : [
+
+      ],
+      "failReason" : "espressoContextError",
+      "fixtureId" : "synthetic_constructionLike_blur_fileOnly_003",
+      "mode" : "fileOnly",
+      "ocrPriorityPass" : null,
+      "ocrPriorityScore" : 0.10125000000000001,
+      "osVersion" : "26.3.1",
+      "overallPass" : false,
+      "predictedTags" : [
+
+      ],
+      "requiredAssertions" : [
+        "forbidden:screenshot"
+      ],
+      "reviewNote" : "Simulator Vision runtime failed; use K Phone as the primary benchmark environment.",
+      "scores" : {
+        "buildingScore" : 0,
+        "businessCardScore" : 0,
+        "constructionSiteScore" : 0,
+        "documentScore" : 0.1125,
+        "ocrPriorityScore" : 0.10125000000000001,
+        "receiptScore" : 0,
+        "screenshotScore" : 0,
+        "signScore" : 0,
+        "whiteboardScore" : 0
+      },
+      "signalPass" : false,
+      "sourceReport" : "p09_20260621_223000",
+      "topLabels" : [
+
+      ],
+      "variant" : "blur",
+      "visionRevision" : 0
+    }
+  ],
+  "sourceReports" : [
+    "p09_20260621_222623",
+    "p09_20260621_223000"
+  ]
+}

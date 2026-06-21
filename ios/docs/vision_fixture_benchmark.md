@@ -112,6 +112,74 @@ documentScore > foodScore
 
 Vision revisionやOSで数値が変わるため、assertionは意味的・方向性の確認に留める。
 
+## P0.10 Failure Analysis
+
+P0.10では、P0.9のPASS/FAILをそのまま製品判断に使わず、失敗理由を分解する。
+
+主なFAIL理由:
+
+```text
+assertionTooStrict
+visionLabelMissing
+scoreBelowThreshold
+wrongPredictedTag
+fixtureTooSynthetic
+metadataMissing
+visionRuntimeError
+espressoContextError
+unsupportedEnvironment
+unknown
+```
+
+assertionは2段階に分ける。
+
+```text
+contractAssertions:
+  必ず守る処理契約。
+  例: metadataAware screenshotの高速パス、非スクショをスクショ扱いしないこと。
+
+signalAssertions:
+  Visionの反応を見る期待値。
+  例: ocrPriorityScore、カテゴリスコア、相対スコア。
+```
+
+判定は次を分けて見る。
+
+```text
+contractPass
+signalPass
+overallPass
+ocrPriorityPass
+categorySignalPass
+```
+
+contractPassが落ちた場合は実装修正候補にする。signalPassが落ちた場合は、Visionの反応、fixtureのリアリティ、閾値調整の候補として扱う。合成fixtureのsignalPassが低いことだけを理由に、機能全体をNo-Goにしない。
+
+レシート、名刺、書類、看板、白板、図面は、正確な自動フォルダ分類とOCR優先候補を分けて評価する。意味カテゴリが外れても `ocrPriorityPass` が通る場合は、読取候補としては価値が残る。
+
+P0.10のK Phone主結果:
+
+```text
+contractPass: 56/56
+signalPass: 21/56
+overallPass: 21/56
+ocrPriorityPass: 41/50
+receipt/businessCard/document/sign/whiteboard/drawing categorySignalPass: 0/30
+```
+
+この結果から、Engine Goは可能だが、レシート、名刺、書類、看板、白板、図面を一般UIの自動フォルダとして公開するのはまだNo-Goとする。
+
+## 評価環境
+
+Vision fixture benchmarkの正規評価はK Phoneを主基準にする。
+
+理由:
+
+- 実機ではfile URL入力とVision requestが実際に動く。
+- SimulatorではimageOnly/fileOnlyで `espressoContextError` が出る傾向がある。
+- Simulatorはbuild/install/launch、metadataAware smoke、UI確認には使える。
+- Simulatorだけの `espressoContextError` は環境制約として扱い、K Phoneでも同じ失敗が出るかを確認する。
+
 ## 出力
 
 アプリ内DEBUG runnerは、app sandbox内へ次を出力する。基本は `Application Support/ShimaiBako/vision_classification_benchmark/` を使う。`devicectl` でfixtureを投入した実機では親ディレクトリが書き込み不可になる場合があるため、その場合は `Caches/ShimaiBako/vision_classification_benchmark/` へフォールバックする。
@@ -121,6 +189,10 @@ p09_fixture_results_*.json
 p09_fixture_results_*.csv
 p09_fixture_summary_*.md
 p09_fixture_assertions_*.md
+p10_failure_analysis_*.json
+p10_failure_analysis_*.md
+p10_failure_analysis_*.csv
+p10_go_no_go_*.md
 ```
 
 証跡として必要な場合は、これらを次へコピーする。
@@ -139,6 +211,12 @@ evidence/vision_classification_benchmark/
 - predictedTags
 - ocrPriorityScore
 - assertionResults
+- failReason
+- contractPass
+- signalPass
+- overallPass
+- ocrPriorityPass
+- categorySignalPass
 - processingTimeMs
 - deviceModel
 - osVersion
@@ -149,6 +227,26 @@ evidence/vision_classification_benchmark/
 - scoringVersion
 - probeVersion
 - runAt
+
+P0.10 evidenceは次のscriptで生成する。
+
+```text
+swift ios/scripts/analyze_vision_fixture_failures.swift
+```
+
+このscriptは既存のP0.9 JSON evidenceを読み、画像本体を新しく保存しない。
+
+## Fixture改善候補
+
+P0.10ではfixture画像を大量に作り直さず、次に改善すべき方向だけ記録する。
+
+- receipt: 紙背景、罫線、店舗名、日付、合計金額、税表示、軽い影を強化する。
+- businessCard: 余白、氏名、会社名、電話番号、メール、ロゴ風図形を調整する。
+- document: 実際に撮影した紙資料やスキャンに近いholdoutを追加する。
+- sign: 背景、支柱、掲示枠、大きな文字を追加する。
+- whiteboard: 枠、マーカー線、光沢、室内文脈を追加する。
+- drawing: 図面枠、寸法線、グリッド、注釈、タイトル欄を追加する。
+- buildingLike/constructionLike: 合成fixtureではK Phone contractが通るが、製品フォルダ公開にはin-domain holdoutが必要。
 
 ## 外部画像fixture
 

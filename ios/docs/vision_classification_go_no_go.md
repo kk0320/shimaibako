@@ -237,6 +237,101 @@ No-Go:
 - 読取タブOCR候補への本連携。
 - `main` へのmerge。
 
+## P0.10の判断
+
+P0.10では、P0.9の合成fixture結果をFAIL理由に分解した。K Phoneを正規評価環境、Simulatorをsmoke確認環境として扱う。
+
+K Phone主結果:
+
+```text
+contractPass: 56/56
+signalPass: 21/56
+overallPass: 21/56
+ocrPriorityPass: 41/50
+receipt/businessCard/document/sign/whiteboard/drawing categorySignalPass: 0/30
+```
+
+Simulator結果:
+
+```text
+metadataAware screenshot: 10/10 PASS
+imageOnly/fileOnly: espressoContextError傾向
+```
+
+Simulatorの `espressoContextError` は、現時点では環境制約として扱う。正規のVision分類評価はK Phoneを主基準にする。
+
+### Engine Go
+
+判断: yes。
+
+理由:
+
+- File-based benchmarkが動く。
+- metadataAware screenshot contractがK Phoneで通る。
+- JSON/CSV/Markdown evidenceが安定して出る。
+- Release fixture混入防止が通る。
+- production photo body、thumbnail、face image、face templateを保存しない。
+
+### Workflow Go
+
+判断: screenshot/OCR candidateのみyes。
+
+理由:
+
+- スクショ高速パスは安定している。
+- OCR優先候補はカテゴリ分類と分けて扱えば使える可能性がある。
+- レシート、名刺、書類、看板、白板、図面は、正確な自動フォルダではなく読取候補として扱う余地がある。
+
+### Category Go
+
+判断: no。
+
+理由:
+
+- receipt/businessCard/document/sign/whiteboard/drawingのカテゴリ信号は、合成fixtureでは安定していない。
+- K PhoneでもこれらのProduct category signalは0/30。
+- imageOnly/fileOnlyだけで製品UI公開の判断をしない。
+- in-domain holdoutと手動正解ラベルが必要。
+
+### Product Go
+
+判断: no。
+
+理由:
+
+- 整理タブ本実装はまだ行わない。
+- 5タブ化はまだ行わない。
+- ClassificationJob本実装はまだ行わない。
+- 読取タブOCR候補への本連携はまだ行わない。
+- 本番分類DB保存はまだ行わない。
+
+## 整理タブ初期版の公開範囲
+
+一般UIで初期公開してよい候補:
+
+```text
+スクショ
+読取候補
+要確認
+```
+
+まだ出さない候補:
+
+```text
+レシート自動フォルダ
+名刺自動フォルダ
+書類自動フォルダ
+看板自動フォルダ
+白板自動フォルダ
+建物自動フォルダ
+工事現場自動フォルダ
+図面自動フォルダ
+車両・重機自動フォルダ
+資材・設備自動フォルダ
+```
+
+これらは内部taxonomyやDEBUG候補としては残す。ただし一般向けUIでは断定表示しない。
+
 ## 次に必要なこと
 
 - DEBUG UIで20件以上の手動正解ラベルを付ける。

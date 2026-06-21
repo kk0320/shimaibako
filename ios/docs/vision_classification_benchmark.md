@@ -239,6 +239,67 @@ Layer 3: In-domain holdout
   本番精度、リリース可否判断用。
 ```
 
+## P0.10 fixture失敗分析
+
+P0.10では、P0.9の合成fixture結果を次の観点で分解する。
+
+```text
+contractAssertions:
+  実装が必ず守る処理契約。
+
+signalAssertions:
+  Visionの反応やscore傾向を見る期待値。
+
+ocrPriorityPass:
+  正確なカテゴリ名ではなく、読取候補として価値があるか。
+
+categorySignalPass:
+  自動フォルダとして出せるカテゴリ信号があるか。
+```
+
+K Phone主結果:
+
+```text
+56件中 overallPass 21件
+contractPass 56/56
+signalPass 21/56
+ocrPriorityPass 41/50
+receipt/businessCard/document/sign/whiteboard/drawing categorySignalPass 0/30
+```
+
+Simulatorでは、metadataAware screenshotは通るが、imageOnly/fileOnlyで `espressoContextError` が出る傾向がある。そのため、Vision fixture benchmarkの正規評価はK Phoneを主基準にし、Simulatorはbuild/install/launchとsmoke確認に使う。
+
+FAIL理由は次へ分類する。
+
+```text
+assertionTooStrict
+visionLabelMissing
+scoreBelowThreshold
+wrongPredictedTag
+fixtureTooSynthetic
+metadataMissing
+visionRuntimeError
+espressoContextError
+unsupportedEnvironment
+unknown
+```
+
+P0.10 evidence:
+
+```text
+evidence/vision_classification_benchmark/p10_failure_analysis_*.md
+evidence/vision_classification_benchmark/p10_failure_analysis_*.csv
+evidence/vision_classification_benchmark/p10_go_no_go_*.md
+```
+
+生成script:
+
+```text
+swift ios/scripts/analyze_vision_fixture_failures.swift
+```
+
+この分析は既存JSONを読むだけで、写真本体、サムネイル本体、顔画像、顔テンプレートを保存しない。
+
 合成画像や一般公開画像だけで、建物、工事現場、車両・重機、資材・設備などのProduct Go判断はしない。
 
 追加した構成:
