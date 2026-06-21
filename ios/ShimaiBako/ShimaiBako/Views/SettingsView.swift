@@ -11,6 +11,7 @@ struct SettingsView: View {
     @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
     @ObservedObject var visionClassificationBenchmarkRunner: VisionClassificationBenchmarkRunner
+    @ObservedObject var visionFixtureBenchmarkRunner: VisionFixtureBenchmarkRunner
     @Environment(\.openURL) private var openURL
     @State private var pendingReadMode: PhotoReadMode?
     @State private var showingLargeModeSafety = false
@@ -754,6 +755,8 @@ struct SettingsView: View {
                 }
             }
 
+            visionFixtureBenchmarkControls
+
             visionReviewQueueControls
 
             Button {
@@ -822,6 +825,67 @@ struct SettingsView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var visionFixtureBenchmarkControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            Label("File fixture benchmark", systemImage: "doc.viewfinder")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            Text("ローカル合成fixtureだけを読み、Vision requestとscore経路を確認します。fixture画像は開発用で、製品Bundleには含めません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                Task {
+                    await visionFixtureBenchmarkRunner.runSyntheticFixtureBenchmark()
+                }
+            } label: {
+                Label("合成fixtureを実行", systemImage: "play.rectangle")
+                    .font(.caption.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(visionClassificationBenchmarkRunner.isRunning || visionFixtureBenchmarkRunner.isRunning)
+
+            if visionFixtureBenchmarkRunner.isRunning {
+                Label(visionFixtureBenchmarkRunner.latestStatus ?? "合成fixtureを実行中", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            } else if let status = visionFixtureBenchmarkRunner.latestStatus {
+                Text(status)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if visionFixtureBenchmarkRunner.latestTotalCount > 0 {
+                HStack(spacing: 8) {
+                    DetailInfoRow(title: "Fixture", value: "\(visionFixtureBenchmarkRunner.latestTotalCount)件")
+                    DetailInfoRow(title: "PASS", value: "\(visionFixtureBenchmarkRunner.latestPassCount)件")
+                    DetailInfoRow(title: "FAIL", value: "\(visionFixtureBenchmarkRunner.latestFailCount)件")
+                }
+            }
+
+            if let outputPath = visionFixtureBenchmarkRunner.latestOutputDirectoryPath {
+                Text("保存先: \(outputPath)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let errorMessage = visionFixtureBenchmarkRunner.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(Color(red: 0.75, green: 0.24, blue: 0.18))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private func visionBenchmarkButton(

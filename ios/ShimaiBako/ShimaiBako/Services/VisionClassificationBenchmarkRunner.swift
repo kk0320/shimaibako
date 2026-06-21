@@ -161,6 +161,50 @@ struct VisionProbeScores: Codable, Hashable {
     let ocrPriorityScore: Double
 }
 
+enum ClassificationImageSource: Hashable {
+    case photoAsset(localIdentifier: String)
+    case fileURL(URL)
+}
+
+struct ClassificationMetadata: Codable, Hashable {
+    let isScreenshot: Bool?
+    let pixelWidth: Int
+    let pixelHeight: Int
+    let orientation: String
+
+    static func fileImage(pixelWidth: Int, pixelHeight: Int, isScreenshot: Bool?) -> ClassificationMetadata {
+        ClassificationMetadata(
+            isScreenshot: isScreenshot,
+            pixelWidth: pixelWidth,
+            pixelHeight: pixelHeight,
+            orientation: "up"
+        )
+    }
+}
+
+struct ExpectedClassification: Codable, Hashable {
+    let formatTags: [String]
+    let contentTags: [String]
+    let ocrNeeded: Bool
+}
+
+struct FixtureProvenance: Codable, Hashable {
+    let layer: String
+    let split: String
+    let source: String
+    let licenseID: String?
+    let approved: Bool
+    let reviewNote: String?
+}
+
+struct ClassificationSample: Identifiable, Hashable {
+    let id: String
+    let imageSource: ClassificationImageSource
+    let metadata: ClassificationMetadata
+    let expected: ExpectedClassification?
+    let provenance: FixtureProvenance?
+}
+
 struct VisionClassificationProbeResult: Codable, Identifiable, Hashable {
     var id: String { assetIdentifierHash }
 
@@ -1509,6 +1553,257 @@ final class VisionClassificationProbeService {
         }
     }
 
+    func analyze(
+        sample: ClassificationSample,
+        bucketName: String,
+        mode: VisionClassificationProbeMode
+    ) async -> VisionClassificationProbeResult {
+        let overallStart = Date()
+        let sampleHash = Self.hashIdentifier(sample.id)
+        let isScreenshot = sample.metadata.isScreenshot ?? false
+
+        guard case let .fileURL(fileURL) = sample.imageSource else {
+            let scoringStart = Date()
+            let scores = Self.makeScores(
+                isScreenshot: isScreenshot,
+                labels: [],
+                faceCount: 0,
+                humanCount: 0,
+                documentSegmentCount: 0,
+                visualMetrics: .empty
+            )
+            let elapsed = Self.elapsedMs(since: overallStart)
+            return Self.makeResult(
+                assetIdentifierHash: sampleHash,
+                bucketName: bucketName,
+                mode: mode,
+                pixelWidth: sample.metadata.pixelWidth,
+                pixelHeight: sample.metadata.pixelHeight,
+                mediaType: "fileImage",
+                mediaSubtypesRawValue: 0,
+                isScreenshot: isScreenshot,
+                hasCreationDate: false,
+                labels: [],
+                classifyRevision: 0,
+                classifyElapsedMs: 0,
+                faceCount: 0,
+                faceElapsedMs: 0,
+                humanCount: 0,
+                humanElapsedMs: 0,
+                documentSegmentCount: 0,
+                documentElapsedMs: 0,
+                scores: scores,
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: 0,
+                    classifyImageMs: 0,
+                    faceDetectionMs: 0,
+                    humanDetectionMs: 0,
+                    documentSegmentationMs: 0,
+                    visualFeatureMs: 0,
+                    scoringMs: Self.elapsedMs(since: scoringStart),
+                    totalElapsedMs: elapsed
+                ),
+                elapsedMs: elapsed,
+                errorMessage: "File benchmark requires fileURL imageSource"
+            )
+        }
+
+        if mode == .gated, isScreenshot {
+            let scoringStart = Date()
+            let scores = Self.makeScores(
+                isScreenshot: true,
+                labels: [],
+                faceCount: 0,
+                humanCount: 0,
+                documentSegmentCount: 0,
+                visualMetrics: .empty,
+                forceScreenshotFastPath: true
+            )
+            let elapsed = Self.elapsedMs(since: overallStart)
+            return Self.makeResult(
+                assetIdentifierHash: sampleHash,
+                bucketName: bucketName,
+                mode: mode,
+                pixelWidth: sample.metadata.pixelWidth,
+                pixelHeight: sample.metadata.pixelHeight,
+                mediaType: "fileImage",
+                mediaSubtypesRawValue: 0,
+                isScreenshot: true,
+                hasCreationDate: false,
+                labels: [],
+                classifyRevision: 0,
+                classifyElapsedMs: 0,
+                faceCount: 0,
+                faceElapsedMs: 0,
+                humanCount: 0,
+                humanElapsedMs: 0,
+                documentSegmentCount: 0,
+                documentElapsedMs: 0,
+                scores: scores,
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: 0,
+                    classifyImageMs: 0,
+                    faceDetectionMs: 0,
+                    humanDetectionMs: 0,
+                    documentSegmentationMs: 0,
+                    visualFeatureMs: 0,
+                    scoringMs: Self.elapsedMs(since: scoringStart),
+                    totalElapsedMs: elapsed
+                ),
+                elapsedMs: elapsed,
+                errorMessage: nil
+            )
+        }
+
+        let imageStart = Date()
+        guard
+            let imageData = try? Data(contentsOf: fileURL),
+            let image = UIImage(data: imageData),
+            let cgImage = image.cgImage
+        else {
+            let scoringStart = Date()
+            let scores = Self.makeScores(
+                isScreenshot: isScreenshot,
+                labels: [],
+                faceCount: 0,
+                humanCount: 0,
+                documentSegmentCount: 0,
+                visualMetrics: .empty
+            )
+            let elapsed = Self.elapsedMs(since: overallStart)
+            return Self.makeResult(
+                assetIdentifierHash: sampleHash,
+                bucketName: bucketName,
+                mode: mode,
+                pixelWidth: sample.metadata.pixelWidth,
+                pixelHeight: sample.metadata.pixelHeight,
+                mediaType: "fileImage",
+                mediaSubtypesRawValue: 0,
+                isScreenshot: isScreenshot,
+                hasCreationDate: false,
+                labels: [],
+                classifyRevision: 0,
+                classifyElapsedMs: 0,
+                faceCount: 0,
+                faceElapsedMs: 0,
+                humanCount: 0,
+                humanElapsedMs: 0,
+                documentSegmentCount: 0,
+                documentElapsedMs: 0,
+                scores: scores,
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: Self.elapsedMs(since: imageStart),
+                    classifyImageMs: 0,
+                    faceDetectionMs: 0,
+                    humanDetectionMs: 0,
+                    documentSegmentationMs: 0,
+                    visualFeatureMs: 0,
+                    scoringMs: Self.elapsedMs(since: scoringStart),
+                    totalElapsedMs: elapsed
+                ),
+                elapsedMs: elapsed,
+                errorMessage: "fixture画像を読み込めませんでした"
+            )
+        }
+
+        let imageElapsed = Self.elapsedMs(since: imageStart)
+        do {
+            let vision = try performVision(cgImage: cgImage, orientation: .up)
+            let visualStart = Date()
+            let visualMetrics = Self.makeVisualMetrics(cgImage: cgImage)
+            let visualElapsed = Self.elapsedMs(since: visualStart)
+            let scoringStart = Date()
+            let scores = Self.makeScores(
+                isScreenshot: isScreenshot,
+                labels: vision.labels,
+                faceCount: vision.faceCount,
+                humanCount: vision.humanCount,
+                documentSegmentCount: vision.documentSegmentCount,
+                visualMetrics: visualMetrics
+            )
+            let scoringElapsed = Self.elapsedMs(since: scoringStart)
+            let elapsed = Self.elapsedMs(since: overallStart)
+
+            return Self.makeResult(
+                assetIdentifierHash: sampleHash,
+                bucketName: bucketName,
+                mode: mode,
+                pixelWidth: cgImage.width,
+                pixelHeight: cgImage.height,
+                mediaType: "fileImage",
+                mediaSubtypesRawValue: 0,
+                isScreenshot: isScreenshot,
+                hasCreationDate: false,
+                labels: vision.labels,
+                classifyRevision: vision.classifyRevision,
+                classifyElapsedMs: vision.classifyElapsedMs,
+                faceCount: vision.faceCount,
+                faceElapsedMs: vision.faceElapsedMs,
+                humanCount: vision.humanCount,
+                humanElapsedMs: vision.humanElapsedMs,
+                documentSegmentCount: vision.documentSegmentCount,
+                documentElapsedMs: vision.documentElapsedMs,
+                scores: scores,
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: imageElapsed,
+                    classifyImageMs: vision.classifyElapsedMs,
+                    faceDetectionMs: vision.faceElapsedMs,
+                    humanDetectionMs: vision.humanElapsedMs,
+                    documentSegmentationMs: vision.documentElapsedMs,
+                    visualFeatureMs: visualElapsed,
+                    scoringMs: scoringElapsed,
+                    totalElapsedMs: elapsed
+                ),
+                elapsedMs: elapsed,
+                errorMessage: nil
+            )
+        } catch {
+            let scoringStart = Date()
+            let scores = Self.makeScores(
+                isScreenshot: isScreenshot,
+                labels: [],
+                faceCount: 0,
+                humanCount: 0,
+                documentSegmentCount: 0,
+                visualMetrics: .empty
+            )
+            let elapsed = Self.elapsedMs(since: overallStart)
+            return Self.makeResult(
+                assetIdentifierHash: sampleHash,
+                bucketName: bucketName,
+                mode: mode,
+                pixelWidth: cgImage.width,
+                pixelHeight: cgImage.height,
+                mediaType: "fileImage",
+                mediaSubtypesRawValue: 0,
+                isScreenshot: isScreenshot,
+                hasCreationDate: false,
+                labels: [],
+                classifyRevision: 0,
+                classifyElapsedMs: 0,
+                faceCount: 0,
+                faceElapsedMs: 0,
+                humanCount: 0,
+                humanElapsedMs: 0,
+                documentSegmentCount: 0,
+                documentElapsedMs: 0,
+                scores: scores,
+                timing: VisionProbeTimingBreakdown(
+                    imageRequestMs: imageElapsed,
+                    classifyImageMs: 0,
+                    faceDetectionMs: 0,
+                    humanDetectionMs: 0,
+                    documentSegmentationMs: 0,
+                    visualFeatureMs: 0,
+                    scoringMs: Self.elapsedMs(since: scoringStart),
+                    totalElapsedMs: elapsed
+                ),
+                elapsedMs: elapsed,
+                errorMessage: error.localizedDescription
+            )
+        }
+    }
+
     private func requestImage(for asset: PHAsset) async -> (image: UIImage?, elapsedMs: Double) {
         let start = Date()
         return await withCheckedContinuation { (continuation: CheckedContinuation<(UIImage?, Double), Never>) in
@@ -1575,6 +1870,59 @@ final class VisionClassificationProbeService {
             mediaSubtypesRawValue: asset.mediaSubtypes.rawValue,
             isScreenshot: isScreenshot,
             hasCreationDate: asset.creationDate != nil,
+            topVisualLabels: labels,
+            classifyRevision: classifyRevision,
+            classifyElapsedMs: classifyElapsedMs,
+            faceCount: faceCount,
+            hasFace: faceCount > 0,
+            faceElapsedMs: faceElapsedMs,
+            humanCount: humanCount,
+            hasHuman: humanCount > 0,
+            humanElapsedMs: humanElapsedMs,
+            documentSegmentCount: documentSegmentCount,
+            hasDocumentSegment: documentSegmentCount > 0,
+            documentElapsedMs: documentElapsedMs,
+            scores: scores,
+            timing: timing,
+            elapsedMs: elapsedMs,
+            errorMessage: errorMessage
+        )
+    }
+
+    private static func makeResult(
+        assetIdentifierHash: String,
+        bucketName: String,
+        mode: VisionClassificationProbeMode,
+        pixelWidth: Int,
+        pixelHeight: Int,
+        mediaType: String,
+        mediaSubtypesRawValue: UInt,
+        isScreenshot: Bool,
+        hasCreationDate: Bool,
+        labels: [VisionProbeVisualLabel],
+        classifyRevision: Int,
+        classifyElapsedMs: Double,
+        faceCount: Int,
+        faceElapsedMs: Double,
+        humanCount: Int,
+        humanElapsedMs: Double,
+        documentSegmentCount: Int,
+        documentElapsedMs: Double,
+        scores: VisionProbeScores,
+        timing: VisionProbeTimingBreakdown,
+        elapsedMs: Double,
+        errorMessage: String?
+    ) -> VisionClassificationProbeResult {
+        VisionClassificationProbeResult(
+            assetIdentifierHash: assetIdentifierHash,
+            bucketName: bucketName,
+            probeMode: mode.rawValue,
+            pixelWidth: pixelWidth,
+            pixelHeight: pixelHeight,
+            mediaType: mediaType,
+            mediaSubtypesRawValue: mediaSubtypesRawValue,
+            isScreenshot: isScreenshot,
+            hasCreationDate: hasCreationDate,
             topVisualLabels: labels,
             classifyRevision: classifyRevision,
             classifyElapsedMs: classifyElapsedMs,

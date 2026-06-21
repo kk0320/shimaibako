@@ -218,6 +218,70 @@ spikeでは次を実装しない。
 - 外部API連携
 - 画像の外部送信
 - 顔識別
+
+## P0.9 File-based Fixture Benchmark
+
+P0.9では、PHAssetだけでなく開発用の画像ファイルfixtureを入力できるようにする。目的は本番精度の断言ではなく、Vision request、score計算、semantic assertion、evidence出力の退行検出である。
+
+評価データは3層に分ける。
+
+```text
+Layer 1: Contract fixtures
+  ローカル合成画像。
+  処理経路、OCR優先度、score合成、回帰テスト用。
+
+Layer 2: Characterization fixtures
+  ライセンス確認済み実写真。
+  Visionの傾向、誤分類、閾値仮調整用。
+
+Layer 3: In-domain holdout
+  自分で撮影した写真、許可済み現場写真。
+  本番精度、リリース可否判断用。
+```
+
+合成画像や一般公開画像だけで、建物、工事現場、車両・重機、資材・設備などのProduct Go判断はしない。
+
+追加した構成:
+
+```text
+ClassificationSample
+ClassificationImageSource.photoAsset / fileURL
+ClassificationMetadata
+VisionFixtureBenchmarkRunner
+ios/scripts/generate_vision_fixtures.swift
+ios/scripts/check_vision_fixture_release_mix.swift
+fixtures/vision_benchmark/
+```
+
+P0.9の合成fixtureカテゴリ:
+
+```text
+receipt
+businessCard
+document
+drawing
+sign
+whiteboard
+chatScreenshot
+appScreenshot
+buildingLike
+constructionLike
+```
+
+スクショfixtureは `metadataAware` と `imageOnly` を分けて評価する。`metadataAware` はPhotoKit高速パス相当、`imageOnly` は画像だけの観察であり、同じ判断には使わない。
+
+出力:
+
+```text
+evidence/vision_classification_benchmark/p09_fixture_results_*.json
+evidence/vision_classification_benchmark/p09_fixture_results_*.csv
+evidence/vision_classification_benchmark/p09_fixture_summary_*.md
+evidence/vision_classification_benchmark/p09_fixture_assertions_*.md
+```
+
+fixture画像はRelease target、Copy Bundle Resources、Archive後の `.app` に含めない。`swift ios/scripts/check_vision_fixture_release_mix.swift` で混入を検出する。
+
+DEBUG runnerの出力先は通常 `Application Support/ShimaiBako/vision_classification_benchmark/`。実機へ `devicectl` でfixtureを配置した場合に親ディレクトリが書き込み不可になることがあるため、その場合は `Caches/ShimaiBako/vision_classification_benchmark/` へフォールバックする。
 - 特徴ベクトルの大量保存
 
 ## 安全確認

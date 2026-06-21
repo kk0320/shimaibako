@@ -11,6 +11,7 @@ struct ContentView: View {
     @StateObject private var deviceSafety: DeviceSafetyService
     @StateObject private var deviceConditionMonitor: DeviceConditionMonitor
     @StateObject private var visionClassificationBenchmarkRunner: VisionClassificationBenchmarkRunner
+    @StateObject private var visionFixtureBenchmarkRunner: VisionFixtureBenchmarkRunner
 
     init() {
         let learningService = ManualCategoryLearningService()
@@ -23,6 +24,7 @@ struct ContentView: View {
         _deviceSafety = StateObject(wrappedValue: DeviceSafetyService())
         _deviceConditionMonitor = StateObject(wrappedValue: DeviceConditionMonitor())
         _visionClassificationBenchmarkRunner = StateObject(wrappedValue: VisionClassificationBenchmarkRunner())
+        _visionFixtureBenchmarkRunner = StateObject(wrappedValue: VisionFixtureBenchmarkRunner())
     }
 
     var body: some View {
@@ -34,7 +36,8 @@ struct ContentView: View {
             accuracyImprovementService: accuracyImprovementService,
             batchOCRJobService: batchOCRJobService,
             deviceSafety: deviceSafety,
-            visionClassificationBenchmarkRunner: visionClassificationBenchmarkRunner
+            visionClassificationBenchmarkRunner: visionClassificationBenchmarkRunner,
+            visionFixtureBenchmarkRunner: visionFixtureBenchmarkRunner
         )
             .task {
                 #if DEBUG
@@ -68,6 +71,10 @@ struct ContentView: View {
                             deviceSafety: deviceSafety
                         )
                     }
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunVisionFixtureBenchmarkP09") {
+                    print("VISION_FIXTURE_BENCHMARK step=launchArgumentDetected arguments=\(ProcessInfo.processInfo.arguments.joined(separator: "|"))")
+                    await visionFixtureBenchmarkRunner.runSyntheticFixtureBenchmark()
                 }
                 #endif
                 await photoLibrary.prepare()

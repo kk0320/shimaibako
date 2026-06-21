@@ -1,0 +1,2888 @@
+{
+  "fixtures" : [
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "receipt",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "receipt",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "receipt",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_receipt_clean_fileOnly_001.png",
+      "fixtureId" : "synthetic_receipt_clean_fileOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "receipt",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "receipt",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "receipt",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_receipt_rotated_fileOnly_002.png",
+      "fixtureId" : "synthetic_receipt_rotated_fileOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "receipt",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "receipt",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "receipt",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_receipt_blur_fileOnly_003.png",
+      "fixtureId" : "synthetic_receipt_blur_fileOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "receipt",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "receipt",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "receipt",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_receipt_shadow_fileOnly_004.png",
+      "fixtureId" : "synthetic_receipt_shadow_fileOnly_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "receipt",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "receipt",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "receipt",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_receipt_low_contrast_fileOnly_005.png",
+      "fixtureId" : "synthetic_receipt_low_contrast_fileOnly_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "businessCard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > landscapeScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "businessCard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "businessCard",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_businessCard_clean_fileOnly_001.png",
+      "fixtureId" : "synthetic_businessCard_clean_fileOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "businessCard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > landscapeScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "businessCard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "businessCard",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_businessCard_rotated_fileOnly_002.png",
+      "fixtureId" : "synthetic_businessCard_rotated_fileOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "businessCard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > landscapeScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "businessCard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "businessCard",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_businessCard_blur_fileOnly_003.png",
+      "fixtureId" : "synthetic_businessCard_blur_fileOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "businessCard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > landscapeScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "businessCard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "businessCard",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_businessCard_shadow_fileOnly_004.png",
+      "fixtureId" : "synthetic_businessCard_shadow_fileOnly_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "businessCard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > landscapeScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "businessCard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "businessCard",
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_businessCard_low_contrast_fileOnly_005.png",
+      "fixtureId" : "synthetic_businessCard_low_contrast_fileOnly_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "document",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_document_clean_fileOnly_001.png",
+      "fixtureId" : "synthetic_document_clean_fileOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "document",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_document_rotated_fileOnly_002.png",
+      "fixtureId" : "synthetic_document_rotated_fileOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "document",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_document_blur_fileOnly_003.png",
+      "fixtureId" : "synthetic_document_blur_fileOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "document",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_document_shadow_fileOnly_004.png",
+      "fixtureId" : "synthetic_document_shadow_fileOnly_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "document",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_document_low_contrast_fileOnly_005.png",
+      "fixtureId" : "synthetic_document_low_contrast_fileOnly_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "drawing",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_drawing_clean_fileOnly_001.png",
+      "fixtureId" : "synthetic_drawing_clean_fileOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "drawing",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_drawing_rotated_fileOnly_002.png",
+      "fixtureId" : "synthetic_drawing_rotated_fileOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "drawing",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_drawing_blur_fileOnly_003.png",
+      "fixtureId" : "synthetic_drawing_blur_fileOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "drawing",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_drawing_shadow_fileOnly_004.png",
+      "fixtureId" : "synthetic_drawing_shadow_fileOnly_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "documentVisualScore" : 0.2
+        },
+        "relativeAssertions" : [
+          "documentScore > foodScore"
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "drawing",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "document",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_drawing_low_contrast_fileOnly_005.png",
+      "fixtureId" : "synthetic_drawing_low_contrast_fileOnly_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "sign",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_sign_clean_fileOnly_001.png",
+      "fixtureId" : "synthetic_sign_clean_fileOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "sign",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_sign_rotated_fileOnly_002.png",
+      "fixtureId" : "synthetic_sign_rotated_fileOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "sign",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_sign_blur_fileOnly_003.png",
+      "fixtureId" : "synthetic_sign_blur_fileOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "sign",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_sign_shadow_fileOnly_004.png",
+      "fixtureId" : "synthetic_sign_shadow_fileOnly_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "sign",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "sign",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_sign_low_contrast_fileOnly_005.png",
+      "fixtureId" : "synthetic_sign_low_contrast_fileOnly_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "whiteboard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_whiteboard_clean_fileOnly_001.png",
+      "fixtureId" : "synthetic_whiteboard_clean_fileOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "whiteboard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_whiteboard_rotated_fileOnly_002.png",
+      "fixtureId" : "synthetic_whiteboard_rotated_fileOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "whiteboard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_whiteboard_blur_fileOnly_003.png",
+      "fixtureId" : "synthetic_whiteboard_blur_fileOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "whiteboard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_whiteboard_shadow_fileOnly_004.png",
+      "fixtureId" : "synthetic_whiteboard_shadow_fileOnly_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "sign",
+          "whiteboard",
+          "document"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "whiteboard",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "whiteboard",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_whiteboard_low_contrast_fileOnly_005.png",
+      "fixtureId" : "synthetic_whiteboard_low_contrast_fileOnly_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_clean_metadataAware_001.png",
+      "fixtureId" : "synthetic_chatScreenshot_clean_metadataAware_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_clean_imageOnly_001.png",
+      "fixtureId" : "synthetic_chatScreenshot_clean_imageOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_rotated_metadataAware_002.png",
+      "fixtureId" : "synthetic_chatScreenshot_rotated_metadataAware_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_rotated_imageOnly_002.png",
+      "fixtureId" : "synthetic_chatScreenshot_rotated_imageOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_blur_metadataAware_003.png",
+      "fixtureId" : "synthetic_chatScreenshot_blur_metadataAware_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_blur_imageOnly_003.png",
+      "fixtureId" : "synthetic_chatScreenshot_blur_imageOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_shadow_metadataAware_004.png",
+      "fixtureId" : "synthetic_chatScreenshot_shadow_metadataAware_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_shadow_imageOnly_004.png",
+      "fixtureId" : "synthetic_chatScreenshot_shadow_imageOnly_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_low_contrast_metadataAware_005.png",
+      "fixtureId" : "synthetic_chatScreenshot_low_contrast_metadataAware_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "chatScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_chatScreenshot_low_contrast_imageOnly_005.png",
+      "fixtureId" : "synthetic_chatScreenshot_low_contrast_imageOnly_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_clean_metadataAware_001.png",
+      "fixtureId" : "synthetic_appScreenshot_clean_metadataAware_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_clean_imageOnly_001.png",
+      "fixtureId" : "synthetic_appScreenshot_clean_imageOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_rotated_metadataAware_002.png",
+      "fixtureId" : "synthetic_appScreenshot_rotated_metadataAware_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_rotated_imageOnly_002.png",
+      "fixtureId" : "synthetic_appScreenshot_rotated_imageOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_blur_metadataAware_003.png",
+      "fixtureId" : "synthetic_appScreenshot_blur_metadataAware_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_blur_imageOnly_003.png",
+      "fixtureId" : "synthetic_appScreenshot_blur_imageOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_shadow_metadataAware_004.png",
+      "fixtureId" : "synthetic_appScreenshot_shadow_metadataAware_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_shadow_imageOnly_004.png",
+      "fixtureId" : "synthetic_appScreenshot_shadow_imageOnly_004",
+      "generation" : {
+        "backgroundType" : "deskShadow",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "shadow"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.8
+        },
+        "relativeAssertions" : [
+          "screenshotScore > documentScore"
+        ],
+        "requiredTags" : [
+          "screenshot",
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "metadataAware",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_low_contrast_metadataAware_005.png",
+      "fixtureId" : "synthetic_appScreenshot_low_contrast_metadataAware_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : true,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "document"
+        ],
+        "forbiddenTags" : [
+          "receipt"
+        ],
+        "minimumScores" : {
+          "ocrPriorityScore" : 0.2
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+          "ocrNeeded"
+        ]
+      },
+      "category" : "appScreenshot",
+      "evaluationMode" : "imageOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "screenshot",
+        "ocrNeeded"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_appScreenshot_low_contrast_imageOnly_005.png",
+      "fixtureId" : "synthetic_appScreenshot_low_contrast_imageOnly_005",
+      "generation" : {
+        "backgroundType" : "lowContrast",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "low_contrast"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "buildingLike",
+          "constructionLike"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+
+        ]
+      },
+      "category" : "buildingLike",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "buildingLike"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_buildingLike_clean_fileOnly_001.png",
+      "fixtureId" : "synthetic_buildingLike_clean_fileOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "buildingLike",
+          "constructionLike"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+
+        ]
+      },
+      "category" : "buildingLike",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "buildingLike"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_buildingLike_rotated_fileOnly_002.png",
+      "fixtureId" : "synthetic_buildingLike_rotated_fileOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "buildingLike",
+          "constructionLike"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+
+        ]
+      },
+      "category" : "buildingLike",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "buildingLike"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_buildingLike_blur_fileOnly_003.png",
+      "fixtureId" : "synthetic_buildingLike_blur_fileOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "buildingLike",
+          "constructionLike"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+
+        ]
+      },
+      "category" : "constructionLike",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "constructionLike"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_constructionLike_clean_fileOnly_001.png",
+      "fixtureId" : "synthetic_constructionLike_clean_fileOnly_001",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "clean"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "buildingLike",
+          "constructionLike"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+
+        ]
+      },
+      "category" : "constructionLike",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "constructionLike"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_constructionLike_rotated_fileOnly_002.png",
+      "fixtureId" : "synthetic_constructionLike_rotated_fileOnly_002",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 0,
+        "perspectiveAmount" : 0.1,
+        "rotation" : -4
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "rotated"
+    },
+    {
+      "assertions" : {
+        "allowedAlternateTags" : [
+          "buildingLike",
+          "constructionLike"
+        ],
+        "forbiddenTags" : [
+          "screenshot"
+        ],
+        "minimumScores" : {
+
+        },
+        "relativeAssertions" : [
+
+        ],
+        "requiredTags" : [
+
+        ]
+      },
+      "category" : "constructionLike",
+      "evaluationMode" : "fileOnly",
+      "expectedContentTags" : [
+
+      ],
+      "expectedFormatTags" : [
+        "constructionLike"
+      ],
+      "expectedOCRNeeded" : true,
+      "file" : "synthetic_constructionLike_blur_fileOnly_003.png",
+      "fixtureId" : "synthetic_constructionLike_blur_fileOnly_003",
+      "generation" : {
+        "backgroundType" : "plain",
+        "blurRadius" : 1.4,
+        "perspectiveAmount" : 0,
+        "rotation" : 0
+      },
+      "layer" : "contract",
+      "metadata" : {
+        "height" : 1200,
+        "isScreenshot" : false,
+        "width" : 900
+      },
+      "provenance" : {
+        "approved" : true,
+        "licenseID" : "project-generated",
+        "reviewNote" : "Contract fixture generated locally; not real-world accuracy evidence.",
+        "source" : "localSynthetic"
+      },
+      "split" : "development",
+      "variant" : "blur"
+    }
+  ],
+  "generatedAt" : "2025-12-17T19:33:20Z",
+  "generatorVersion" : "p09-synthetic-fixtures-1",
+  "seed" : 90421
+}

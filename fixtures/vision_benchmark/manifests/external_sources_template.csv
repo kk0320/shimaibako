@@ -1,0 +1,2 @@
+fixture_id,local_file,sha256,title,creator,source_page_url,original_file_url,license_id,license_version,license_url,license_verified_at,license_asserted_by,retrieved_at,retrieval_query,retrieval_tool,category,expected_labels,modifications,attribution_text,redistribution_allowed,repository_policy,contains_people,contains_personal_data,contains_trademark,reviewer,review_note,approved
+example_fixture,example.png,,Example title,,,,CC0,1.0,,YYYY-MM-DD,reviewer,YYYY-MM-DD,query,manual,document,"document;ocrNeeded",crop,,true,exclude_until_approved,false,false,false,,,false
