@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var ocrService: OCRService
     @StateObject private var indexService: PhotoIndexService
     @StateObject private var learningService: ManualCategoryLearningService
+    @StateObject private var classificationService: PhotoClassificationService
     @StateObject private var accuracyImprovementService: AccuracyImprovementService
     @StateObject private var batchOCRJobService: BatchOCRJobService
     @StateObject private var deviceSafety: DeviceSafetyService
@@ -16,6 +17,7 @@ struct ContentView: View {
         _photoLibrary = StateObject(wrappedValue: PhotoLibraryService())
         _ocrService = StateObject(wrappedValue: OCRService())
         _learningService = StateObject(wrappedValue: learningService)
+        _classificationService = StateObject(wrappedValue: PhotoClassificationService())
         _indexService = StateObject(wrappedValue: PhotoIndexService(learningService: learningService))
         _accuracyImprovementService = StateObject(wrappedValue: AccuracyImprovementService())
         _batchOCRJobService = StateObject(wrappedValue: BatchOCRJobService())
@@ -29,6 +31,7 @@ struct ContentView: View {
             ocrService: ocrService,
             indexService: indexService,
             learningService: learningService,
+            classificationService: classificationService,
             accuracyImprovementService: accuracyImprovementService,
             batchOCRJobService: batchOCRJobService,
             deviceSafety: deviceSafety

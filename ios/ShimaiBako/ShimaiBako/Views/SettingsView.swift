@@ -7,6 +7,7 @@ struct SettingsView: View {
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
+    @ObservedObject var classificationService: PhotoClassificationService
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
@@ -54,6 +55,7 @@ struct SettingsView: View {
                         largeLibraryGuideCard
                         iCloudSettingsCard
                         categoryCountsCard
+                        classificationDataCard
                         learningSettingsCard
                         accuracyImprovementCard
                         ocrSettingsCard
@@ -401,6 +403,41 @@ struct SettingsView: View {
             Text("読取は読取タブで必要な件数だけ段階的に実行します。発熱やバッテリー消費を避けるため、ライブラリ全体の自動読取は行いません。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var classificationDataCard: some View {
+        let summary = classificationService.summary
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Label("画像整理データ", systemImage: "square.grid.2x2")
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+            DetailInfoRow(title: "分類データ件数", value: "\(summary.totalCount)件")
+            DetailInfoRow(title: "手動分類件数", value: "\(summary.manualCount)件")
+            DetailInfoRow(title: "スクショ", value: "\(summary.screenshotCount)件")
+            DetailInfoRow(title: "読取候補", value: "\(summary.readCandidateCount)件")
+            DetailInfoRow(title: "要確認", value: "\(summary.needsReviewCount)件")
+            DetailInfoRow(title: "保存先", value: "端末内")
+
+            Text("分類カテゴリ、タグ、スコア、状態、更新日時、バージョン、写真の識別子だけを保存します。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("元写真・元動画、サムネイル本体、顔画像、顔テンプレート、人物識別データ、大量特徴ベクトルは保存しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("手動分類がある場合は、自動分類より必ず優先します。")
+                .font(.caption)
+                .foregroundStyle(Color(red: 0.16, green: 0.42, blue: 0.75))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
