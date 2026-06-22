@@ -142,15 +142,13 @@ struct OrganizationFolderView: View {
 
             if folder == .readCandidates {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("スクショなど、文字検索に役立つ可能性が高い写真です。元写真・元動画は変更されません。")
+                    Text("スクショなど、文字検索に役立つ可能性が高い写真です。すでに読取済みの写真はこの候補から外れます。元写真・元動画は変更されません。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("OCR済み、文字なし判定済み、処理中の写真はこの候補から外します。")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    ReadCandidateFolderInfoRow(title: "候補", value: "\(totalCount)件")
+                    ReadCandidateFolderInfoRow(title: "対象", value: "スクショなどの未読取候補")
 
                     Button {
                         onReadCandidateHandoff(
@@ -302,6 +300,23 @@ struct OrganizationFolderView: View {
             assetsByID[asset.localIdentifier] = asset
         }
         loadedIdentifiers.append(contentsOf: assets.map(\.localIdentifier))
+    }
+}
+
+private struct ReadCandidateFolderInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+        }
     }
 }
 

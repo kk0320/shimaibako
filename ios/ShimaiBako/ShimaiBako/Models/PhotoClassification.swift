@@ -124,7 +124,7 @@ enum OrganizationVirtualFolder: String, CaseIterable, Identifiable, Hashable {
         case .screenshots:
             "スクリーンショットとして扱う写真"
         case .readCandidates:
-            "文字がありそうな読取候補"
+            "読取済みを除いた文字候補"
         case .needsReview:
             "人が見直すための候補"
         case .unorganized:

@@ -40,7 +40,8 @@ struct HomeView: View {
                 ocrService: ocrService,
                 indexService: indexService,
                 learningService: learningService,
-                classificationService: classificationService
+                classificationService: classificationService,
+                batchOCRJobService: batchOCRJobService
             ) { selection in
                 readCandidateSelection = selection
                 selectedTab = .read
