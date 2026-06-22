@@ -2,8 +2,11 @@ import SwiftUI
 
 struct OrganizationView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
+    @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var classificationService: PhotoClassificationService
+    @State private var navigationPath = OrganizationView.initialNavigationPath
 
     private var summary: PhotoClassificationSummary {
         classificationService.summary
@@ -47,7 +50,7 @@ struct OrganizationView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 AppBackground()
 
@@ -55,6 +58,7 @@ struct OrganizationView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         header
                         statusCard
+                        virtualFoldersCard
                         metadataUpdateCard
                         availableClassificationsCard
                         evaluationNoticeCard
@@ -70,6 +74,16 @@ struct OrganizationView: View {
             }
             .navigationTitle("整理")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: OrganizationVirtualFolder.self) { folder in
+                OrganizationFolderView(
+                    photoLibrary: photoLibrary,
+                    ocrService: ocrService,
+                    indexService: indexService,
+                    learningService: learningService,
+                    classificationService: classificationService,
+                    folder: folder
+                )
+            }
         }
     }
 
@@ -253,6 +267,41 @@ struct OrganizationView: View {
         )
     }
 
+    private var virtualFoldersCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("自動フォルダ", systemImage: "folder")
+                .font(.headline)
+
+            Text("しまい箱内だけの仮想フォルダです。元写真・元動画は移動・変更しません。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(OrganizationVirtualFolder.allCases) { folder in
+                    NavigationLink(value: folder) {
+                        OrganizationFolderTile(
+                            title: folder.title,
+                            count: classificationService.organizationVirtualFolderCount(
+                                folder,
+                                libraryTotalCount: libraryTotalCount
+                            ),
+                            detail: folder.detail,
+                            systemImage: folder.systemImage
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(16)
+        .background(.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.06))
+        )
+    }
+
     private var availableClassificationsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("現在利用できる分類", systemImage: "checkmark.seal")
@@ -348,6 +397,32 @@ struct OrganizationView: View {
     #endif
 }
 
+private extension OrganizationView {
+    static var initialNavigationPath: [OrganizationVirtualFolder] {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+
+        if arguments.contains("-ShimaiBakoOpenOrganizationScreenshotsFolder") {
+            return [.screenshots]
+        }
+
+        if arguments.contains("-ShimaiBakoOpenOrganizationReadCandidatesFolder") {
+            return [.readCandidates]
+        }
+
+        if arguments.contains("-ShimaiBakoOpenOrganizationNeedsReviewFolder") {
+            return [.needsReview]
+        }
+
+        if arguments.contains("-ShimaiBakoOpenOrganizationUnorganizedFolder") {
+            return [.unorganized]
+        }
+        #endif
+
+        return []
+    }
+}
+
 private struct OrganizationMetricTile: View {
     let title: String
     let value: String
@@ -372,6 +447,46 @@ private struct OrganizationMetricTile: View {
         .frame(maxWidth: .infinity, minHeight: 86, alignment: .leading)
         .padding(12)
         .background(Color(red: 0.95, green: 0.98, blue: 1.0), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+private struct OrganizationFolderTile: View {
+    let title: String
+    let count: Int
+    let detail: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.headline)
+                .foregroundStyle(Color(red: 0.16, green: 0.42, blue: 0.75))
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                    .lineLimit(1)
+                Text("\(count)件")
+                    .font(.headline)
+                    .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+                    .lineLimit(1)
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
+        .padding(12)
+        .background(Color(red: 0.95, green: 0.98, blue: 1.0), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.05))
+        )
     }
 }
 

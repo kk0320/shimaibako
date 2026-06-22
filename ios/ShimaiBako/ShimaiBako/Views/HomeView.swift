@@ -36,7 +36,9 @@ struct HomeView: View {
 
             OrganizationView(
                 photoLibrary: photoLibrary,
+                ocrService: ocrService,
                 indexService: indexService,
+                learningService: learningService,
                 classificationService: classificationService
             )
                 .tabItem {
@@ -99,6 +101,13 @@ private extension HomeTab {
         }
 
         if arguments.contains("-ShimaiBakoOpenOrganizationTab") {
+            return .organization
+        }
+
+        if arguments.contains("-ShimaiBakoOpenOrganizationScreenshotsFolder") ||
+            arguments.contains("-ShimaiBakoOpenOrganizationReadCandidatesFolder") ||
+            arguments.contains("-ShimaiBakoOpenOrganizationNeedsReviewFolder") ||
+            arguments.contains("-ShimaiBakoOpenOrganizationUnorganizedFolder") {
             return .organization
         }
 
