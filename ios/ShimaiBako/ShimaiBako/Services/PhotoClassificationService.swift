@@ -193,6 +193,82 @@ final class PhotoClassificationService: ObservableObject {
         isUpdatingMetadata = false
     }
 
+    func updateMetadataOnly(indexRecords: [PhotoIndexRecord]) async {
+        guard isUpdatingMetadata == false else {
+            return
+        }
+
+        guard indexRecords.isEmpty == false else {
+            lastUpdateSummary = .empty
+            errorMessage = "軽量整理できるPhotoIndexメタデータがありません。"
+            return
+        }
+
+        isUpdatingMetadata = true
+        shouldCancelMetadataUpdate = false
+        metadataUpdateProcessedCount = 0
+        metadataUpdateTotalCount = indexRecords.count
+        errorMessage = nil
+
+        var nextRecordsByID = recordsByAssetID
+        var updateSummary = PhotoClassificationUpdateSummary(
+            processedCount: 0,
+            totalCount: indexRecords.count,
+            screenshotCount: 0,
+            readCandidateCount: 0,
+            needsReviewCount: 0,
+            unorganizedCount: 0,
+            manualProtectedCount: 0
+        )
+        var lastPublishedAt = Date.distantPast
+
+        for (index, indexRecord) in indexRecords.enumerated() {
+            if shouldCancelMetadataUpdate {
+                break
+            }
+
+            var record = nextRecordsByID[indexRecord.localIdentifier] ?? PhotoClassification(assetIdentifier: indexRecord.localIdentifier)
+            record.applyMetadataOnly(
+                asset: nil,
+                indexRecord: indexRecord,
+                isScreenshot: indexRecord.isScreenshot,
+                updatedAt: Date()
+            )
+            nextRecordsByID[indexRecord.localIdentifier] = record
+
+            updateSummary.processedCount = index + 1
+            updateSummary.manualProtectedCount += record.manualCategory == nil ? 0 : 1
+            if record.isScreenshot || record.resolvedCategory == .screenshot {
+                updateSummary.screenshotCount += 1
+            }
+            if record.contentTags.contains(Self.readCandidateTag) || record.resolvedCategory == .readCandidate {
+                updateSummary.readCandidateCount += 1
+            }
+            if record.resolvedCategory == .needsReview {
+                updateSummary.needsReviewCount += 1
+            }
+            if record.resolvedCategory == nil || record.resolvedCategory == .unorganized {
+                updateSummary.unorganizedCount += 1
+            }
+
+            let now = Date()
+            if now.timeIntervalSince(lastPublishedAt) >= 1 || index == indexRecords.count - 1 {
+                recordsByAssetID = nextRecordsByID
+                metadataUpdateProcessedCount = updateSummary.processedCount
+                lastUpdateSummary = updateSummary
+                lastPublishedAt = now
+                await Task.yield()
+            }
+        }
+
+        recordsByAssetID = nextRecordsByID
+        metadataUpdateProcessedCount = updateSummary.processedCount
+        lastUpdateSummary = updateSummary
+        lastMetadataUpdatedAt = Date()
+        await saveAll()
+        isUpdatingMetadata = false
+    }
+
     func cancelMetadataUpdate() {
         shouldCancelMetadataUpdate = true
     }
@@ -286,18 +362,36 @@ final class PhotoClassificationService: ObservableObject {
     @discardableResult
     func runMetadataOnlyOrganizationValidation(
         assets: [PhotoAsset],
+        indexRecords: [PhotoIndexRecord],
         indexService: PhotoIndexService,
         libraryTotalAssets: Int,
-        validationLimit: Int
+        validationLimit: Int,
+        metadataSource: String,
+        metadataSourceFallbacksTried: [String],
+        photoLibraryAssetsCount: Int,
+        photoIndexTotalCount: Int,
+        sqliteTotalCount: Int,
+        sourceUnavailableReason: String?
     ) async -> MetadataOnlyOrganizationValidationReport {
         let manualReport = runManualPrioritySelfTest()
-        await updateMetadataOnly(assets: assets, indexService: indexService)
+        if indexRecords.isEmpty == false {
+            await updateMetadataOnly(indexRecords: indexRecords)
+        } else {
+            await updateMetadataOnly(assets: assets, indexService: indexService)
+        }
 
         let summary = self.summary
-        let normalizedLibraryTotalAssets = max(libraryTotalAssets, assets.count, summary.totalCount)
+        let processedSourceCount = indexRecords.isEmpty ? assets.count : indexRecords.count
+        let normalizedLibraryTotalAssets = max(
+            libraryTotalAssets,
+            photoIndexTotalCount,
+            sqliteTotalCount,
+            assets.count,
+            summary.totalCount
+        )
         var failureReasons: [String] = []
-        if assets.isEmpty {
-            failureReasons.append("totalAssets is 0")
+        if processedSourceCount == 0 {
+            failureReasons.append(sourceUnavailableReason ?? "metadataSourceUnavailable")
         }
         if summary.totalCount == 0 {
             failureReasons.append("summaryTotalCount is 0")
@@ -330,10 +424,16 @@ final class PhotoClassificationService: ObservableObject {
 
         let report = MetadataOnlyOrganizationValidationReport(
             generatedAt: Date(),
-            totalAssets: assets.count,
+            totalAssets: processedSourceCount,
             libraryTotalAssets: normalizedLibraryTotalAssets,
             validationLimit: validationLimit,
             processedAssets: lastUpdateSummary.processedCount,
+            metadataSource: metadataSource,
+            metadataSourceFallbacksTried: metadataSourceFallbacksTried,
+            photoLibraryAssetsCount: photoLibraryAssetsCount,
+            photoIndexTotalCount: photoIndexTotalCount,
+            sqliteTotalCount: sqliteTotalCount,
+            sourceUnavailableReason: sourceUnavailableReason,
             classificationStoreTotal: recordsByAssetID.count,
             summaryTotalAssets: normalizedLibraryTotalAssets,
             summaryClassifiedCount: summary.classifiedCount,
@@ -356,7 +456,7 @@ final class PhotoClassificationService: ObservableObject {
 
         metadataValidationReport = report
         await saveMetadataValidationReport(report)
-        print("METADATA_ORGANIZATION_VALIDATION \(report.result) libraryTotalAssets=\(report.libraryTotalAssets) validationLimit=\(report.validationLimit) processedAssets=\(report.processedAssets) classified=\(report.classifiedCount) screenshot=\(report.screenshotCount) readCandidate=\(report.readCandidateCount) unorganized=\(report.unorganizedCount)")
+        print("METADATA_ORGANIZATION_VALIDATION \(report.result) metadataSource=\(report.metadataSource) libraryTotalAssets=\(report.libraryTotalAssets) validationLimit=\(report.validationLimit) processedAssets=\(report.processedAssets) classified=\(report.classifiedCount) screenshot=\(report.screenshotCount) readCandidate=\(report.readCandidateCount) unorganized=\(report.unorganizedCount)")
         return report
     }
     #endif

@@ -2,6 +2,15 @@ import Combine
 import Foundation
 import Photos
 
+nonisolated struct OrganizationMetadataSourceSnapshot: Equatable, Sendable {
+    var records: [PhotoIndexRecord]
+    var totalCount: Int
+    var metadataSource: String
+    var sqliteTotalCount: Int
+    var photoIndexTotalCount: Int
+    var sourceUnavailableReason: String?
+}
+
 @MainActor
 final class PhotoIndexService: ObservableObject {
     @Published private(set) var recordsByAssetID: [String: PhotoIndexRecord] = [:]
@@ -275,6 +284,33 @@ final class PhotoIndexService: ObservableObject {
         } catch {
             errorMessage = "読取対象候補数を読み込めませんでした: \(error.localizedDescription)"
             return 0
+        }
+    }
+
+    func organizationMetadataSource(limit: Int) async -> OrganizationMetadataSourceSnapshot {
+        do {
+            let summary = try await store.summary()
+            let records = try await store.loadPage(limit: max(limit, 1), offset: 0)
+            updateRecordCache(with: records)
+            let totalCount = summary.indexedCount
+            return OrganizationMetadataSourceSnapshot(
+                records: records,
+                totalCount: totalCount,
+                metadataSource: "sqlitePhotoIndex",
+                sqliteTotalCount: totalCount,
+                photoIndexTotalCount: totalCount,
+                sourceUnavailableReason: totalCount == 0 ? "photoIndexNotReady" : nil
+            )
+        } catch {
+            errorMessage = "整理用メタデータを読み込めませんでした: \(error.localizedDescription)"
+            return OrganizationMetadataSourceSnapshot(
+                records: [],
+                totalCount: indexSummary.indexedCount,
+                metadataSource: "unavailable",
+                sqliteTotalCount: 0,
+                photoIndexTotalCount: indexSummary.indexedCount,
+                sourceUnavailableReason: "metadataSourceUnavailable"
+            )
         }
     }
 

@@ -214,6 +214,38 @@ final class PhotoLibraryService: ObservableObject {
         startLoading(resume: false)
     }
 
+    func organizationMetadataAssets(limit: Int) async -> [PhotoAsset] {
+        guard canReadPhotos else {
+            return []
+        }
+
+        let normalizedLimit = max(limit, 1)
+        let totalOptions = PHFetchOptions()
+        totalOptions.includeHiddenAssets = false
+        totalAssetCount = PHAsset.fetchAssets(with: totalOptions).count
+
+        let options = PHFetchOptions()
+        options.fetchLimit = normalizedLimit
+        options.includeHiddenAssets = false
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+
+        let result = PHAsset.fetchAssets(with: options)
+        let includeFilename = readMode == .light || readMode == .standard
+        var metadataAssets: [PhotoAsset] = []
+        metadataAssets.reserveCapacity(min(result.count, normalizedLimit))
+        result.enumerateObjects { asset, _, _ in
+            metadataAssets.append(PhotoAsset(asset: asset, includeFilename: includeFilename))
+        }
+
+        if assets.isEmpty {
+            assets = metadataAssets
+            latestLoadedBatch = metadataAssets
+            loadedAssetCount = metadataAssets.count
+        }
+
+        return metadataAssets
+    }
+
     func resumeLoading() {
         startLoading(resume: true)
     }
