@@ -204,22 +204,34 @@ final class BatchOCRJobService: ObservableObject {
             return "待機中"
         }
 
+        let isReadCandidateJob = isReadCandidateScoped(job: currentJob)
         switch currentJob.state {
         case .completed:
+            if isReadCandidateJob {
+                return currentJob.processedCount >= currentJob.plannedCount ? "読取候補の読取が完了しました" : "読取候補の処理を終了しました"
+            }
             return currentJob.processedCount >= currentJob.plannedCount ? "読取が完了しました" : "読取処理を終了しました"
         case .failed:
-            return "読取を完了できませんでした"
+            return isReadCandidateJob ? "読取候補を完了できませんでした" : "読取を完了できませんでした"
         case .pausedBackground, .pausedUser:
-            return "読取は一時停止中です"
+            return isReadCandidateJob ? "読取候補は一時停止中です" : "読取は一時停止中です"
         case .preparing:
-            return "読取を準備しています"
+            return isReadCandidateJob ? "読取候補を準備しています" : "読取を準備しています"
         case .running:
-            return "文字を読み取っています"
+            return isReadCandidateJob ? "読取候補を読み取っています" : "文字を読み取っています"
         case .pausing:
-            return "読取を一時停止しています"
+            return isReadCandidateJob ? "読取候補を一時停止しています" : "読取を一時停止しています"
         case .cancelling:
-            return "読取を終了しています"
+            return isReadCandidateJob ? "読取候補を終了しています" : "読取を終了しています"
         }
+    }
+
+    var isCurrentJobReadCandidateScoped: Bool {
+        guard let currentJob else {
+            return false
+        }
+
+        return isReadCandidateScoped(job: currentJob)
     }
 
     var autoContinueStatusTitle: String {
@@ -1313,6 +1325,11 @@ final class BatchOCRJobService: ObservableObject {
                 name: "読取候補20件",
                 requestedLimit: requestedLimit,
                 candidateCount: 0,
+                beforeReadCandidateCount: 0,
+                afterReadCandidateCount: 0,
+                processedCandidateCount: 0,
+                candidateCountDecreased: false,
+                jobSource: "organizationReadCandidates",
                 plannedCount: currentJob?.plannedCount ?? 0,
                 processedCount: currentJob?.processedCount ?? 0,
                 nonCandidateIncluded: false,
@@ -1351,11 +1368,15 @@ final class BatchOCRJobService: ObservableObject {
         let fixedToLimit = plannedCount == requestedLimit && items.count == requestedLimit
         let filterMatches = currentJob?.filterSnapshot == filterSnapshot
         let seriesCreatedDuringCandidateJob = currentSeries != nil
+        let beforeReadCandidateCount = allCandidateIdentifiers.count
 
         await completeDebugItems(jobID: jobID, maximumCount: requestedLimit, ocrService: ocrService)
         await finish(jobID: jobID)
 
         let processedCount = currentJob?.processedCount ?? 0
+        let processedCandidateCount = min(processedCount, beforeReadCandidateCount)
+        let afterReadCandidateCount = max(0, beforeReadCandidateCount - processedCandidateCount)
+        let candidateCountDecreased = afterReadCandidateCount < beforeReadCandidateCount
         let ocrResultSaved = selectedIdentifiers.allSatisfy { ocrService.validationResultExists(localIdentifier: $0) }
         let completed = currentJob?.state == .completed && processedCount == requestedLimit
         let passed = requestedLimitMatches
@@ -1363,6 +1384,7 @@ final class BatchOCRJobService: ObservableObject {
             && nonCandidateIncluded == false
             && filterMatches
             && seriesCreatedDuringCandidateJob == false
+            && candidateCountDecreased
             && completed
             && ocrResultSaved
 
@@ -1377,6 +1399,11 @@ final class BatchOCRJobService: ObservableObject {
             name: "読取候補20件",
             requestedLimit: requestedLimit,
             candidateCount: allCandidateIdentifiers.count,
+            beforeReadCandidateCount: beforeReadCandidateCount,
+            afterReadCandidateCount: afterReadCandidateCount,
+            processedCandidateCount: processedCandidateCount,
+            candidateCountDecreased: candidateCountDecreased,
+            jobSource: "organizationReadCandidates",
             plannedCount: plannedCount,
             processedCount: processedCount,
             nonCandidateIncluded: nonCandidateIncluded,
@@ -3513,6 +3540,10 @@ final class BatchOCRJobService: ObservableObject {
                 sourceRevision: sourceRevision(for: record)
             )
         )
+    }
+
+    private func isReadCandidateScoped(job: BatchOCRJob) -> Bool {
+        job.filterSnapshot.contains("整理タブ: 読取候補")
     }
 
     private func reasonIfZero(for diagnostics: BatchOCRTargetSelectionDiagnostics) -> String? {

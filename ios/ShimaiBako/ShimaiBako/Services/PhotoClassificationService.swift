@@ -69,6 +69,20 @@ final class PhotoClassificationService: ObservableObject {
         return Array(records.dropFirst(max(offset, 0)).prefix(max(limit, 1))).map(\.assetIdentifier)
     }
 
+    func liveReadCandidateCount(indexService: PhotoIndexService) async -> Int {
+        let records = await liveReadCandidateRecords(indexService: indexService)
+        return records.count
+    }
+
+    func liveReadCandidateIdentifierPage(
+        indexService: PhotoIndexService,
+        limit: Int,
+        offset: Int
+    ) async -> [String] {
+        let records = await liveReadCandidateRecords(indexService: indexService)
+        return Array(records.dropFirst(max(offset, 0)).prefix(max(limit, 1))).map(\.assetIdentifier)
+    }
+
     func isIdentifierInVirtualFolder(
         _ assetIdentifier: String,
         folder: OrganizationVirtualFolder
@@ -223,6 +237,22 @@ final class PhotoClassificationService: ObservableObject {
                 }
                 return lhs.updatedAt > rhs.updatedAt
             }
+    }
+
+    private func liveReadCandidateRecords(indexService: PhotoIndexService) async -> [PhotoClassification] {
+        let records = virtualFolderRecords(for: .readCandidates)
+        let indexRecords = await indexService.recordsByLocalIdentifier(localIdentifiers: records.map(\.assetIdentifier))
+        return records.filter { record in
+            guard record.isIncluded(in: .readCandidates) else {
+                return false
+            }
+
+            guard let indexRecord = indexRecords[record.assetIdentifier] else {
+                return true
+            }
+
+            return indexRecord.isActionableReadCandidate
+        }
     }
 
     #if DEBUG
@@ -463,5 +493,16 @@ private extension PhotoClassification {
         }
 
         return Array(nextTags).sorted()
+    }
+}
+
+private extension PhotoIndexRecord {
+    var isActionableReadCandidate: Bool {
+        switch ocrStatus {
+        case .unprocessed, .failed:
+            true
+        case .processing, .completed:
+            false
+        }
     }
 }

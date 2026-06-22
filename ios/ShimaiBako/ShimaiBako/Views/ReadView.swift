@@ -16,6 +16,7 @@ struct ReadView: View {
     @State private var showsAutoContinueConfirmation = false
     @State private var pendingCandidateLimit: ReadBatchLimit?
     @State private var showsCandidateTwoThousandConfirmation = false
+    @State private var liveReadCandidateCount = 0
 
     private var summary: PhotoIndexSummary {
         indexService.indexSummary
@@ -27,13 +28,6 @@ struct ReadView: View {
             photoLibrary.totalAssetCount,
             photoLibrary.loadedAssetCount,
             classificationService.summary.totalCount
-        )
-    }
-
-    private var liveReadCandidateCount: Int {
-        classificationService.organizationVirtualFolderCount(
-            .readCandidates,
-            libraryTotalCount: libraryTotalCount
         )
     }
 
@@ -125,6 +119,7 @@ struct ReadView: View {
                 Text("整理タブの読取候補から最大2,000件を固定して読み取ります。端末の温度や電池残量により、自動的に一時停止する場合があります。元写真・元動画は変更されません。")
             }
             .task {
+                await refreshLiveReadCandidateCount()
                 await batchOCRJobService.checkAutoResumeIfPossible(
                     photoLibrary: photoLibrary,
                     ocrService: ocrService,
@@ -132,6 +127,20 @@ struct ReadView: View {
                     deviceSafety: deviceSafety,
                     trigger: "readView"
                 )
+            }
+            .onChange(of: readCandidateSelection?.id) { _, _ in
+                Task {
+                    await refreshLiveReadCandidateCount()
+                }
+            }
+            .onChange(of: batchOCRJobService.currentJob?.state) { _, state in
+                guard state == .completed else {
+                    return
+                }
+
+                Task {
+                    await refreshLiveReadCandidateCount()
+                }
             }
         }
     }
@@ -219,7 +228,7 @@ struct ReadView: View {
                 }
 
                 if liveReadCandidateCount == 0 {
-                    Text("整理タブで軽量整理を更新すると、読取候補が表示される場合があります。")
+                    Text("整理タブからの読取候補はありません。整理タブで軽量整理を更新すると、スクショなどが候補になる場合があります。")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -496,10 +505,20 @@ struct ReadView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
+                if batchOCRJobService.isCurrentJobReadCandidateScoped {
+                    Text("整理タブの読取候補を読み取っています")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color(red: 0.16, green: 0.42, blue: 0.75))
+                }
+
                 ProgressView(value: job.progress)
                     .tint(Color(red: 0.16, green: 0.42, blue: 0.75))
 
                 VStack(alignment: .leading, spacing: 6) {
+                    if batchOCRJobService.isCurrentJobReadCandidateScoped {
+                        ReadJobRow(title: "対象", value: "読取候補")
+                        ReadJobRow(title: "自動継続", value: "なし")
+                    }
                     ReadJobRow(title: "処理済み", value: "\(job.processedCount) / \(job.plannedCount)件")
                     ReadJobRow(title: "残り", value: "\(batchOCRJobService.remainingCount)件")
                     ReadJobRow(title: "文字あり", value: "\(job.completedTextCount)件")
@@ -1079,6 +1098,11 @@ struct ReadView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             ReadJobRow(title: result.name, value: result.passed ? "PASS" : "FAIL")
                             ReadJobRow(title: "候補", value: "\(result.candidateCount)件")
+                            ReadJobRow(title: "候補before", value: "\(result.beforeReadCandidateCount)件")
+                            ReadJobRow(title: "候補after", value: "\(result.afterReadCandidateCount)件")
+                            ReadJobRow(title: "処理候補", value: "\(result.processedCandidateCount)件")
+                            ReadJobRow(title: "候補減少", value: result.candidateCountDecreased ? "true" : "false")
+                            ReadJobRow(title: "jobSource", value: result.jobSource)
                             ReadJobRow(title: "固定対象", value: "\(result.plannedCount)件")
                             ReadJobRow(title: "自動継続", value: result.seriesCreated ? "作成あり" : "作成なし")
                         }
@@ -1126,8 +1150,8 @@ struct ReadView: View {
             return
         }
 
-        let identifiers = classificationService.organizationVirtualFolderIdentifierPage(
-            .readCandidates,
+        let identifiers = await classificationService.liveReadCandidateIdentifierPage(
+            indexService: indexService,
             limit: limit.rawValue,
             offset: 0
         )
@@ -1141,6 +1165,10 @@ struct ReadView: View {
             candidateIdentifiers: identifiers,
             filterSnapshot: "整理タブ: 読取候補から最大\(limit.rawValue)件"
         )
+    }
+
+    private func refreshLiveReadCandidateCount() async {
+        liveReadCandidateCount = await classificationService.liveReadCandidateCount(indexService: indexService)
     }
 
     private var safetyCard: some View {
