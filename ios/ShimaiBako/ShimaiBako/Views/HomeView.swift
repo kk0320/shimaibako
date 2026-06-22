@@ -3,6 +3,7 @@ import SwiftUI
 
 private enum HomeTab: Hashable {
     case photos
+    case organization
     case search
     case read
     case settings
@@ -13,6 +14,7 @@ struct HomeView: View {
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
+    @ObservedObject var classificationService: PhotoClassificationService
     @ObservedObject var accuracyImprovementService: AccuracyImprovementService
     @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
@@ -31,6 +33,16 @@ struct HomeView: View {
                     Label("写真", systemImage: "photo.on.rectangle")
                 }
                 .tag(HomeTab.photos)
+
+            OrganizationView(
+                photoLibrary: photoLibrary,
+                indexService: indexService,
+                classificationService: classificationService
+            )
+                .tabItem {
+                    Label("整理", systemImage: "square.grid.2x2")
+                }
+                .tag(HomeTab.organization)
 
             PhotoGridView(
                 photoLibrary: photoLibrary,
@@ -62,6 +74,7 @@ struct HomeView: View {
                 ocrService: ocrService,
                 indexService: indexService,
                 learningService: learningService,
+                classificationService: classificationService,
                 accuracyImprovementService: accuracyImprovementService,
                 batchOCRJobService: batchOCRJobService,
                 deviceSafety: deviceSafety
@@ -83,6 +96,10 @@ private extension HomeTab {
 
         if arguments.contains("-ShimaiBakoOpenSearchTab") {
             return .search
+        }
+
+        if arguments.contains("-ShimaiBakoOpenOrganizationTab") {
+            return .organization
         }
 
         if arguments.contains("-ShimaiBakoOpenSettingsTab") {

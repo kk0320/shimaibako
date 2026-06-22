@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var ocrService: OCRService
     @StateObject private var indexService: PhotoIndexService
     @StateObject private var learningService: ManualCategoryLearningService
+    @StateObject private var classificationService: PhotoClassificationService
     @StateObject private var accuracyImprovementService: AccuracyImprovementService
     @StateObject private var batchOCRJobService: BatchOCRJobService
     @StateObject private var deviceSafety: DeviceSafetyService
@@ -16,6 +17,7 @@ struct ContentView: View {
         _photoLibrary = StateObject(wrappedValue: PhotoLibraryService())
         _ocrService = StateObject(wrappedValue: OCRService())
         _learningService = StateObject(wrappedValue: learningService)
+        _classificationService = StateObject(wrappedValue: PhotoClassificationService())
         _indexService = StateObject(wrappedValue: PhotoIndexService(learningService: learningService))
         _accuracyImprovementService = StateObject(wrappedValue: AccuracyImprovementService())
         _batchOCRJobService = StateObject(wrappedValue: BatchOCRJobService())
@@ -29,6 +31,7 @@ struct ContentView: View {
             ocrService: ocrService,
             indexService: indexService,
             learningService: learningService,
+            classificationService: classificationService,
             accuracyImprovementService: accuracyImprovementService,
             batchOCRJobService: batchOCRJobService,
             deviceSafety: deviceSafety
@@ -66,6 +69,10 @@ struct ContentView: View {
                         )
                     }
                 }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunClassificationSelfTest") {
+                    let report = classificationService.runManualPrioritySelfTest()
+                    print("LOCAL_IMAGE_CLASSIFICATION_SELFTEST \(report.passed ? "PASS" : "FAIL")")
+                }
                 #endif
                 await photoLibrary.prepare()
                 deviceConditionMonitor.start(deviceSafety: deviceSafety) {
@@ -93,6 +100,24 @@ struct ContentView: View {
                         assets: photoLibrary.assets,
                         ocrService: ocrService,
                         indexService: indexService
+                    )
+                }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunMetadataOnlyOrganizationValidation") {
+                    if photoLibrary.canReadPhotos, photoLibrary.assets.isEmpty {
+                        await photoLibrary.loadRecentAssets()
+                    }
+                    await waitForMetadataOnlyOrganizationValidationInputs()
+                    let libraryTotalAssets = max(
+                        photoLibrary.totalAssetCount,
+                        indexService.indexedRecordCount,
+                        photoLibrary.loadedAssetCount
+                    )
+                    let validationLimit = photoLibrary.readMode.limit ?? libraryTotalAssets
+                    await classificationService.runMetadataOnlyOrganizationValidation(
+                        assets: photoLibrary.assets,
+                        indexService: indexService,
+                        libraryTotalAssets: libraryTotalAssets,
+                        validationLimit: validationLimit
                     )
                 }
                 #endif
@@ -149,6 +174,18 @@ struct ContentView: View {
     private func waitForReadStateDiagnosticsInputs() async {
         for _ in 0..<160 {
             if photoLibrary.isLoading == false, indexService.isIndexStorePreparing == false {
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
+
+    private func waitForMetadataOnlyOrganizationValidationInputs() async {
+        for _ in 0..<240 {
+            if photoLibrary.isLoading == false,
+               indexService.isIndexStorePreparing == false,
+               classificationService.isLoading == false {
                 return
             }
 
