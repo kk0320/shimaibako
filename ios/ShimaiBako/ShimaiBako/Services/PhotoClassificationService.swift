@@ -48,6 +48,38 @@ final class PhotoClassificationService: ObservableObject {
         recordsByAssetID[assetIdentifier]
     }
 
+    func organizationVirtualFolderCount(
+        _ folder: OrganizationVirtualFolder,
+        libraryTotalCount: Int
+    ) -> Int {
+        switch folder {
+        case .unorganized:
+            return max(virtualFolderRecords(for: folder).count, libraryTotalCount - summary.classifiedCount)
+        case .screenshots, .readCandidates, .needsReview:
+            return virtualFolderRecords(for: folder).count
+        }
+    }
+
+    func organizationVirtualFolderIdentifierPage(
+        _ folder: OrganizationVirtualFolder,
+        limit: Int,
+        offset: Int
+    ) -> [String] {
+        let records = virtualFolderRecords(for: folder)
+        return Array(records.dropFirst(max(offset, 0)).prefix(max(limit, 1))).map(\.assetIdentifier)
+    }
+
+    func isIdentifierInVirtualFolder(
+        _ assetIdentifier: String,
+        folder: OrganizationVirtualFolder
+    ) -> Bool {
+        guard let record = recordsByAssetID[assetIdentifier] else {
+            return folder == .unorganized
+        }
+
+        return record.isIncluded(in: folder)
+    }
+
     func upsert(_ classification: PhotoClassification) async {
         var normalized = classification
         normalized.resolvedCategory = normalized.manualCategory ?? normalized.autoPrimaryCategory
@@ -180,6 +212,17 @@ final class PhotoClassificationService: ObservableObject {
         in records: [PhotoClassification]
     ) -> Int {
         records.filter { $0.resolvedCategory == category }.count
+    }
+
+    private func virtualFolderRecords(for folder: OrganizationVirtualFolder) -> [PhotoClassification] {
+        recordsByAssetID.values
+            .filter { $0.isIncluded(in: folder) }
+            .sorted { lhs, rhs in
+                if lhs.updatedAt == rhs.updatedAt {
+                    return lhs.assetIdentifier > rhs.assetIdentifier
+                }
+                return lhs.updatedAt > rhs.updatedAt
+            }
     }
 
     #if DEBUG
@@ -348,6 +391,19 @@ final class PhotoClassificationService: ObservableObject {
 }
 
 private extension PhotoClassification {
+    func isIncluded(in folder: OrganizationVirtualFolder) -> Bool {
+        switch folder {
+        case .screenshots:
+            isScreenshot || formatTags.contains("screenshot") || resolvedCategory == .screenshot
+        case .readCandidates:
+            contentTags.contains("readCandidate") || resolvedCategory == .readCandidate
+        case .needsReview:
+            analysisState == .needsReview || resolvedCategory == .needsReview
+        case .unorganized:
+            resolvedCategory == nil || resolvedCategory == .unorganized || analysisState == .notAnalyzed
+        }
+    }
+
     mutating func applyMetadataOnly(
         asset: PhotoAsset,
         indexRecord: PhotoIndexRecord?,

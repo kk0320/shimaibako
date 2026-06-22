@@ -98,6 +98,54 @@ enum ImageClassificationCategory: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum OrganizationVirtualFolder: String, CaseIterable, Identifiable, Hashable {
+    case screenshots
+    case readCandidates
+    case needsReview
+    case unorganized
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .screenshots:
+            "スクショ"
+        case .readCandidates:
+            "読取候補"
+        case .needsReview:
+            "要確認"
+        case .unorganized:
+            "未整理"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .screenshots:
+            "スクリーンショットとして扱う写真"
+        case .readCandidates:
+            "文字がありそうな読取候補"
+        case .needsReview:
+            "人が見直すための候補"
+        case .unorganized:
+            "まだ軽量整理されていない写真"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .screenshots:
+            "iphone"
+        case .readCandidates:
+            "text.viewfinder"
+        case .needsReview:
+            "exclamationmark.triangle"
+        case .unorganized:
+            "tray"
+        }
+    }
+}
+
 enum ClassificationConfidenceBand: String, CaseIterable, Identifiable, Codable {
     case unknown
     case low
