@@ -9,6 +9,7 @@ struct OrganizationFolderView: View {
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var classificationService: PhotoClassificationService
     let folder: OrganizationVirtualFolder
+    let onReadCandidateHandoff: (ReadCandidateSelection) -> Void
 
     @State private var loadedIdentifiers: [String] = []
     @State private var assetsByID: [String: PhotoAsset] = [:]
@@ -137,6 +138,26 @@ struct OrganizationFolderView: View {
                         .padding(.vertical, 4)
                         .background(.white.opacity(0.72), in: Capsule())
                 }
+            }
+
+            if folder == .readCandidates {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("スクショなど、文字検索に役立つ可能性が高い写真です。元写真・元動画は変更されません。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        onReadCandidateHandoff(
+                            .organizationReadCandidates(candidateCount: totalCount)
+                        )
+                    } label: {
+                        Label("読取タブで確認", systemImage: "text.viewfinder")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.top, 4)
             }
         }
         .padding(14)

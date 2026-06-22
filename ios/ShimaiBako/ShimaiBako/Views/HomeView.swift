@@ -19,6 +19,7 @@ struct HomeView: View {
     @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
     @State private var selectedTab = HomeTab.initialSelection
+    @State private var readCandidateSelection: ReadCandidateSelection? = .initialSelection
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -40,7 +41,10 @@ struct HomeView: View {
                 indexService: indexService,
                 learningService: learningService,
                 classificationService: classificationService
-            )
+            ) { selection in
+                readCandidateSelection = selection
+                selectedTab = .read
+            }
                 .tabItem {
                     Label("整理", systemImage: "square.grid.2x2")
                 }
@@ -63,9 +67,13 @@ struct HomeView: View {
                 photoLibrary: photoLibrary,
                 ocrService: ocrService,
                 indexService: indexService,
+                classificationService: classificationService,
                 batchOCRJobService: batchOCRJobService,
-                deviceSafety: deviceSafety
-            )
+                deviceSafety: deviceSafety,
+                readCandidateSelection: readCandidateSelection
+            ) {
+                readCandidateSelection = nil
+            }
                 .tabItem {
                     Label("読取", systemImage: "text.viewfinder")
                 }
@@ -104,6 +112,10 @@ private extension HomeTab {
             return .organization
         }
 
+        if arguments.contains("-ShimaiBakoHandoffReadCandidatesToReadTab") {
+            return .read
+        }
+
         if arguments.contains("-ShimaiBakoOpenOrganizationScreenshotsFolder") ||
             arguments.contains("-ShimaiBakoOpenOrganizationReadCandidatesFolder") ||
             arguments.contains("-ShimaiBakoOpenOrganizationNeedsReviewFolder") ||
@@ -121,6 +133,16 @@ private extension HomeTab {
         #endif
 
         return .photos
+    }
+}
+
+private extension Optional where Wrapped == ReadCandidateSelection {
+    static var initialSelection: ReadCandidateSelection? {
+        #if DEBUG
+        ReadCandidateSelection.initialFromLaunchArguments
+        #else
+        nil
+        #endif
     }
 }
 

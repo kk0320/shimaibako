@@ -311,7 +311,9 @@ final class BatchOCRJobService: ObservableObject {
         photoLibrary: PhotoLibraryService,
         ocrService: OCRService,
         indexService: PhotoIndexService,
-        deviceSafety: DeviceSafetyService? = nil
+        deviceSafety: DeviceSafetyService? = nil,
+        candidateIdentifiers: [String]? = nil,
+        filterSnapshot: String? = nil
     ) async {
         guard allowedRequestedLimits.contains(requestedLimit) else {
             message = "この件数は現在の読取対象ではありません。"
@@ -332,7 +334,8 @@ final class BatchOCRJobService: ObservableObject {
         let selection = await makeSelection(
             requestedLimit: requestedLimit,
             ocrService: ocrService,
-            indexService: indexService
+            indexService: indexService,
+            candidateIdentifiers: candidateIdentifiers
         )
         latestTargetDiagnostics = selection.diagnostics
 
@@ -346,17 +349,18 @@ final class BatchOCRJobService: ObservableObject {
 
         let now = Date()
         let jobID = UUID().uuidString
-        if requestedLimit == autoContinueBatchLimit, isAutoContinueEnabled {
+        let isScopedCandidateJob = candidateIdentifiers != nil
+        if requestedLimit == autoContinueBatchLimit, isAutoContinueEnabled, isScopedCandidateJob == false {
             let unreadEstimate = await indexService.batchOCRCandidateCount()
             updateSeriesForStartingJob(jobID: jobID, remainingEstimate: unreadEstimate, resetTotal: true)
-        } else if requestedLimit != autoContinueBatchLimit {
+        } else if requestedLimit != autoContinueBatchLimit || isScopedCandidateJob {
             currentSeries = nil
         }
         await createJob(
             jobID: jobID,
             requestedLimit: requestedLimit,
             candidateDescriptors: selection.candidates,
-            filterSnapshot: "読取タブ: SQLiteインデックスから未読取候補を最大\(requestedLimit)件",
+            filterSnapshot: filterSnapshot ?? "読取タブ: SQLiteインデックスから未読取候補を最大\(requestedLimit)件",
             createdAt: now
         )
 
@@ -3242,10 +3246,25 @@ final class BatchOCRJobService: ObservableObject {
     private func makeSelection(
         requestedLimit: Int,
         ocrService: OCRService,
-        indexService: PhotoIndexService
+        indexService: PhotoIndexService,
+        candidateIdentifiers: [String]? = nil
     ) async -> BatchOCRTargetSelection {
         let recoveredProcessingCount = await recoverStaleProcessingLocksIfNeeded()
-        let candidateRecords = await indexService.batchOCRCandidateRecords(limit: requestedLimit)
+        let candidateRecords: [PhotoIndexRecord]
+        let candidateSource: String
+        let candidateScanLimit: Int
+        if let candidateIdentifiers {
+            let uniqueIdentifiers = Array(NSOrderedSet(array: candidateIdentifiers).compactMap { $0 as? String })
+            let limitedIdentifiers = Array(uniqueIdentifiers.prefix(max(requestedLimit, 1)))
+            let recordsByIdentifier = await indexService.recordsByLocalIdentifier(localIdentifiers: limitedIdentifiers)
+            candidateRecords = limitedIdentifiers.compactMap { recordsByIdentifier[$0] }
+            candidateSource = "organizationReadCandidates"
+            candidateScanLimit = limitedIdentifiers.count
+        } else {
+            candidateRecords = await indexService.batchOCRCandidateRecords(limit: requestedLimit)
+            candidateSource = "sqliteUnreadQuery"
+            candidateScanLimit = requestedLimit
+        }
         let activeIdentifiers = activeInProgressIdentifiers()
         let failedPermanentCount = items.filter { $0.state == .failedPermanent }.count
 
@@ -3254,9 +3273,9 @@ final class BatchOCRJobService: ObservableObject {
         var diagnostics = BatchOCRTargetSelectionDiagnostics.empty
         diagnostics.selectedLimit = requestedLimit
         diagnostics.photoDBTotalCount = indexService.indexedRecordCount
-        diagnostics.batchCandidateScanLimit = requestedLimit
-        diagnostics.batchCandidateSource = "sqliteUnreadQuery"
-        diagnostics.effectiveFetchLimit = requestedLimit
+        diagnostics.batchCandidateScanLimit = candidateScanLimit
+        diagnostics.batchCandidateSource = candidateSource
+        diagnostics.effectiveFetchLimit = candidateIdentifiers == nil ? requestedLimit : candidateScanLimit
         diagnostics.failedPermanentCount = failedPermanentCount
         diagnostics.excludedFailedPermanent = failedPermanentCount
         diagnostics.staleInProgressRecovered = recoveredProcessingCount

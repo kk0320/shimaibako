@@ -146,6 +146,47 @@ enum OrganizationVirtualFolder: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
+enum ReadCandidateSelectionSource: String, Codable, Equatable {
+    case organizationReadCandidates
+
+    var title: String {
+        switch self {
+        case .organizationReadCandidates:
+            "整理タブからの読取候補"
+        }
+    }
+}
+
+struct ReadCandidateSelection: Identifiable, Equatable {
+    let id = UUID()
+    var source: ReadCandidateSelectionSource
+    var folder: OrganizationVirtualFolder
+    var filterTitle: String
+    var candidateCount: Int
+    var createdAt: Date
+
+    static func organizationReadCandidates(candidateCount: Int, createdAt: Date = Date()) -> ReadCandidateSelection {
+        ReadCandidateSelection(
+            source: .organizationReadCandidates,
+            folder: .readCandidates,
+            filterTitle: "スクショ / 未読取",
+            candidateCount: max(candidateCount, 0),
+            createdAt: createdAt
+        )
+    }
+
+    #if DEBUG
+    static var initialFromLaunchArguments: ReadCandidateSelection? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-ShimaiBakoHandoffReadCandidatesToReadTab") else {
+            return nil
+        }
+
+        return .organizationReadCandidates(candidateCount: 0)
+    }
+    #endif
+}
+
 enum ClassificationConfidenceBand: String, CaseIterable, Identifiable, Codable {
     case unknown
     case low

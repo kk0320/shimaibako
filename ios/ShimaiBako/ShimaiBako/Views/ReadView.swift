@@ -5,15 +5,36 @@ struct ReadView: View {
     @ObservedObject var photoLibrary: PhotoLibraryService
     @ObservedObject var ocrService: OCRService
     @ObservedObject var indexService: PhotoIndexService
+    @ObservedObject var classificationService: PhotoClassificationService
     @ObservedObject var batchOCRJobService: BatchOCRJobService
     @ObservedObject var deviceSafety: DeviceSafetyService
+    let readCandidateSelection: ReadCandidateSelection?
+    let onClearReadCandidateSelection: () -> Void
 
     @State private var selectedLimit: ReadBatchLimit = .oneHundred
     @State private var showsTwoThousandConfirmation = false
     @State private var showsAutoContinueConfirmation = false
+    @State private var pendingCandidateLimit: ReadBatchLimit?
+    @State private var showsCandidateTwoThousandConfirmation = false
 
     private var summary: PhotoIndexSummary {
         indexService.indexSummary
+    }
+
+    private var libraryTotalCount: Int {
+        max(
+            indexService.indexedRecordCount,
+            photoLibrary.totalAssetCount,
+            photoLibrary.loadedAssetCount,
+            classificationService.summary.totalCount
+        )
+    }
+
+    private var liveReadCandidateCount: Int {
+        classificationService.organizationVirtualFolderCount(
+            .readCandidates,
+            libraryTotalCount: libraryTotalCount
+        )
     }
 
     private var startDisabledReason: String? {
@@ -53,6 +74,7 @@ struct ReadView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         headerCard
+                        readCandidateHandoffCard
                         metricsGrid
                         batchLimitCard
                         targetDiagnosticsCard
@@ -89,6 +111,19 @@ struct ReadView: View {
             } message: {
                 Text("未読取の写真を2,000件ずつ続けて読み取ります。端末が高温になった場合、低電力モードの場合、空き容量が少ない場合は自動的に一時停止します。途中で止まっても、次回続きから再開できます。元写真・元動画は変更されません。")
             }
+            .alert("読取候補から2,000件を開始しますか？", isPresented: $showsCandidateTwoThousandConfirmation) {
+                Button("キャンセル", role: .cancel) {
+                    pendingCandidateLimit = nil
+                }
+                Button("2,000件を開始") {
+                    Task {
+                        await startReadCandidateLimit(pendingCandidateLimit ?? .twoThousand)
+                        pendingCandidateLimit = nil
+                    }
+                }
+            } message: {
+                Text("整理タブの読取候補から最大2,000件を固定して読み取ります。端末の温度や電池残量により、自動的に一時停止する場合があります。元写真・元動画は変更されません。")
+            }
             .task {
                 await batchOCRJobService.checkAutoResumeIfPossible(
                     photoLibrary: photoLibrary,
@@ -115,6 +150,99 @@ struct ReadView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    @ViewBuilder
+    private var readCandidateHandoffCard: some View {
+        if let selection = readCandidateSelection {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    Label(selection.source.title, systemImage: "text.viewfinder")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        onClearReadCandidateSelection()
+                    } label: {
+                        Image(systemName: "xmark.circle")
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("読取候補カードを閉じる")
+                }
+
+                Text("整理タブで見つけた、文字検索に役立つ可能性が高い写真です。OCRは自動開始しません。下のボタンを押した時だけ、既存のBatchOCR安全条件で処理します。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ReadJobRow(title: "候補", value: "\(liveReadCandidateCount)件")
+                    ReadJobRow(title: "対象", value: selection.filterTitle)
+                    ReadJobRow(
+                        title: "受け渡し",
+                        value: DateFormatter.localizedString(from: selection.createdAt, dateStyle: .none, timeStyle: .short)
+                    )
+                }
+
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8)
+                    ],
+                    spacing: 8
+                ) {
+                    ForEach(ReadBatchLimit.allCases) { limit in
+                        Button {
+                            selectedLimit = limit
+                            deviceSafety.refresh()
+                            if limit == .twoThousand {
+                                pendingCandidateLimit = limit
+                                showsCandidateTwoThousandConfirmation = true
+                            } else {
+                                Task {
+                                    await startReadCandidateLimit(limit)
+                                }
+                            }
+                        } label: {
+                            Text("\(limit.shortTitle)を読取")
+                                .font(.caption.weight(.semibold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(canStartReading == false || liveReadCandidateCount == 0)
+                    }
+                }
+
+                if liveReadCandidateCount == 0 {
+                    Text("整理タブで軽量整理を更新すると、読取候補が表示される場合があります。")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if let startDisabledReason {
+                    Label(startDisabledReason, systemImage: "info.circle")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Text("候補条件だけを渡します。画像本体やサムネイル本体は渡しません。")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color(red: 0.16, green: 0.42, blue: 0.75).opacity(0.18))
+            )
+        }
     }
 
     private var metricsGrid: some View {
@@ -962,6 +1090,28 @@ struct ReadView: View {
         )
     }
 
+    private func startReadCandidateLimit(_ limit: ReadBatchLimit) async {
+        guard readCandidateSelection != nil else {
+            return
+        }
+
+        let identifiers = classificationService.organizationVirtualFolderIdentifierPage(
+            .readCandidates,
+            limit: limit.rawValue,
+            offset: 0
+        )
+        await batchOCRJobService.start(
+            requestedLimit: limit.rawValue,
+            assets: photoLibrary.assets,
+            photoLibrary: photoLibrary,
+            ocrService: ocrService,
+            indexService: indexService,
+            deviceSafety: deviceSafety,
+            candidateIdentifiers: identifiers,
+            filterSnapshot: "整理タブ: 読取候補から最大\(limit.rawValue)件"
+        )
+    }
+
     private var safetyCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label("安全方針", systemImage: "lock.shield")
@@ -1013,6 +1163,21 @@ private enum ReadBatchLimit: Int, CaseIterable, Identifiable {
             "500件 多め"
         case .twoThousand:
             "2,000件 長時間"
+        }
+    }
+
+    var shortTitle: String {
+        switch self {
+        case .twenty:
+            "20件"
+        case .fifty:
+            "50件"
+        case .oneHundred:
+            "100件"
+        case .fiveHundred:
+            "500件"
+        case .twoThousand:
+            "2,000件"
         }
     }
 
