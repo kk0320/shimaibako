@@ -106,6 +106,7 @@ private extension HomeTab {
 
         if arguments.contains("-ShimaiBakoOpenOrganizationScreenshotsFolder") ||
             arguments.contains("-ShimaiBakoOpenOrganizationReadCandidatesFolder") ||
+            arguments.contains("-ShimaiBakoOpenOrganizationNeedsReviewFolder") ||
             arguments.contains("-ShimaiBakoOpenOrganizationUnorganizedFolder") {
             return .organization
         }

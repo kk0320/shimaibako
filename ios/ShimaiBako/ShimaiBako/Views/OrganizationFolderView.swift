@@ -149,7 +149,7 @@ struct OrganizationFolderView: View {
 
     private var emptyCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("表示できる写真がありません", systemImage: "tray")
+            Label("このフォルダにはまだ写真がありません", systemImage: "tray")
                 .font(.headline)
             Text("軽量整理を更新すると、この仮想フォルダに写真が表示される場合があります。")
                 .font(.caption)

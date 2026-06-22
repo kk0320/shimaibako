@@ -410,6 +410,10 @@ private extension OrganizationView {
             return [.readCandidates]
         }
 
+        if arguments.contains("-ShimaiBakoOpenOrganizationNeedsReviewFolder") {
+            return [.needsReview]
+        }
+
         if arguments.contains("-ShimaiBakoOpenOrganizationUnorganizedFolder") {
             return [.unorganized]
         }
