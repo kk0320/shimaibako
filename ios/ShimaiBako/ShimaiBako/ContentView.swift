@@ -69,6 +69,9 @@ struct ContentView: View {
                         )
                     }
                 }
+                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunReadCandidateOCR20Validation") {
+                    await batchOCRJobService.runReadCandidateHandoffValidation(ocrService: ocrService)
+                }
                 if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunClassificationSelfTest") {
                     let report = classificationService.runManualPrioritySelfTest()
                     print("LOCAL_IMAGE_CLASSIFICATION_SELFTEST \(report.passed ? "PASS" : "FAIL")")

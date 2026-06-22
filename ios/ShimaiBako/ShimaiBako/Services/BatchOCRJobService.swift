@@ -25,6 +25,7 @@ final class BatchOCRJobService: ObservableObject {
     @Published private(set) var readStateDiagnosticsReport: BatchOCRReadStateDiagnosticsReport?
     @Published private(set) var autoContinueValidationReport: BatchOCRAutoContinueValidationReport?
     @Published private(set) var autoResumeValidationReport: BatchOCRAutoResumeValidationReport?
+    @Published private(set) var readCandidateHandoffValidationReport: BatchOCRReadCandidateHandoffValidationReport?
     @Published private(set) var latestAutoContinueDecisionLog: String?
     @Published private(set) var latestAutoResumeDecisionLog: String?
     @Published private(set) var isRunningP1Validation = false
@@ -34,6 +35,7 @@ final class BatchOCRJobService: ObservableObject {
     @Published private(set) var isRunningReadStateDiagnostics = false
     @Published private(set) var isRunningAutoContinueValidation = false
     @Published private(set) var isRunningAutoResumeValidation = false
+    @Published private(set) var isRunningReadCandidateHandoffValidation = false
     #endif
 
     private let fileManager: FileManager
@@ -52,6 +54,7 @@ final class BatchOCRJobService: ObservableObject {
     private let readStateDiagnosticsReportFileName = "batch_ocr_read_state_diagnostics_report.json"
     private let autoContinueValidationReportFileName = "batch_ocr_auto_continue_validation_report.json"
     private let autoResumeValidationReportFileName = "batch_ocr_auto_resume_validation_report.json"
+    private let readCandidateHandoffValidationReportFileName = "batch_ocr_read_candidate_handoff_validation_report.json"
     #endif
     private var runTask: Task<Void, Never>?
     private var lastPublishedAt = Date.distantPast
@@ -311,7 +314,9 @@ final class BatchOCRJobService: ObservableObject {
         photoLibrary: PhotoLibraryService,
         ocrService: OCRService,
         indexService: PhotoIndexService,
-        deviceSafety: DeviceSafetyService? = nil
+        deviceSafety: DeviceSafetyService? = nil,
+        candidateIdentifiers: [String]? = nil,
+        filterSnapshot: String? = nil
     ) async {
         guard allowedRequestedLimits.contains(requestedLimit) else {
             message = "この件数は現在の読取対象ではありません。"
@@ -332,7 +337,8 @@ final class BatchOCRJobService: ObservableObject {
         let selection = await makeSelection(
             requestedLimit: requestedLimit,
             ocrService: ocrService,
-            indexService: indexService
+            indexService: indexService,
+            candidateIdentifiers: candidateIdentifiers
         )
         latestTargetDiagnostics = selection.diagnostics
 
@@ -346,17 +352,18 @@ final class BatchOCRJobService: ObservableObject {
 
         let now = Date()
         let jobID = UUID().uuidString
-        if requestedLimit == autoContinueBatchLimit, isAutoContinueEnabled {
+        let isScopedCandidateJob = candidateIdentifiers != nil
+        if requestedLimit == autoContinueBatchLimit, isAutoContinueEnabled, isScopedCandidateJob == false {
             let unreadEstimate = await indexService.batchOCRCandidateCount()
             updateSeriesForStartingJob(jobID: jobID, remainingEstimate: unreadEstimate, resetTotal: true)
-        } else if requestedLimit != autoContinueBatchLimit {
+        } else if requestedLimit != autoContinueBatchLimit || isScopedCandidateJob {
             currentSeries = nil
         }
         await createJob(
             jobID: jobID,
             requestedLimit: requestedLimit,
             candidateDescriptors: selection.candidates,
-            filterSnapshot: "読取タブ: SQLiteインデックスから未読取候補を最大\(requestedLimit)件",
+            filterSnapshot: filterSnapshot ?? "読取タブ: SQLiteインデックスから未読取候補を最大\(requestedLimit)件",
             createdAt: now
         )
 
@@ -848,6 +855,31 @@ final class BatchOCRJobService: ObservableObject {
         await saveSnapshot()
     }
 
+    func runReadCandidateHandoffValidation(ocrService: OCRService) async {
+        guard isRunningReadCandidateHandoffValidation == false else {
+            return
+        }
+
+        isRunningReadCandidateHandoffValidation = true
+        defer {
+            isRunningReadCandidateHandoffValidation = false
+        }
+
+        await clearDebugValidationStateIfNeeded()
+
+        let startedAt = Date()
+        let result = await runReadCandidateHandoff20Validation(ocrService: ocrService)
+        let report = BatchOCRReadCandidateHandoffValidationReport(
+            startedAt: startedAt,
+            finishedAt: Date(),
+            cases: [result]
+        )
+        readCandidateHandoffValidationReport = report
+        message = report.passed ? "読取候補handoff検証が完了しました。" : "読取候補handoff検証で確認が必要です。"
+        await saveReadCandidateHandoffValidationReport(report)
+        await saveSnapshot()
+    }
+
     @discardableResult
     func runP1Validation(limit: Int, ocrService: OCRService) async -> BatchOCRP1ValidationCaseResult {
         guard [20, 50, 100].contains(limit) else {
@@ -1269,6 +1301,89 @@ final class BatchOCRJobService: ObservableObject {
             requestedLimit: limit,
             passed: passed,
             message: passed ? "\(limit)件中断・再開PASS" : "\(limit)件中断・再開FAIL"
+        )
+    }
+
+    private func runReadCandidateHandoff20Validation(ocrService: OCRService) async -> BatchOCRReadCandidateHandoffValidationCaseResult {
+        let requestedLimit = 20
+        guard canStartNewJob else {
+            return BatchOCRReadCandidateHandoffValidationCaseResult(
+                name: "読取候補20件",
+                requestedLimit: requestedLimit,
+                candidateCount: 0,
+                plannedCount: currentJob?.plannedCount ?? 0,
+                processedCount: currentJob?.processedCount ?? 0,
+                nonCandidateIncluded: false,
+                autoContinueEnabledDuringValidation: isAutoContinueEnabled,
+                seriesCreated: currentSeries != nil,
+                ocrResultSaved: false,
+                filterSnapshot: currentJob?.filterSnapshot ?? "",
+                passed: false,
+                message: "読取ジョブを実行中です。"
+            )
+        }
+
+        let previousAutoContinueEnabled = isAutoContinueEnabled
+        let runID = UUID().uuidString
+        let allCandidateIdentifiers = (0..<30).map { index in
+            "debug-batch-ocr-read-candidate-handoff-\(runID)-\(index)"
+        }
+        let selectedIdentifiers = Array(allCandidateIdentifiers.prefix(requestedLimit))
+        let candidateSet = Set(allCandidateIdentifiers)
+        let jobID = "debug-read-candidate-handoff-\(runID)"
+        let filterSnapshot = "整理タブ: 読取候補から最大20件 DEBUG検証"
+
+        setAutoContinueEnabled(true)
+        currentSeries = nil
+        await createDebugJob(
+            jobID: jobID,
+            requestedLimit: requestedLimit,
+            identifiers: selectedIdentifiers,
+            filterSnapshot: filterSnapshot
+        )
+        currentSeries = nil
+
+        let nonCandidateIncluded = items.contains { candidateSet.contains($0.assetIdentifier) == false }
+        let plannedCount = currentJob?.plannedCount ?? 0
+        let requestedLimitMatches = currentJob?.requestedLimit == requestedLimit
+        let fixedToLimit = plannedCount == requestedLimit && items.count == requestedLimit
+        let filterMatches = currentJob?.filterSnapshot == filterSnapshot
+        let seriesCreatedDuringCandidateJob = currentSeries != nil
+
+        await completeDebugItems(jobID: jobID, maximumCount: requestedLimit, ocrService: ocrService)
+        await finish(jobID: jobID)
+
+        let processedCount = currentJob?.processedCount ?? 0
+        let ocrResultSaved = selectedIdentifiers.allSatisfy { ocrService.validationResultExists(localIdentifier: $0) }
+        let completed = currentJob?.state == .completed && processedCount == requestedLimit
+        let passed = requestedLimitMatches
+            && fixedToLimit
+            && nonCandidateIncluded == false
+            && filterMatches
+            && seriesCreatedDuringCandidateJob == false
+            && completed
+            && ocrResultSaved
+
+        await ocrService.clearValidationResults(localIdentifiers: selectedIdentifiers)
+        currentJob = nil
+        items = []
+        currentSeries = nil
+        setAutoContinueEnabled(previousAutoContinueEnabled)
+        await saveSnapshot()
+
+        return BatchOCRReadCandidateHandoffValidationCaseResult(
+            name: "読取候補20件",
+            requestedLimit: requestedLimit,
+            candidateCount: allCandidateIdentifiers.count,
+            plannedCount: plannedCount,
+            processedCount: processedCount,
+            nonCandidateIncluded: nonCandidateIncluded,
+            autoContinueEnabledDuringValidation: true,
+            seriesCreated: seriesCreatedDuringCandidateJob,
+            ocrResultSaved: ocrResultSaved,
+            filterSnapshot: filterSnapshot,
+            passed: passed,
+            message: passed ? "読取候補20件検証PASS" : "読取候補20件検証FAIL"
         )
     }
 
@@ -3242,10 +3357,25 @@ final class BatchOCRJobService: ObservableObject {
     private func makeSelection(
         requestedLimit: Int,
         ocrService: OCRService,
-        indexService: PhotoIndexService
+        indexService: PhotoIndexService,
+        candidateIdentifiers: [String]? = nil
     ) async -> BatchOCRTargetSelection {
         let recoveredProcessingCount = await recoverStaleProcessingLocksIfNeeded()
-        let candidateRecords = await indexService.batchOCRCandidateRecords(limit: requestedLimit)
+        let candidateRecords: [PhotoIndexRecord]
+        let candidateSource: String
+        let candidateScanLimit: Int
+        if let candidateIdentifiers {
+            let uniqueIdentifiers = Array(NSOrderedSet(array: candidateIdentifiers).compactMap { $0 as? String })
+            let limitedIdentifiers = Array(uniqueIdentifiers.prefix(max(requestedLimit, 1)))
+            let recordsByIdentifier = await indexService.recordsByLocalIdentifier(localIdentifiers: limitedIdentifiers)
+            candidateRecords = limitedIdentifiers.compactMap { recordsByIdentifier[$0] }
+            candidateSource = "organizationReadCandidates"
+            candidateScanLimit = limitedIdentifiers.count
+        } else {
+            candidateRecords = await indexService.batchOCRCandidateRecords(limit: requestedLimit)
+            candidateSource = "sqliteUnreadQuery"
+            candidateScanLimit = requestedLimit
+        }
         let activeIdentifiers = activeInProgressIdentifiers()
         let failedPermanentCount = items.filter { $0.state == .failedPermanent }.count
 
@@ -3254,9 +3384,9 @@ final class BatchOCRJobService: ObservableObject {
         var diagnostics = BatchOCRTargetSelectionDiagnostics.empty
         diagnostics.selectedLimit = requestedLimit
         diagnostics.photoDBTotalCount = indexService.indexedRecordCount
-        diagnostics.batchCandidateScanLimit = requestedLimit
-        diagnostics.batchCandidateSource = "sqliteUnreadQuery"
-        diagnostics.effectiveFetchLimit = requestedLimit
+        diagnostics.batchCandidateScanLimit = candidateScanLimit
+        diagnostics.batchCandidateSource = candidateSource
+        diagnostics.effectiveFetchLimit = candidateIdentifiers == nil ? requestedLimit : candidateScanLimit
         diagnostics.failedPermanentCount = failedPermanentCount
         diagnostics.excludedFailedPermanent = failedPermanentCount
         diagnostics.staleInProgressRecovered = recoveredProcessingCount
@@ -3724,6 +3854,20 @@ final class BatchOCRJobService: ObservableObject {
         }
     }
 
+    private func saveReadCandidateHandoffValidationReport(_ report: BatchOCRReadCandidateHandoffValidationReport) async {
+        let url = readCandidateHandoffValidationReportURL()
+        do {
+            let directoryURL = url.deletingLastPathComponent()
+            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(report)
+            try data.write(to: url, options: [.atomic])
+        } catch {
+            errorMessage = "読取候補handoff検証結果を保存できませんでした: \(error.localizedDescription)"
+        }
+    }
+
     private func validationReportURL() -> URL {
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first ?? fileManager.temporaryDirectory
@@ -3778,6 +3922,14 @@ final class BatchOCRJobService: ObservableObject {
         return baseURL
             .appendingPathComponent("ShimaiBako", isDirectory: true)
             .appendingPathComponent(autoResumeValidationReportFileName)
+    }
+
+    private func readCandidateHandoffValidationReportURL() -> URL {
+        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first ?? fileManager.temporaryDirectory
+        return baseURL
+            .appendingPathComponent("ShimaiBako", isDirectory: true)
+            .appendingPathComponent(readCandidateHandoffValidationReportFileName)
     }
     #endif
 

@@ -600,4 +600,33 @@ struct BatchOCRAutoResumeValidationCaseResult: Codable, Equatable, Identifiable 
     var passed: Bool
     var message: String
 }
+
+struct BatchOCRReadCandidateHandoffValidationReport: Codable, Equatable {
+    var startedAt: Date
+    var finishedAt: Date
+    var cases: [BatchOCRReadCandidateHandoffValidationCaseResult]
+
+    var passed: Bool {
+        cases.allSatisfy(\.passed)
+    }
+}
+
+struct BatchOCRReadCandidateHandoffValidationCaseResult: Codable, Equatable, Identifiable {
+    var id: String {
+        name
+    }
+
+    var name: String
+    var requestedLimit: Int
+    var candidateCount: Int
+    var plannedCount: Int
+    var processedCount: Int
+    var nonCandidateIncluded: Bool
+    var autoContinueEnabledDuringValidation: Bool
+    var seriesCreated: Bool
+    var ocrResultSaved: Bool
+    var filterSnapshot: String
+    var passed: Bool
+    var message: String
+}
 #endif

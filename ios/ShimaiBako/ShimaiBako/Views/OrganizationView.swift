@@ -6,6 +6,7 @@ struct OrganizationView: View {
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var classificationService: PhotoClassificationService
+    var onReadCandidateHandoff: (ReadCandidateSelection) -> Void = { _ in }
     @State private var navigationPath = OrganizationView.initialNavigationPath
 
     private var summary: PhotoClassificationSummary {
@@ -81,7 +82,8 @@ struct OrganizationView: View {
                     indexService: indexService,
                     learningService: learningService,
                     classificationService: classificationService,
-                    folder: folder
+                    folder: folder,
+                    onReadCandidateHandoff: onReadCandidateHandoff
                 )
             }
         }
