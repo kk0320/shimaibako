@@ -9,20 +9,41 @@ struct OrganizationView: View {
         classificationService.summary
     }
 
-    private var loadedScreenshotCount: Int {
-        photoLibrary.assets.filter(\.isScreenshot).count
-    }
-
-    private var loadedUnorganizedCount: Int {
-        max(0, photoLibrary.loadedAssetCount - summary.totalCount)
-    }
-
-    private var totalCountForDisplay: Int {
-        max(photoLibrary.loadedAssetCount, summary.totalCount)
+    private var libraryTotalCount: Int {
+        max(
+            indexService.indexedRecordCount,
+            photoLibrary.totalAssetCount,
+            photoLibrary.loadedAssetCount,
+            summary.totalCount
+        )
     }
 
     private var classifiedProgressTitle: String {
-        "\(summary.classifiedCount) / \(max(totalCountForDisplay, 0))件"
+        "\(summary.classifiedCount) / \(libraryTotalCount)件"
+    }
+
+    private var lightweightProgressTitle: String {
+        "\(summary.totalCount) / \(libraryTotalCount)件"
+    }
+
+    private var unorganizedEstimateCount: Int {
+        max(0, libraryTotalCount - summary.classifiedCount)
+    }
+
+    private var currentLoadedScopeTitle: String {
+        if photoLibrary.loadedAssetCount > 0 {
+            "現在読み込み済みの\(photoLibrary.loadedAssetCount)件"
+        } else {
+            "読み込み済み範囲"
+        }
+    }
+
+    private var lastUpdateScopeTitle: String {
+        guard classificationService.lastUpdateSummary.processedCount > 0 else {
+            return currentLoadedScopeTitle
+        }
+
+        return "直近\(classificationService.lastUpdateSummary.processedCount)件"
     }
 
     var body: some View {
@@ -72,18 +93,28 @@ struct OrganizationView: View {
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 OrganizationMetricTile(
-                    title: "分類済み",
-                    value: classifiedProgressTitle,
-                    caption: "読み込み済み範囲"
+                    title: "写真ライブラリ",
+                    value: "\(libraryTotalCount)件",
+                    caption: "PhotoIndex/写真権限内"
                 )
                 OrganizationMetricTile(
-                    title: "全体件数",
-                    value: "\(totalCountForDisplay)件",
-                    caption: "現在の対象範囲"
+                    title: "軽量整理済み",
+                    value: lightweightProgressTitle,
+                    caption: "保存済み分類データ"
+                )
+                OrganizationMetricTile(
+                    title: "今回更新",
+                    value: "\(classificationService.lastUpdateSummary.processedCount)件",
+                    caption: "ボタン実行分"
+                )
+                OrganizationMetricTile(
+                    title: "分類済み",
+                    value: classifiedProgressTitle,
+                    caption: "手動分類を含む"
                 )
                 OrganizationMetricTile(
                     title: "スクショ",
-                    value: "\(max(summary.screenshotCount, loadedScreenshotCount))件",
+                    value: "\(summary.screenshotCount)件",
                     caption: "メタデータ判定"
                 )
                 OrganizationMetricTile(
@@ -98,8 +129,8 @@ struct OrganizationView: View {
                 )
                 OrganizationMetricTile(
                     title: "未整理",
-                    value: "\(max(summary.unorganizedCount, loadedUnorganizedCount))件",
-                    caption: "読み込み済み範囲"
+                    value: "\(unorganizedEstimateCount)件",
+                    caption: "未確認分を含む推定"
                 )
             }
 
@@ -129,7 +160,7 @@ struct OrganizationView: View {
             Label("軽量整理", systemImage: "arrow.triangle.2.circlepath")
                 .font(.headline)
 
-            Text("スクショなど、写真のメタデータだけで分かる範囲を整理します。画像認識や読取は実行しません。元写真・元動画は変更しません。")
+            Text("スクショなど、写真のメタデータだけで分かる範囲を整理します。現在は\(currentLoadedScopeTitle)だけを更新します。画像認識や読取は実行しません。元写真・元動画は変更しません。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -155,6 +186,10 @@ struct OrganizationView: View {
                     Text("前回更新")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Color(red: 0.09, green: 0.18, blue: 0.30))
+                    Text("\(lastUpdateScopeTitle)を軽量整理しました")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("処理済み \(updateSummary.processedCount)件 / スクショ \(updateSummary.screenshotCount)件 / 読取候補 \(updateSummary.readCandidateCount)件")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -200,6 +235,11 @@ struct OrganizationView: View {
 
             if photoLibrary.assets.isEmpty {
                 Text("写真タブで写真を読み込むと、読み込み済み範囲を軽量整理できます。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if summary.totalCount < libraryTotalCount {
+                Text("軽量整理済み \(summary.totalCount) / \(libraryTotalCount)件。全体件数とは分けて表示しています。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

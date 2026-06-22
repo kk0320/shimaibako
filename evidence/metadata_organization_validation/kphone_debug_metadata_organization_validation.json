@@ -1,15 +1,20 @@
 {
+  "classificationStoreTotal" : 100,
   "classifiedCount" : 81,
   "failureReasons" : [
 
   ],
-  "generatedAt" : "2026-06-21T23:49:44Z",
+  "generatedAt" : "2026-06-21T23:59:11Z",
+  "libraryTotalAssets" : 28039,
   "manualPrioritySelfTest" : "PASS",
   "needsReviewCount" : 0,
+  "processedAssets" : 100,
   "readCandidateCount" : 81,
   "result" : "PASS",
   "screenshotCount" : 81,
   "skippedManualClassifications" : 0,
+  "summaryClassifiedCount" : 81,
+  "summaryTotalAssets" : 28039,
   "summaryTotalCount" : 100,
   "totalAssets" : 100,
   "unorganizedCount" : 19,
@@ -17,5 +22,6 @@
   "usedImageBody" : false,
   "usedPhotoKitWriteAPI" : false,
   "usedThumbnailBody" : false,
-  "usedVision" : false
+  "usedVision" : false,
+  "validationLimit" : 100
 }

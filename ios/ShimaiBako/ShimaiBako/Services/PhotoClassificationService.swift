@@ -213,12 +213,15 @@ final class PhotoClassificationService: ObservableObject {
     @discardableResult
     func runMetadataOnlyOrganizationValidation(
         assets: [PhotoAsset],
-        indexService: PhotoIndexService
+        indexService: PhotoIndexService,
+        libraryTotalAssets: Int,
+        validationLimit: Int
     ) async -> MetadataOnlyOrganizationValidationReport {
         let manualReport = runManualPrioritySelfTest()
         await updateMetadataOnly(assets: assets, indexService: indexService)
 
         let summary = self.summary
+        let normalizedLibraryTotalAssets = max(libraryTotalAssets, assets.count, summary.totalCount)
         var failureReasons: [String] = []
         if assets.isEmpty {
             failureReasons.append("totalAssets is 0")
@@ -255,6 +258,12 @@ final class PhotoClassificationService: ObservableObject {
         let report = MetadataOnlyOrganizationValidationReport(
             generatedAt: Date(),
             totalAssets: assets.count,
+            libraryTotalAssets: normalizedLibraryTotalAssets,
+            validationLimit: validationLimit,
+            processedAssets: lastUpdateSummary.processedCount,
+            classificationStoreTotal: recordsByAssetID.count,
+            summaryTotalAssets: normalizedLibraryTotalAssets,
+            summaryClassifiedCount: summary.classifiedCount,
             summaryTotalCount: summary.totalCount,
             classifiedCount: summary.classifiedCount,
             screenshotCount: summary.screenshotCount,
@@ -274,7 +283,7 @@ final class PhotoClassificationService: ObservableObject {
 
         metadataValidationReport = report
         await saveMetadataValidationReport(report)
-        print("METADATA_ORGANIZATION_VALIDATION \(report.result) totalAssets=\(report.totalAssets) classified=\(report.classifiedCount) screenshot=\(report.screenshotCount) readCandidate=\(report.readCandidateCount) unorganized=\(report.unorganizedCount)")
+        print("METADATA_ORGANIZATION_VALIDATION \(report.result) libraryTotalAssets=\(report.libraryTotalAssets) validationLimit=\(report.validationLimit) processedAssets=\(report.processedAssets) classified=\(report.classifiedCount) screenshot=\(report.screenshotCount) readCandidate=\(report.readCandidateCount) unorganized=\(report.unorganizedCount)")
         return report
     }
     #endif

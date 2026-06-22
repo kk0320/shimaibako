@@ -283,6 +283,12 @@ struct PhotoClassificationSelfTestReport: Equatable {
 struct MetadataOnlyOrganizationValidationReport: Codable, Equatable {
     var generatedAt: Date
     var totalAssets: Int
+    var libraryTotalAssets: Int
+    var validationLimit: Int
+    var processedAssets: Int
+    var classificationStoreTotal: Int
+    var summaryTotalAssets: Int
+    var summaryClassifiedCount: Int
     var summaryTotalCount: Int
     var classifiedCount: Int
     var screenshotCount: Int

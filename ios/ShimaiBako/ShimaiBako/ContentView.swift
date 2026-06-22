@@ -107,9 +107,17 @@ struct ContentView: View {
                         await photoLibrary.loadRecentAssets()
                     }
                     await waitForMetadataOnlyOrganizationValidationInputs()
+                    let libraryTotalAssets = max(
+                        photoLibrary.totalAssetCount,
+                        indexService.indexedRecordCount,
+                        photoLibrary.loadedAssetCount
+                    )
+                    let validationLimit = photoLibrary.readMode.limit ?? libraryTotalAssets
                     await classificationService.runMetadataOnlyOrganizationValidation(
                         assets: photoLibrary.assets,
-                        indexService: indexService
+                        indexService: indexService,
+                        libraryTotalAssets: libraryTotalAssets,
+                        validationLimit: validationLimit
                     )
                 }
                 #endif

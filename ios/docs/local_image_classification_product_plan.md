@@ -322,3 +322,27 @@ JSONには次を記録する。
 - 写真タブ、検索タブ、読取タブ、設定タブが起動できる
 - BatchOCR、検索、写真タブの性能に影響しない
 - 元写真・元動画を削除・変更しない
+
+## P2.7 整理summary件数の整合性
+
+P2.6の実機検証で `totalAssets: 100` になった理由は、DEBUG検証が整理タブのボタンと同じく、現在読み込み済みの `photoLibrary.assets` を対象にしているためである。軽量モードでは読み込み済み範囲が直近100件なので、これは検証上限/読み込み済み範囲であり、写真ライブラリ全体件数ではない。
+
+通常UIでは、次の件数を分けて表示する。
+
+- 写真ライブラリ全体件数: PhotoIndex/SQLiteまたはPhotoKitが把握している全体件数
+- 軽量整理済み件数: `PhotoClassificationStore` に保存済みの分類データ件数
+- 今回更新した件数: 直近の `updateMetadataOnly` で処理した件数
+- 未整理件数: 分類済み件数を除いた未確認分を含む推定件数
+
+軽量整理更新はP2時点では全件処理ではない。画像本体、サムネイル本体、Visionを使わず、読み込み済み範囲のPhotoKitメタデータと既存PhotoIndexメタデータだけを整理する。UIには「現在読み込み済みの範囲」または「直近100件を軽量整理しました」のように表示し、2.8万枚規模の全体件数と混同しないようにする。
+
+DEBUG検証JSONには、100件が検証上限かどうかを判断できるように次の項目を含める。
+
+- `libraryTotalAssets`
+- `validationLimit`
+- `processedAssets`
+- `classificationStoreTotal`
+- `summaryTotalAssets`
+- `summaryClassifiedCount`
+
+main merge前の確認では、`libraryTotalAssets` が実ライブラリ全体、`processedAssets` が今回処理した範囲であることを確認する。

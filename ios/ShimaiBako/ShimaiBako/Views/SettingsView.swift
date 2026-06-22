@@ -26,6 +26,15 @@ struct SettingsView: View {
         indexService.indexSummary
     }
 
+    private var organizationLibraryTotalCount: Int {
+        max(
+            indexService.indexedRecordCount,
+            photoLibrary.totalAssetCount,
+            photoLibrary.loadedAssetCount,
+            classificationService.summary.totalCount
+        )
+    }
+
     private var categoryCounts: [PhotoCategory: Int] {
         indexService.cachedCategoryCounts()
     }
@@ -418,7 +427,8 @@ struct SettingsView: View {
                 .font(.headline)
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            DetailInfoRow(title: "分類データ件数", value: "\(summary.totalCount)件")
+            DetailInfoRow(title: "写真ライブラリ", value: "\(organizationLibraryTotalCount)件")
+            DetailInfoRow(title: "軽量整理済み", value: "\(summary.totalCount) / \(organizationLibraryTotalCount)件")
             DetailInfoRow(title: "手動分類件数", value: "\(summary.manualCount)件")
             DetailInfoRow(title: "スクショ", value: "\(summary.screenshotCount)件")
             DetailInfoRow(title: "読取候補", value: "\(summary.readCandidateCount)件")
