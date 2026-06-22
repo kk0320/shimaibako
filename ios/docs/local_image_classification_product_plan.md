@@ -531,3 +531,28 @@ sourceUnavailableReason
 ```
 
 PhotoKitから取得する場合も、取得対象はassetIdentifier、スクリーンショット判定、メディア種別、作成日時などの軽量メタデータに限定する。画像本体、サムネイル本体、Vision本番処理、顔情報、外部送信は使わない。元写真・元動画は削除・変更しない。
+
+## P5.6 ローカル実機検証RCチェックポイント
+
+P5.6では、P5.5 RCスモークがPASSした `main` をローカル実機検証用のRCとして固定する。RC対象は `5b33bf3 Merge metadata organization empty assets hotfix` である。
+
+RCスモークでは、次を確認済みとする。
+
+- 5タブ表示
+- 整理タブsummary
+- 軽量整理更新DEBUG検証
+- スクショ / 読取候補 / 要確認 / 未整理 の仮想フォルダ
+- 読取候補handoff
+- 候補限定20件OCR
+- 候補OCR後の候補件数減少
+- 通常BatchOCR回帰
+- BatchOCR保存先fallback
+- 検索タブ起動
+- 写真タブ起動
+- 設定タブ起動
+
+RC checkpointは `ios/docs/local_testing_rc_20260622.md` に記録する。タグは `shimai-bako-ios-local-rc-20260622` とし、docs commit後の `main` HEAD を対象にする。
+
+P6は、Vision本番処理やClassificationJobの導入ではなく、整理タブと読取候補OCRの使い勝手改善から入る。具体的には、読取候補の説明、空状態、候補更新導線、読取後の戻り先、軽量整理更新の見え方など、既存の安全なメタデータ処理とBatchOCRの範囲で改善する。
+
+P6でも引き続き、画像本体、サムネイル本体、顔画像、顔テンプレート、大量特徴ベクトルは保存しない。元写真・元動画は削除・変更しない。PhotoKit書き込み/削除API、外部API、クラウド送信は追加しない。
