@@ -38,19 +38,25 @@ struct ContentView: View {
         )
             .task {
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRP1Validation") {
+                let debugArguments = ProcessInfo.processInfo.arguments
+                let debugEnvironment = ProcessInfo.processInfo.environment
+                func hasDebugTrigger(_ argument: String, environmentKey: String) -> Bool {
+                    debugArguments.contains(argument) || debugEnvironment[environmentKey] == "1"
+                }
+
+                if hasDebugTrigger("-ShimaiBakoRunBatchOCRP1Validation", environmentKey: "SHIMAIBAKO_RUN_BATCH_OCR_P1_VALIDATION") {
                     await batchOCRJobService.runP1ValidationSuite(ocrService: ocrService)
                 }
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRP2Validation") {
+                if hasDebugTrigger("-ShimaiBakoRunBatchOCRP2Validation", environmentKey: "SHIMAIBAKO_RUN_BATCH_OCR_P2_VALIDATION") {
                     await batchOCRJobService.runP2ValidationSuite(ocrService: ocrService)
                 }
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRP3Validation") {
+                if hasDebugTrigger("-ShimaiBakoRunBatchOCRP3Validation", environmentKey: "SHIMAIBAKO_RUN_BATCH_OCR_P3_VALIDATION") {
                     await batchOCRJobService.runP3ValidationSuite(ocrService: ocrService)
                 }
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRTargetSelectionValidation") {
+                if hasDebugTrigger("-ShimaiBakoRunBatchOCRTargetSelectionValidation", environmentKey: "SHIMAIBAKO_RUN_BATCH_OCR_TARGET_SELECTION_VALIDATION") {
                     await batchOCRJobService.runTargetSelectionValidationSuite()
                 }
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRAutoContinueValidation") {
+                if hasDebugTrigger("-ShimaiBakoRunBatchOCRAutoContinueValidation", environmentKey: "SHIMAIBAKO_RUN_BATCH_OCR_AUTO_CONTINUE_VALIDATION") {
                     Task {
                         await batchOCRJobService.runAutoContinueValidationSuite(
                             photoLibrary: photoLibrary,
@@ -59,7 +65,7 @@ struct ContentView: View {
                         )
                     }
                 }
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunBatchOCRAutoResumeValidation") {
+                if hasDebugTrigger("-ShimaiBakoRunBatchOCRAutoResumeValidation", environmentKey: "SHIMAIBAKO_RUN_BATCH_OCR_AUTO_RESUME_VALIDATION") {
                     Task {
                         await batchOCRJobService.runAutoResumeValidationSuite(
                             photoLibrary: photoLibrary,
@@ -69,10 +75,13 @@ struct ContentView: View {
                         )
                     }
                 }
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunReadCandidateOCR20Validation") {
+                if hasDebugTrigger("-ShimaiBakoRunReadCandidateOCR20Validation", environmentKey: "SHIMAIBAKO_RUN_READ_CANDIDATE_OCR20_VALIDATION") {
                     await batchOCRJobService.runReadCandidateHandoffValidation(ocrService: ocrService)
                 }
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunClassificationSelfTest") {
+                if hasDebugTrigger("-ShimaiBakoRunBatchOCRPersistenceValidation", environmentKey: "SHIMAIBAKO_RUN_BATCH_OCR_PERSISTENCE_VALIDATION") {
+                    await batchOCRJobService.runPersistenceValidation()
+                }
+                if hasDebugTrigger("-ShimaiBakoRunClassificationSelfTest", environmentKey: "SHIMAIBAKO_RUN_CLASSIFICATION_SELF_TEST") {
                     let report = classificationService.runManualPrioritySelfTest()
                     print("LOCAL_IMAGE_CLASSIFICATION_SELFTEST \(report.passed ? "PASS" : "FAIL")")
                 }

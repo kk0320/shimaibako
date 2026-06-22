@@ -629,4 +629,22 @@ struct BatchOCRReadCandidateHandoffValidationCaseResult: Codable, Equatable, Ide
     var passed: Bool
     var message: String
 }
+
+struct BatchOCRPersistenceValidationReport: Codable, Equatable {
+    var startedAt: Date
+    var finishedAt: Date
+    var batchOCRJobFilePath: String
+    var parentDirectory: String
+    var parentDirectoryExists: Bool
+    var parentDirectoryWritable: Bool
+    var usedFallback: Bool
+    var writeTestResult: Bool
+    var readTestResult: Bool
+    var result: String
+    var message: String
+
+    var passed: Bool {
+        result == "PASS"
+    }
+}
 #endif
