@@ -846,8 +846,15 @@ struct ReadView: View {
                     }
                 }
                 .buttonStyle(.bordered)
+
+                Button("読取候補20件検証") {
+                    Task {
+                        await batchOCRJobService.runReadCandidateHandoffValidation(ocrService: ocrService)
+                    }
+                }
+                .buttonStyle(.bordered)
             }
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunningReadCandidateHandoffValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -858,7 +865,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningReadCandidateHandoffValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -869,7 +876,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningReadCandidateHandoffValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -880,7 +887,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningP1Validation || batchOCRJobService.isRunningP2Validation || batchOCRJobService.isRunningP3Validation || batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningReadCandidateHandoffValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -891,7 +898,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningTargetSelectionValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningReadCandidateHandoffValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -906,7 +913,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningAutoContinueValidation || batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningReadCandidateHandoffValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             Button {
                 Task {
@@ -922,7 +929,7 @@ struct ReadView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
+            .disabled(batchOCRJobService.isRunningAutoResumeValidation || batchOCRJobService.isRunningReadCandidateHandoffValidation || batchOCRJobService.isRunning || batchOCRJobService.canStartNewJob == false)
 
             if batchOCRJobService.isRunningP1Validation {
                 Label("検証中です", systemImage: "hourglass")
@@ -956,6 +963,12 @@ struct ReadView: View {
 
             if batchOCRJobService.isRunningAutoResumeValidation {
                 Label("自動再開検証中です", systemImage: "hourglass")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            if batchOCRJobService.isRunningReadCandidateHandoffValidation {
+                Label("読取候補handoff検証中です", systemImage: "hourglass")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -1051,6 +1064,24 @@ struct ReadView: View {
                             title: result.name,
                             value: result.passed ? "PASS" : "FAIL"
                         )
+                    }
+                }
+                .padding(.top, 4)
+            }
+
+            if let report = batchOCRJobService.readCandidateHandoffValidationReport {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(report.passed ? "読取候補handoff検証: PASS" : "読取候補handoff検証: 確認が必要", systemImage: report.passed ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(report.passed ? Color(red: 0.07, green: 0.38, blue: 0.24) : Color(red: 0.75, green: 0.24, blue: 0.18))
+
+                    ForEach(report.cases) { result in
+                        VStack(alignment: .leading, spacing: 4) {
+                            ReadJobRow(title: result.name, value: result.passed ? "PASS" : "FAIL")
+                            ReadJobRow(title: "候補", value: "\(result.candidateCount)件")
+                            ReadJobRow(title: "固定対象", value: "\(result.plannedCount)件")
+                            ReadJobRow(title: "自動継続", value: result.seriesCreated ? "作成あり" : "作成なし")
+                        }
                     }
                 }
                 .padding(.top, 4)
