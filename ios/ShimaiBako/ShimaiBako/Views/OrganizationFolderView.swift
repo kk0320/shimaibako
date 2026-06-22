@@ -147,6 +147,11 @@ struct OrganizationFolderView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
 
+                    Text("OCR済み、文字なし判定済み、処理中の写真はこの候補から外します。")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
                     Button {
                         onReadCandidateHandoff(
                             .organizationReadCandidates(candidateCount: totalCount)
@@ -191,10 +196,14 @@ struct OrganizationFolderView: View {
         assetsByID = [:]
         scanOffset = 0
         hasMore = true
-        totalCount = classificationService.organizationVirtualFolderCount(
-            folder,
-            libraryTotalCount: libraryTotalCount
-        )
+        if folder == .readCandidates {
+            totalCount = await classificationService.liveReadCandidateCount(indexService: indexService)
+        } else {
+            totalCount = classificationService.organizationVirtualFolderCount(
+                folder,
+                libraryTotalCount: libraryTotalCount
+            )
+        }
         await loadNextPage()
     }
 
@@ -209,6 +218,13 @@ struct OrganizationFolderView: View {
         let identifiers: [String]
         if folder == .unorganized {
             identifiers = await nextUnorganizedIdentifiers()
+        } else if folder == .readCandidates {
+            identifiers = await classificationService.liveReadCandidateIdentifierPage(
+                indexService: indexService,
+                limit: pageSize,
+                offset: loadedIdentifiers.count
+            )
+            hasMore = loadedIdentifiers.count + identifiers.count < totalCount
         } else {
             identifiers = classificationService.organizationVirtualFolderIdentifierPage(
                 folder,

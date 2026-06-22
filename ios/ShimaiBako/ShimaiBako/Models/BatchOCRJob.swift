@@ -619,6 +619,11 @@ struct BatchOCRReadCandidateHandoffValidationCaseResult: Codable, Equatable, Ide
     var name: String
     var requestedLimit: Int
     var candidateCount: Int
+    var beforeReadCandidateCount: Int
+    var afterReadCandidateCount: Int
+    var processedCandidateCount: Int
+    var candidateCountDecreased: Bool
+    var jobSource: String
     var plannedCount: Int
     var processedCount: Int
     var nonCandidateIncluded: Bool

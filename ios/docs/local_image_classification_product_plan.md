@@ -493,3 +493,15 @@ P4.5用に、DEBUGビルド限定で次の起動引数を追加する。
 ```
 
 この起動引数は候補限定20件OCRのservice層検証を実行し、検証結果をApplication Support内の `batch_ocr_read_candidate_handoff_validation_report.json` に保存する。Release相当の通常UIには表示しない。
+
+## P5 読取候補OCRの実運用仕上げ
+
+P5では、読取候補フォルダからBatchOCRを実行した後の見え方と状態更新を整える。読取候補は単に `readCandidate` タグが付いた写真ではなく、`readCandidate` かつOCR未処理の写真として扱う。OCR本文あり、文字なし判定済み、処理中の写真は読取候補から外す。失敗した写真は再試行対象として残す。
+
+整理タブの読取候補件数、読取候補フォルダの一覧、読取タブの候補カードは、OCR状態を加味した件数を使う。候補限定OCRが完了した後は、整理情報を更新しなくても次回表示時にOCR済み候補が自然に候補から外れる。明示的に整理タブの軽量整理を更新しても、画像本体、サムネイル、Vision本番処理は使わない。
+
+候補限定ジョブは通常のBatchOCRJobを使うが、通常OCRとは表示を分ける。実行中カードには「整理タブの読取候補を読み取っています」「対象: 読取候補」「自動継続: なし」を表示する。候補限定ジョブではBatchOCRSeriesを作らず、完了後に次の2,000件へ自動継続しない。
+
+読取候補が0件の場合は、読取タブに「整理タブからの読取候補はありません。整理タブで軽量整理を更新すると、スクショなどが候補になる場合があります。」と表示し、候補限定OCRボタンは無効化する。
+
+DEBUG検証 `-ShimaiBakoRunReadCandidateOCR20Validation` では、候補限定20件OCRについて `beforeReadCandidateCount`、`processedCandidateCount`、`afterReadCandidateCount`、`candidateCountDecreased`、`jobSource`、`seriesCreated`、`nonCandidateIncluded` を確認する。合成IDだけを使い、元写真・元動画は削除・変更しない。

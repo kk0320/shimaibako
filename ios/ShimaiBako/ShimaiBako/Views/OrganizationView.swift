@@ -8,6 +8,7 @@ struct OrganizationView: View {
     @ObservedObject var classificationService: PhotoClassificationService
     var onReadCandidateHandoff: (ReadCandidateSelection) -> Void = { _ in }
     @State private var navigationPath = OrganizationView.initialNavigationPath
+    @State private var liveReadCandidateCount: Int?
 
     private var summary: PhotoClassificationSummary {
         classificationService.summary
@@ -75,6 +76,9 @@ struct OrganizationView: View {
             }
             .navigationTitle("整理")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                await refreshLiveReadCandidateCount()
+            }
             .navigationDestination(for: OrganizationVirtualFolder.self) { folder in
                 OrganizationFolderView(
                     photoLibrary: photoLibrary,
@@ -135,8 +139,8 @@ struct OrganizationView: View {
                 )
                 OrganizationMetricTile(
                     title: "読取候補",
-                    value: "\(summary.readCandidateCount)件",
-                    caption: "今後の候補枠"
+                    value: "\(displayCount(for: .readCandidates))件",
+                    caption: "未読取候補"
                 )
                 OrganizationMetricTile(
                     title: "要確認",
@@ -229,6 +233,7 @@ struct OrganizationView: View {
                             assets: photoLibrary.assets,
                             indexService: indexService
                         )
+                        await refreshLiveReadCandidateCount()
                     }
                 } label: {
                     Label("軽量整理を更新", systemImage: "play.circle")
@@ -284,10 +289,7 @@ struct OrganizationView: View {
                     NavigationLink(value: folder) {
                         OrganizationFolderTile(
                             title: folder.title,
-                            count: classificationService.organizationVirtualFolderCount(
-                                folder,
-                                libraryTotalCount: libraryTotalCount
-                            ),
+                            count: displayCount(for: folder),
                             detail: folder.detail,
                             systemImage: folder.systemImage
                         )
@@ -302,6 +304,21 @@ struct OrganizationView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.black.opacity(0.06))
         )
+    }
+
+    private func displayCount(for folder: OrganizationVirtualFolder) -> Int {
+        if folder == .readCandidates, let liveReadCandidateCount {
+            return liveReadCandidateCount
+        }
+
+        return classificationService.organizationVirtualFolderCount(
+            folder,
+            libraryTotalCount: libraryTotalCount
+        )
+    }
+
+    private func refreshLiveReadCandidateCount() async {
+        liveReadCandidateCount = await classificationService.liveReadCandidateCount(indexService: indexService)
     }
 
     private var availableClassificationsCard: some View {
