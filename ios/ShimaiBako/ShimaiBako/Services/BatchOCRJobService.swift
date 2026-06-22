@@ -26,6 +26,7 @@ final class BatchOCRJobService: ObservableObject {
     @Published private(set) var autoContinueValidationReport: BatchOCRAutoContinueValidationReport?
     @Published private(set) var autoResumeValidationReport: BatchOCRAutoResumeValidationReport?
     @Published private(set) var readCandidateHandoffValidationReport: BatchOCRReadCandidateHandoffValidationReport?
+    @Published private(set) var persistenceValidationReport: BatchOCRPersistenceValidationReport?
     @Published private(set) var latestAutoContinueDecisionLog: String?
     @Published private(set) var latestAutoResumeDecisionLog: String?
     @Published private(set) var isRunningP1Validation = false
@@ -55,6 +56,7 @@ final class BatchOCRJobService: ObservableObject {
     private let autoContinueValidationReportFileName = "batch_ocr_auto_continue_validation_report.json"
     private let autoResumeValidationReportFileName = "batch_ocr_auto_resume_validation_report.json"
     private let readCandidateHandoffValidationReportFileName = "batch_ocr_read_candidate_handoff_validation_report.json"
+    private let persistenceValidationReportFileName = "batch_ocr_jobs_validation.json"
     #endif
     private var runTask: Task<Void, Never>?
     private var lastPublishedAt = Date.distantPast
@@ -1385,6 +1387,69 @@ final class BatchOCRJobService: ObservableObject {
             passed: passed,
             message: passed ? "読取候補20件検証PASS" : "読取候補20件検証FAIL"
         )
+    }
+
+    func runPersistenceValidation() async {
+        let startedAt = Date()
+        var report: BatchOCRPersistenceValidationReport
+
+        do {
+            let target = try resolveWritableStoreTarget(fileName: persistenceValidationReportFileName)
+            let parentDirectoryExists = fileManager.fileExists(atPath: target.directoryURL.path)
+            let parentDirectoryWritable = true
+
+            report = BatchOCRPersistenceValidationReport(
+                startedAt: startedAt,
+                finishedAt: Date(),
+                batchOCRJobFilePath: target.fileURL.path,
+                parentDirectory: target.directoryURL.path,
+                parentDirectoryExists: parentDirectoryExists,
+                parentDirectoryWritable: parentDirectoryWritable,
+                usedFallback: target.usedFallback,
+                writeTestResult: false,
+                readTestResult: false,
+                result: "PENDING",
+                message: "BatchOCRジョブ保存先を確認しています。"
+            )
+
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let pendingData = try encoder.encode(report)
+            try pendingData.write(to: target.fileURL, options: [.atomic])
+
+            let readData = try Data(contentsOf: target.fileURL)
+            _ = try JSONDecoder().decode(BatchOCRPersistenceValidationReport.self, from: readData)
+
+            report.writeTestResult = true
+            report.readTestResult = true
+            report.result = "PASS"
+            report.message = "BatchOCRジョブ保存先は書き込み・読み込み可能です。"
+            report.finishedAt = Date()
+
+            let finalData = try encoder.encode(report)
+            try finalData.write(to: target.fileURL, options: [.atomic])
+            print("BATCH_OCR_PERSISTENCE_VALIDATION PASS path=\(target.fileURL.path) usedFallback=\(target.usedFallback)")
+        } catch {
+            let fallbackPath = storageFileCandidates(fileName: persistenceValidationReportFileName).first?.path ?? ""
+            let fallbackParent = storageFileCandidates(fileName: persistenceValidationReportFileName).first?.deletingLastPathComponent().path ?? ""
+            report = BatchOCRPersistenceValidationReport(
+                startedAt: startedAt,
+                finishedAt: Date(),
+                batchOCRJobFilePath: fallbackPath,
+                parentDirectory: fallbackParent,
+                parentDirectoryExists: fileManager.fileExists(atPath: fallbackParent),
+                parentDirectoryWritable: fileManager.isWritableFile(atPath: fallbackParent),
+                usedFallback: false,
+                writeTestResult: false,
+                readTestResult: false,
+                result: "FAIL",
+                message: error.localizedDescription
+            )
+            errorMessage = "BatchOCR保存先検証に失敗しました: \(error.localizedDescription)"
+            print("BATCH_OCR_PERSISTENCE_VALIDATION FAIL error=\(error.localizedDescription)")
+        }
+
+        persistenceValidationReport = report
     }
 
     private func createDebugJob(
@@ -3688,8 +3753,7 @@ final class BatchOCRJobService: ObservableObject {
     }
 
     private func loadSnapshot() {
-        let url = storeURL()
-        guard fileManager.fileExists(atPath: url.path) else {
+        guard let url = existingStoreURL(fileName: fileName) else {
             return
         }
 
@@ -3741,15 +3805,13 @@ final class BatchOCRJobService: ObservableObject {
     }
 
     private func saveSnapshot() async {
-        let url = storeURL()
         do {
-            let directoryURL = url.deletingLastPathComponent()
-            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            let target = try resolveWritableStoreTarget(fileName: fileName)
             let snapshot = BatchOCRJobSnapshot(job: currentJob, items: items, series: currentSeries)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(snapshot)
-            try data.write(to: url, options: [.atomic])
+            try data.write(to: target.fileURL, options: [.atomic])
         } catch {
             errorMessage = "読取ジョブ状態を保存できませんでした: \(error.localizedDescription)"
         }
@@ -3869,67 +3931,43 @@ final class BatchOCRJobService: ObservableObject {
     }
 
     private func validationReportURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(validationReportFileName)
+        debugReportURL(fileName: validationReportFileName)
     }
 
     private func p2ValidationReportURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(p2ValidationReportFileName)
+        debugReportURL(fileName: p2ValidationReportFileName)
     }
 
     private func p3ValidationReportURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(p3ValidationReportFileName)
+        debugReportURL(fileName: p3ValidationReportFileName)
     }
 
     private func targetSelectionValidationReportURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(targetSelectionValidationReportFileName)
+        debugReportURL(fileName: targetSelectionValidationReportFileName)
     }
 
     private func readStateDiagnosticsReportURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(readStateDiagnosticsReportFileName)
+        debugReportURL(fileName: readStateDiagnosticsReportFileName)
     }
 
     private func autoContinueValidationReportURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(autoContinueValidationReportFileName)
+        debugReportURL(fileName: autoContinueValidationReportFileName)
     }
 
     private func autoResumeValidationReportURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(autoResumeValidationReportFileName)
+        debugReportURL(fileName: autoResumeValidationReportFileName)
     }
 
     private func readCandidateHandoffValidationReportURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(readCandidateHandoffValidationReportFileName)
+        debugReportURL(fileName: readCandidateHandoffValidationReportFileName)
+    }
+
+    private func debugReportURL(fileName: String) -> URL {
+        if let target = try? resolveWritableStoreTarget(fileName: fileName) {
+            return target.fileURL
+        }
+        return storageFileCandidates(fileName: fileName).first
+            ?? fileManager.temporaryDirectory.appendingPathComponent(fileName)
     }
     #endif
 
@@ -3940,13 +3978,64 @@ final class BatchOCRJobService: ObservableObject {
         return formatter
     }()
 
-    private func storeURL() -> URL {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+    private func storageFileCandidates(fileName: String) -> [URL] {
+        let supportBaseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first ?? fileManager.temporaryDirectory
-        return baseURL
-            .appendingPathComponent("ShimaiBako", isDirectory: true)
-            .appendingPathComponent(fileName)
+        let documentsBaseURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
+            .first ?? fileManager.temporaryDirectory
+        let cachesBaseURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)
+            .first ?? fileManager.temporaryDirectory
+
+        return [
+            supportBaseURL.appendingPathComponent("ShimaiBako", isDirectory: true),
+            documentsBaseURL.appendingPathComponent("ShimaiBakoData", isDirectory: true),
+            cachesBaseURL.appendingPathComponent("ShimaiBakoData", isDirectory: true)
+        ].map { directoryURL in
+            directoryURL.appendingPathComponent(fileName)
+        }
     }
+
+    private func existingStoreURL(fileName: String) -> URL? {
+        storageFileCandidates(fileName: fileName)
+            .filter { candidateURL in
+                fileManager.fileExists(atPath: candidateURL.path)
+            }
+            .max { lhs, rhs in
+                let lhsDate = (try? fileManager.attributesOfItem(atPath: lhs.path)[.modificationDate] as? Date) ?? .distantPast
+                let rhsDate = (try? fileManager.attributesOfItem(atPath: rhs.path)[.modificationDate] as? Date) ?? .distantPast
+                return lhsDate < rhsDate
+            }
+    }
+
+    private func resolveWritableStoreTarget(fileName: String) throws -> BatchOCRStoreTarget {
+        let candidates = storageFileCandidates(fileName: fileName)
+        var lastError: Error?
+
+        for (index, fileURL) in candidates.enumerated() {
+            let directoryURL = fileURL.deletingLastPathComponent()
+            do {
+                try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+                let probeURL = directoryURL.appendingPathComponent(".batch_ocr_storage_probe")
+                let probeData = Data("batch-ocr-storage-probe".utf8)
+                try probeData.write(to: probeURL, options: [.atomic])
+                return BatchOCRStoreTarget(
+                    fileURL: fileURL,
+                    directoryURL: directoryURL,
+                    usedFallback: index > 0
+                )
+            } catch {
+                lastError = error
+            }
+        }
+
+        throw lastError ?? CocoaError(.fileWriteNoPermission)
+    }
+}
+
+private struct BatchOCRStoreTarget {
+    var fileURL: URL
+    var directoryURL: URL
+    var usedFallback: Bool
 }
 
 private struct BatchOCRPauseDecision {
