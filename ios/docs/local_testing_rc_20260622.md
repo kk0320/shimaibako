@@ -60,3 +60,51 @@ main is releasable for local testing: yes
 このRCは、ローカル実機検証用の安定点として固定する。App Store提出やTestFlight配布の判断は別途行う。
 
 次フェーズP6では、Vision本番処理ではなく、整理タブと読取候補OCRの使い勝手改善を優先する。
+
+## P7 ローカル実機検証RC
+
+P6では、読取候補OCRのUX改善として、候補OCR前後summary、候補OCR結果カード、候補件数減少表示、0件候補時の案内を追加した。
+
+P7では、P6を `main` へmergeした後、ローカル実機検証用RCとして次を確認した。
+
+```text
+P6 merge commit: ca5a077 Merge read candidate OCR UX polish
+RC smoke result: PASS
+main is releasable for local testing: yes
+```
+
+P7検証では、K Phoneで次の結果を確認した。
+
+```text
+metadata-only organization validation: PASS
+metadataSource: photoLibraryAssets
+libraryTotalAssets: 28060
+processedAssets: 100
+summaryTotalAssets: 28060
+summaryClassifiedCount: 101
+screenshotCount: 101
+readCandidateCount: 101
+usedVision: false
+usedImageBody: false
+usedThumbnailBody: false
+usedPhotoKitWriteAPI: false
+
+read candidate OCR 20 validation: PASS
+beforeReadCandidateCount: 30
+processedCandidateCount: 20
+afterReadCandidateCount: 10
+candidateCountDecreased: true
+lastCandidateOCRSummarySaved: true
+lastCandidateOCRStatus: completed
+failedCount: 0
+seriesCreated: false
+nonCandidateIncluded: false
+
+BatchOCR persistence validation: PASS
+BatchOCR P1 regression: 0 / 20 / 50 / 100 PASS
+BatchOCR P3 regression: 500 / 2,000 / 中断再開 PASS
+```
+
+P7でも引き続き、Vision本番処理、ClassificationJob、建物 / 工事現場 / 看板などの自動分類、Core ML、全数OCR復活には進まない。PhotoKit書き込み/削除APIは追加しない。画像本体、サムネイル本体、顔画像、顔テンプレート、大量特徴ベクトルは保存しない。
+
+P7のRCタグは、P7 docs commit後の `main` HEAD を対象に `shimai-bako-ios-local-rc-p7-20260622` として固定する。既存タグ `shimai-bako-ios-local-rc-20260622` は移動しない。

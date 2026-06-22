@@ -602,3 +602,30 @@ nonCandidateIncluded == false
 ```
 
 P6では、Vision本番処理、ClassificationJob、建物 / 工事現場 / 看板などの自動分類、Core ML、全数OCR復活には進まない。画像本体、サムネイル本体、顔画像、顔テンプレート、大量特徴ベクトルは保存しない。元写真・元動画は削除・変更しない。
+
+## P7 最終RC確認
+
+P7では、P6の読取候補OCR UX改善を `main` にmergeした後、ローカル実機検証RCとして総合スモークを再実行する。P7で確認する主な導線は次の通り。
+
+- 5タブ表示
+- 写真タブ起動
+- 整理タブ起動
+- スクショ / 読取候補 / 要確認 / 未整理 の仮想フォルダ
+- 読取候補handoff
+- 読取タブの候補カード
+- 候補限定20件OCR
+- 候補OCR後summary
+- 候補件数減少
+- 通常BatchOCR P1/P3回帰
+- BatchOCR保存先fallback
+- metadata-only organization validation
+- 検索タブ起動
+- 設定タブ起動
+
+P7の検証では、K Phoneで `metadata-only organization validation`、`BatchOCR persistence validation`、`-ShimaiBakoRunReadCandidateOCR20Validation` がPASSした。候補限定OCRでは、`beforeReadCandidateCount: 30`、`processedCandidateCount: 20`、`afterReadCandidateCount: 10`、`candidateCountDecreased: true`、`lastCandidateOCRSummarySaved: true`、`lastCandidateOCRStatus: completed`、`seriesCreated: false`、`nonCandidateIncluded: false` を確認した。
+
+通常BatchOCR回帰では、P1の0 / 20 / 50 / 100件、P3の500 / 2,000件、500 / 2,000件の中断・再開がPASSした。P7 RC smoke resultはPASS、`main is releasable for local testing` はyesとする。
+
+P7以降も、Vision本番処理やClassificationJobにはまだ進まない。次の改善は、既存の整理タブ、読取候補、候補限定OCR、通常BatchOCRの範囲で、表示、説明、検証導線、実機操作性を整える方針とする。
+
+P7でも引き続き、元写真・元動画は削除・変更しない。PhotoKit書き込み/削除API、外部API、クラウド送信、有料サービスは追加しない。画像本体、サムネイル本体、顔画像、顔テンプレート、大量特徴ベクトルは保存しない。全数OCRは復活させない。
