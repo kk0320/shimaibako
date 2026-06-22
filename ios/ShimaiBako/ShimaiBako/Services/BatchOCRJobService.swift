@@ -16,6 +16,7 @@ final class BatchOCRJobService: ObservableObject {
     @Published private(set) var nextAutoResumeCheckAt: Date?
     @Published private(set) var lastAutoResumeDecision: String?
     @Published private(set) var lastAutoResumeBlockedReason: String?
+    @Published private(set) var lastReadCandidateOCRSummary: ReadCandidateOCRSummary?
     @Published var errorMessage: String?
     #if DEBUG
     @Published private(set) var p1ValidationReport: BatchOCRP1ValidationReport?
@@ -43,6 +44,8 @@ final class BatchOCRJobService: ObservableObject {
     private let userDefaults: UserDefaults
     private let fileName = "batch_ocr_jobs.json"
     private let autoContinueKey = "shimaibako.batchOCR.autoContinue2000"
+    private let readCandidateOCRSummaryKey = "shimaibako.batchOCR.lastReadCandidateOCRSummary"
+    private let pendingReadCandidateOCRBeforeCountKey = "shimaibako.batchOCR.pendingReadCandidateOCRBeforeCount"
     private let allowedRequestedLimits = [20, 50, 100, 500, 2_000]
     private let autoContinueBatchLimit = 2_000
     private let autoContinueRecommendedCapacityBytes: Int64 = 2_000_000_000
@@ -72,6 +75,7 @@ final class BatchOCRJobService: ObservableObject {
         self.userDefaults = userDefaults
         isAutoContinueEnabled = userDefaults.bool(forKey: autoContinueKey)
         loadSnapshot()
+        loadReadCandidateOCRSummary()
         normalizeInterruptedJob()
     }
 
@@ -318,6 +322,11 @@ final class BatchOCRJobService: ObservableObject {
         }
     }
 
+    func prepareReadCandidateOCRSummary(beforeCount: Int) {
+        let normalizedCount = max(beforeCount, 0)
+        userDefaults.set(normalizedCount, forKey: pendingReadCandidateOCRBeforeCountKey)
+    }
+
     func applicationDidBecomeActive() {
         isAppActive = true
     }
@@ -359,6 +368,9 @@ final class BatchOCRJobService: ObservableObject {
         guard selection.candidates.isEmpty == false else {
             currentJob = nil
             items = []
+            if candidateIdentifiers != nil {
+                userDefaults.removeObject(forKey: pendingReadCandidateOCRBeforeCountKey)
+            }
             message = selection.diagnostics.reasonIfZero ?? "新しく読み取る写真はありません"
             await saveSnapshot()
             return
@@ -1336,6 +1348,8 @@ final class BatchOCRJobService: ObservableObject {
                 autoContinueEnabledDuringValidation: isAutoContinueEnabled,
                 seriesCreated: currentSeries != nil,
                 ocrResultSaved: false,
+                lastCandidateOCRSummarySaved: lastReadCandidateOCRSummary != nil,
+                lastCandidateOCRStatus: lastReadCandidateOCRSummary?.lastCandidateOCRStatus.rawValue ?? "",
                 filterSnapshot: currentJob?.filterSnapshot ?? "",
                 passed: false,
                 message: "読取ジョブを実行中です。"
@@ -1354,6 +1368,7 @@ final class BatchOCRJobService: ObservableObject {
 
         setAutoContinueEnabled(true)
         currentSeries = nil
+        prepareReadCandidateOCRSummary(beforeCount: allCandidateIdentifiers.count)
         await createDebugJob(
             jobID: jobID,
             requestedLimit: requestedLimit,
@@ -1379,6 +1394,8 @@ final class BatchOCRJobService: ObservableObject {
         let candidateCountDecreased = afterReadCandidateCount < beforeReadCandidateCount
         let ocrResultSaved = selectedIdentifiers.allSatisfy { ocrService.validationResultExists(localIdentifier: $0) }
         let completed = currentJob?.state == .completed && processedCount == requestedLimit
+        let lastCandidateOCRSummarySaved = lastReadCandidateOCRSummary != nil
+        let lastCandidateOCRStatus = lastReadCandidateOCRSummary?.lastCandidateOCRStatus.rawValue ?? ""
         let passed = requestedLimitMatches
             && fixedToLimit
             && nonCandidateIncluded == false
@@ -1387,6 +1404,8 @@ final class BatchOCRJobService: ObservableObject {
             && candidateCountDecreased
             && completed
             && ocrResultSaved
+            && lastCandidateOCRSummarySaved
+            && lastCandidateOCRStatus == ReadCandidateOCRSummaryStatus.completed.rawValue
 
         await ocrService.clearValidationResults(localIdentifiers: selectedIdentifiers)
         currentJob = nil
@@ -1410,6 +1429,8 @@ final class BatchOCRJobService: ObservableObject {
             autoContinueEnabledDuringValidation: true,
             seriesCreated: seriesCreatedDuringCandidateJob,
             ocrResultSaved: ocrResultSaved,
+            lastCandidateOCRSummarySaved: lastCandidateOCRSummarySaved,
+            lastCandidateOCRStatus: lastCandidateOCRStatus,
             filterSnapshot: filterSnapshot,
             passed: passed,
             message: passed ? "読取候補20件検証PASS" : "読取候補20件検証FAIL"
@@ -2724,6 +2745,9 @@ final class BatchOCRJobService: ObservableObject {
         job.pausedReasonCode = job.state == .failed ? .failedPermanent : nil
         job.updatedAt = Date()
         currentJob = job
+        if isReadCandidateScoped(job: job) {
+            recordReadCandidateOCRSummary(for: job)
+        }
         message = job.state == .completed ? "読取が完了しました" : job.pausedReason
         runTask = nil
         await saveSnapshot()
@@ -3781,6 +3805,55 @@ final class BatchOCRJobService: ObservableObject {
 
         lastPublishedAt = now
         currentJob = job
+    }
+
+    private func recordReadCandidateOCRSummary(for job: BatchOCRJob) {
+        let storedBeforeCount = userDefaults.object(forKey: pendingReadCandidateOCRBeforeCountKey) as? Int
+        let beforeCount = max(storedBeforeCount ?? job.plannedCount, job.plannedCount)
+        let processedCount = min(max(job.processedCount, 0), beforeCount)
+        let afterCount = max(beforeCount - processedCount, 0)
+        let status: ReadCandidateOCRSummaryStatus
+        if job.state == .failed {
+            status = .failed
+        } else if job.failedCount > 0 {
+            status = .completedWithFailures
+        } else {
+            status = .completed
+        }
+        let summary = ReadCandidateOCRSummary(
+            beforeReadCandidateCount: beforeCount,
+            processedCandidateCount: processedCount,
+            afterReadCandidateCount: afterCount,
+            candidateCountDecreased: afterCount < beforeCount,
+            lastCandidateOCRAt: Date(),
+            lastCandidateOCRStatus: status,
+            failedCount: job.failedCount
+        )
+
+        lastReadCandidateOCRSummary = summary
+        saveReadCandidateOCRSummary(summary)
+        userDefaults.removeObject(forKey: pendingReadCandidateOCRBeforeCountKey)
+    }
+
+    private func loadReadCandidateOCRSummary() {
+        guard let data = userDefaults.data(forKey: readCandidateOCRSummaryKey) else {
+            return
+        }
+
+        do {
+            lastReadCandidateOCRSummary = try JSONDecoder().decode(ReadCandidateOCRSummary.self, from: data)
+        } catch {
+            userDefaults.removeObject(forKey: readCandidateOCRSummaryKey)
+        }
+    }
+
+    private func saveReadCandidateOCRSummary(_ summary: ReadCandidateOCRSummary) {
+        do {
+            let data = try JSONEncoder().encode(summary)
+            userDefaults.set(data, forKey: readCandidateOCRSummaryKey)
+        } catch {
+            errorMessage = "読取候補OCR結果を保存できませんでした: \(error.localizedDescription)"
+        }
     }
 
     private func loadSnapshot() {

@@ -6,6 +6,7 @@ struct OrganizationView: View {
     @ObservedObject var indexService: PhotoIndexService
     @ObservedObject var learningService: ManualCategoryLearningService
     @ObservedObject var classificationService: PhotoClassificationService
+    @ObservedObject var batchOCRJobService: BatchOCRJobService
     var onReadCandidateHandoff: (ReadCandidateSelection) -> Void = { _ in }
     @State private var navigationPath = OrganizationView.initialNavigationPath
     @State private var liveReadCandidateCount: Int?
@@ -62,6 +63,7 @@ struct OrganizationView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         header
                         statusCard
+                        readCandidateOCRSummaryCard
                         virtualFoldersCard
                         metadataUpdateCard
                         availableClassificationsCard
@@ -142,7 +144,7 @@ struct OrganizationView: View {
                 OrganizationMetricTile(
                     title: "読取候補",
                     value: "\(displayCount(for: .readCandidates))件",
-                    caption: "未読取候補"
+                    caption: "読取済みは除外"
                 )
                 OrganizationMetricTile(
                     title: "要確認",
@@ -283,6 +285,11 @@ struct OrganizationView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            Text("読取候補は、スクショなど文字検索に役立つ可能性が高く、まだ読取済みではない写真です。読取済みの写真は候補から外れます。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(OrganizationVirtualFolder.allCases) { folder in
                     NavigationLink(value: folder) {
@@ -408,6 +415,38 @@ struct OrganizationView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.black.opacity(0.06))
         )
+    }
+
+    @ViewBuilder
+    private var readCandidateOCRSummaryCard: some View {
+        if let summary = batchOCRJobService.lastReadCandidateOCRSummary {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("前回の読取候補OCR", systemImage: "text.viewfinder")
+                    .font(.headline)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    OrganizationSummaryRow(title: "処理前", value: "\(summary.beforeReadCandidateCount)件")
+                    OrganizationSummaryRow(title: "読取済み", value: "\(summary.processedCandidateCount)件")
+                    OrganizationSummaryRow(title: "残り", value: "\(summary.afterReadCandidateCount)件")
+                    OrganizationSummaryRow(title: "状態", value: summary.lastCandidateOCRStatus.title)
+                }
+
+                Text("前回\(summary.processedCandidateCount)件を読み取りました。読取済みの写真は候補から外れます。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("最終実行: \(DateFormatter.localizedString(from: summary.lastCandidateOCRAt, dateStyle: .short, timeStyle: .short))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .background(.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.black.opacity(0.06))
+            )
+        }
     }
 
     #if DEBUG
@@ -536,6 +575,7 @@ private struct OrganizationFolderTile: View {
                 .stroke(Color.black.opacity(0.05))
         )
     }
+
 }
 
 private struct OrganizationScopeRow: View {
@@ -557,6 +597,23 @@ private struct OrganizationScopeRow: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+}
+
+private struct OrganizationSummaryRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
         }
     }
 }

@@ -69,6 +69,7 @@ struct ReadView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         headerCard
                         readCandidateHandoffCard
+                        readCandidateOCRResultCard
                         metricsGrid
                         batchLimitCard
                         targetDiagnosticsCard
@@ -182,14 +183,15 @@ struct ReadView: View {
                     .accessibilityLabel("読取候補カードを閉じる")
                 }
 
-                Text("整理タブで見つけた、文字検索に役立つ可能性が高い写真です。OCRは自動開始しません。下のボタンを押した時だけ、既存のBatchOCR安全条件で処理します。")
+                Text("候補だけを読み取ります。元写真・元動画は変更されません。OCRは自動開始しません。下のボタンを押した時だけ、既存のBatchOCR安全条件で処理します。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 VStack(alignment: .leading, spacing: 6) {
                     ReadJobRow(title: "候補", value: "\(liveReadCandidateCount)件")
-                    ReadJobRow(title: "対象", value: selection.filterTitle)
+                    ReadJobRow(title: "対象", value: "スクショなどの未読取候補")
+                    ReadJobRow(title: "自動継続", value: "なし")
                     ReadJobRow(
                         title: "受け渡し",
                         value: DateFormatter.localizedString(from: selection.createdAt, dateStyle: .none, timeStyle: .short)
@@ -228,7 +230,7 @@ struct ReadView: View {
                 }
 
                 if liveReadCandidateCount == 0 {
-                    Text("整理タブからの読取候補はありません。整理タブで軽量整理を更新すると、スクショなどが候補になる場合があります。")
+                    Text("整理タブからの読取候補はありません。\n整理タブで軽量整理を更新すると、スクショなどが読取候補になる場合があります。")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -251,6 +253,42 @@ struct ReadView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color(red: 0.16, green: 0.42, blue: 0.75).opacity(0.18))
             )
+        }
+    }
+
+    @ViewBuilder
+    private var readCandidateOCRResultCard: some View {
+        if let summary = batchOCRJobService.lastReadCandidateOCRSummary {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(
+                    summary.failedCount > 0 ? "一部の写真を読み取れませんでした" : "読取候補の読取が完了しました",
+                    systemImage: summary.failedCount > 0 ? "exclamationmark.triangle" : "checkmark.circle"
+                )
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ReadJobRow(title: "読取前", value: "\(summary.beforeReadCandidateCount)件")
+                    ReadJobRow(title: "今回読取", value: "\(summary.processedCandidateCount)件")
+                    ReadJobRow(title: "残り候補", value: "\(summary.afterReadCandidateCount)件")
+                    ReadJobRow(title: "状態", value: summary.lastCandidateOCRStatus.title)
+                    if summary.failedCount > 0 {
+                        ReadJobRow(title: "失敗", value: "\(summary.failedCount)件")
+                    }
+                }
+
+                Text(summary.failedCount > 0 ? "失敗した写真は再試行候補として残ります。" : "読取済みの写真は候補から外れました。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("最終実行: \(DateFormatter.localizedString(from: summary.lastCandidateOCRAt, dateStyle: .short, timeStyle: .short))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -1102,6 +1140,8 @@ struct ReadView: View {
                             ReadJobRow(title: "候補after", value: "\(result.afterReadCandidateCount)件")
                             ReadJobRow(title: "処理候補", value: "\(result.processedCandidateCount)件")
                             ReadJobRow(title: "候補減少", value: result.candidateCountDecreased ? "true" : "false")
+                            ReadJobRow(title: "summary保存", value: result.lastCandidateOCRSummarySaved ? "true" : "false")
+                            ReadJobRow(title: "summary状態", value: result.lastCandidateOCRStatus)
                             ReadJobRow(title: "jobSource", value: result.jobSource)
                             ReadJobRow(title: "固定対象", value: "\(result.plannedCount)件")
                             ReadJobRow(title: "自動継続", value: result.seriesCreated ? "作成あり" : "作成なし")
@@ -1155,6 +1195,7 @@ struct ReadView: View {
             limit: limit.rawValue,
             offset: 0
         )
+        batchOCRJobService.prepareReadCandidateOCRSummary(beforeCount: liveReadCandidateCount)
         await batchOCRJobService.start(
             requestedLimit: limit.rawValue,
             assets: photoLibrary.assets,

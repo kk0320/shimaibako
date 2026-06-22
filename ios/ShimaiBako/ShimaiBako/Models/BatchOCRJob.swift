@@ -269,6 +269,33 @@ struct BatchOCRSeries: Codable, Identifiable, Equatable {
     }
 }
 
+enum ReadCandidateOCRSummaryStatus: String, Codable, Equatable {
+    case completed
+    case completedWithFailures
+    case failed
+
+    var title: String {
+        switch self {
+        case .completed:
+            "完了"
+        case .completedWithFailures:
+            "一部失敗"
+        case .failed:
+            "失敗"
+        }
+    }
+}
+
+struct ReadCandidateOCRSummary: Codable, Equatable {
+    var beforeReadCandidateCount: Int
+    var processedCandidateCount: Int
+    var afterReadCandidateCount: Int
+    var candidateCountDecreased: Bool
+    var lastCandidateOCRAt: Date
+    var lastCandidateOCRStatus: ReadCandidateOCRSummaryStatus
+    var failedCount: Int
+}
+
 struct BatchOCRTargetSelectionDiagnostics: Codable, Equatable {
     var selectedLimit: Int
     var photoDBTotalCount: Int
@@ -630,6 +657,8 @@ struct BatchOCRReadCandidateHandoffValidationCaseResult: Codable, Equatable, Ide
     var autoContinueEnabledDuringValidation: Bool
     var seriesCreated: Bool
     var ocrResultSaved: Bool
+    var lastCandidateOCRSummarySaved: Bool
+    var lastCandidateOCRStatus: String
     var filterSnapshot: String
     var passed: Bool
     var message: String
