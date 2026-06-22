@@ -375,6 +375,12 @@ struct MetadataOnlyOrganizationValidationReport: Codable, Equatable {
     var libraryTotalAssets: Int
     var validationLimit: Int
     var processedAssets: Int
+    var metadataSource: String
+    var metadataSourceFallbacksTried: [String]
+    var photoLibraryAssetsCount: Int
+    var photoIndexTotalCount: Int
+    var sqliteTotalCount: Int
+    var sourceUnavailableReason: String?
     var classificationStoreTotal: Int
     var summaryTotalAssets: Int
     var summaryClassifiedCount: Int

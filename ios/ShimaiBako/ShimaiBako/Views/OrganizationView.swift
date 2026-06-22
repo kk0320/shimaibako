@@ -38,8 +38,10 @@ struct OrganizationView: View {
     private var currentLoadedScopeTitle: String {
         if photoLibrary.loadedAssetCount > 0 {
             "現在読み込み済みの\(photoLibrary.loadedAssetCount)件"
+        } else if indexService.indexedRecordCount > 0 {
+            "PhotoIndex保存済みの直近\(min(100, indexService.indexedRecordCount))件"
         } else {
-            "読み込み済み範囲"
+            "読み込み済み範囲またはPhotoIndex保存済み範囲"
         }
     }
 
@@ -229,10 +231,7 @@ struct OrganizationView: View {
             HStack(spacing: 10) {
                 Button {
                     Task {
-                        await classificationService.updateMetadataOnly(
-                            assets: photoLibrary.assets,
-                            indexService: indexService
-                        )
+                        await updateMetadataOnlyFromBestSource()
                         await refreshLiveReadCandidateCount()
                     }
                 } label: {
@@ -240,7 +239,7 @@ struct OrganizationView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(classificationService.isUpdatingMetadata || photoLibrary.assets.isEmpty)
+                .disabled(classificationService.isUpdatingMetadata)
 
                 if classificationService.isUpdatingMetadata {
                     Button(role: .cancel) {
@@ -319,6 +318,36 @@ struct OrganizationView: View {
 
     private func refreshLiveReadCandidateCount() async {
         liveReadCandidateCount = await classificationService.liveReadCandidateCount(indexService: indexService)
+    }
+
+    private func updateMetadataOnlyFromBestSource() async {
+        if photoLibrary.assets.isEmpty == false {
+            await classificationService.updateMetadataOnly(
+                assets: photoLibrary.assets,
+                indexService: indexService
+            )
+            return
+        }
+
+        let source = await indexService.organizationMetadataSource(limit: 100)
+        if source.records.isEmpty == false {
+            await classificationService.updateMetadataOnly(indexRecords: source.records)
+            return
+        }
+
+        let metadataAssets = await photoLibrary.organizationMetadataAssets(limit: 100)
+        if metadataAssets.isEmpty == false {
+            await classificationService.updateMetadataOnly(
+                assets: metadataAssets,
+                indexService: indexService
+            )
+            return
+        }
+
+        await classificationService.updateMetadataOnly(
+            assets: photoLibrary.assets,
+            indexService: indexService
+        )
     }
 
     private var availableClassificationsCard: some View {

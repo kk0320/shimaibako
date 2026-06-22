@@ -119,17 +119,49 @@ struct ContentView: View {
                         await photoLibrary.loadRecentAssets()
                     }
                     await waitForMetadataOnlyOrganizationValidationInputs()
+                    let validationLimit = min(photoLibrary.readMode.limit ?? 100, 100)
+                    let indexMetadataSource = await indexService.organizationMetadataSource(limit: validationLimit)
+                    let photoLibraryAssetsCount = photoLibrary.assets.count
+                    var metadataSourceFallbacksTried = ["sqlitePhotoIndex"]
+                    var validationAssets: [PhotoAsset] = []
+                    let validationIndexRecords = indexMetadataSource.records
+                    var metadataSource = indexMetadataSource.metadataSource
+                    var sourceUnavailableReason = indexMetadataSource.sourceUnavailableReason
+
+                    if validationIndexRecords.isEmpty {
+                        metadataSourceFallbacksTried.append("photoLibraryAssets")
+                        validationAssets = Array(photoLibrary.assets.prefix(validationLimit))
+                        if validationAssets.isEmpty == false {
+                            metadataSource = "photoLibraryAssets"
+                            sourceUnavailableReason = nil
+                        } else {
+                            metadataSourceFallbacksTried.append("photoKitMetadata")
+                            validationAssets = await photoLibrary.organizationMetadataAssets(limit: validationLimit)
+                            if validationAssets.isEmpty == false {
+                                metadataSource = "photoKitMetadata"
+                                sourceUnavailableReason = nil
+                            }
+                        }
+                    }
+
                     let libraryTotalAssets = max(
                         photoLibrary.totalAssetCount,
                         indexService.indexedRecordCount,
-                        photoLibrary.loadedAssetCount
+                        photoLibrary.loadedAssetCount,
+                        indexMetadataSource.totalCount
                     )
-                    let validationLimit = photoLibrary.readMode.limit ?? libraryTotalAssets
                     await classificationService.runMetadataOnlyOrganizationValidation(
-                        assets: photoLibrary.assets,
+                        assets: validationAssets,
+                        indexRecords: validationIndexRecords,
                         indexService: indexService,
                         libraryTotalAssets: libraryTotalAssets,
-                        validationLimit: validationLimit
+                        validationLimit: validationLimit,
+                        metadataSource: metadataSource,
+                        metadataSourceFallbacksTried: metadataSourceFallbacksTried,
+                        photoLibraryAssetsCount: photoLibraryAssetsCount,
+                        photoIndexTotalCount: indexMetadataSource.photoIndexTotalCount,
+                        sqliteTotalCount: indexMetadataSource.sqliteTotalCount,
+                        sourceUnavailableReason: sourceUnavailableReason
                     )
                 }
                 #endif
