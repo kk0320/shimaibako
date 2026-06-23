@@ -499,7 +499,21 @@ struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
     var unreadCandidateCount: Int
     var activeJobTargetCount: Int
     var activeRunningJobTargets: Int
+    var activeBatchOCRJobExists: Bool
+    var activeJobID: String?
+    var activeJobSource: String?
+    var activeJobLimit: Int?
+    var activeJobState: BatchOCRJobState?
+    var activeJobCreatedAt: Date?
+    var activeJobUpdatedAt: Date?
+    var activeJobLastHeartbeatAt: Date?
+    var activeJobProcessedCount: Int?
+    var activeJobTotalCount: Int?
+    var activeJobIsStale: Bool
     var pausedJobPendingTargets: Int
+    var pausedJobCount: Int
+    var runningJobCount: Int
+    var candidateJobBlockedReason: String?
     var staleProcessingTargets: Int
     var orphanProcessingTargets: Int
     var invalidOrStaleJobCount: Int
@@ -529,7 +543,21 @@ struct BatchOCRReadStateDiagnosticsReport: Codable, Equatable {
             "未読取候補: \(unreadCandidateCount)",
             "処理中ジョブ対象: \(activeJobTargetCount)",
             "activeRunningJobTargets: \(activeRunningJobTargets)",
+            "activeBatchOCRJobExists: \(activeBatchOCRJobExists)",
+            "activeJobID: \(activeJobID ?? "-")",
+            "activeJobSource: \(activeJobSource ?? "-")",
+            "activeJobLimit: \(activeJobLimit.map(String.init) ?? "-")",
+            "activeJobState: \(activeJobState?.rawValue ?? "-")",
+            "activeJobCreatedAt: \(activeJobCreatedAt.map(Self.format) ?? "-")",
+            "activeJobUpdatedAt: \(activeJobUpdatedAt.map(Self.format) ?? "-")",
+            "activeJobLastHeartbeatAt: \(activeJobLastHeartbeatAt.map(Self.format) ?? "-")",
+            "activeJobProcessedCount: \(activeJobProcessedCount.map(String.init) ?? "-")",
+            "activeJobTotalCount: \(activeJobTotalCount.map(String.init) ?? "-")",
+            "activeJobIsStale: \(activeJobIsStale)",
             "pausedJobPendingTargets: \(pausedJobPendingTargets)",
+            "pausedJobCount: \(pausedJobCount)",
+            "runningJobCount: \(runningJobCount)",
+            "candidateJobBlockedReason: \(candidateJobBlockedReason ?? "-")",
             "staleProcessingTargets: \(staleProcessingTargets)",
             "orphanProcessingTargets: \(orphanProcessingTargets)",
             "無効/古いジョブ: \(invalidOrStaleJobCount)",

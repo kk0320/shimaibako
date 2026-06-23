@@ -694,3 +694,42 @@ usedPhotoKitWriteAPI
 `-ShimaiBakoRunMetadataOnlyOrganizationAutoRunValidation` を指定した場合は、自動実行相当として検証し、`autoRunTriggered` をtrueとしてレポートする。
 
 P8でも、Vision本番処理、ClassificationJob、建物 / 工事現場 / 看板分類、Core ML、全数OCR復活には進まない。元写真・元動画は削除・変更しない。
+
+## P8.5 metadata organization autostart merge前スモーク
+
+P8.5では、P8で追加したmetadata-only軽量整理の自動実行が、merge前に実機で安全に動くことを確認する。確認対象は、写真読み込み / PhotoIndex準備後に必要な場合だけ自動実行されること、同じ署名では起動のたびに再実行されないこと、整理タブを開いただけで無限に走らないこと、手動の `軽量整理を更新` も同じservice pathを使うことである。
+
+DEBUG検証では次を確認する。
+
+```text
+-ShimaiBakoRunMetadataOnlyOrganizationValidation
+-ShimaiBakoRunMetadataOnlyOrganizationAutoRunValidation
+-ShimaiBakoOpenOrganizationTab
+```
+
+検証結果では、`libraryTotalAssets`、`processedAssets`、`summaryTotalAssets`、`summaryClassifiedCount`、`screenshotCount`、`readCandidateCount`、`unorganizedCount`、`autoRunTriggered`、`manualRunTriggered`、`metadataOrganizationInProgress` を確認する。`usedVision`、`usedImageBody`、`usedThumbnailBody`、`usedPhotoKitWriteAPI` はすべてfalseでなければならない。
+
+P8.5では、BatchOCRのactive/running状態もmerge前に診断する。候補限定20件OCRは、既存のBatchOCR jobが実行中または一時停止中であれば安全にブロックされる。この場合はUIやDEBUG検証で、既存jobの状態を見て判断する。
+
+読取状態診断には次の項目を含める。
+
+```text
+activeBatchOCRJobExists
+activeJobID
+activeJobSource
+activeJobLimit
+activeJobState
+activeJobCreatedAt
+activeJobUpdatedAt
+activeJobLastHeartbeatAt
+activeJobProcessedCount
+activeJobTotalCount
+activeJobIsStale
+pausedJobCount
+runningJobCount
+candidateJobBlockedReason
+```
+
+本当に実行中のjobがある場合、候補限定OCRがブロックされるのは正しい。stale running jobが見つかった場合は、processing itemをpendingへ戻し、jobを `pausedBackground` 相当に安全復旧する。完了済みOCR結果は保持し、既存ジョブやOCR結果を無条件に削除しない。状態不明の場合も自動削除せず、診断結果に残してからユーザー操作で再開または終了できる状態にする。
+
+P8.5でも、Vision本番処理、ClassificationJob、建物 / 工事現場 / 看板分類、Core ML、全数OCR復活には進まない。元写真・元動画は削除・変更しない。PhotoKit書き込み/削除API、画像本体、サムネイル本体、顔画像、顔テンプレート、大量特徴ベクトル、外部API、クラウド送信は追加しない。

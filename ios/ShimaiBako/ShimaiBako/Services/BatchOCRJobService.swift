@@ -203,6 +203,27 @@ final class BatchOCRJobService: ObservableObject {
         return isInvalidOrStaleJob(job) ? 1 : 0
     }
 
+    private var runningJobCount: Int {
+        guard currentJob?.state.isActive == true else {
+            return 0
+        }
+
+        return 1
+    }
+
+    private var pausedJobCount: Int {
+        guard let state = currentJob?.state else {
+            return 0
+        }
+
+        switch state {
+        case .pausedBackground, .pausedUser:
+            return 1
+        case .preparing, .running, .pausing, .cancelling, .completed, .failed:
+            return 0
+        }
+    }
+
     var activeStatusTitle: String {
         guard let currentJob else {
             return "待機中"
@@ -721,6 +742,7 @@ final class BatchOCRJobService: ObservableObject {
             indexService: indexService
         )
         let fullDiagnostics = fullSelection.diagnostics
+        let activeJobInfo = activeJobDiagnostics()
 
         let report = BatchOCRReadStateDiagnosticsReport(
             generatedAt: Date(),
@@ -736,7 +758,21 @@ final class BatchOCRJobService: ObservableObject {
             unreadCandidateCount: fullDiagnostics.finalTargetCount,
             activeJobTargetCount: activeJobTargetCount,
             activeRunningJobTargets: activeJobTargetCount,
+            activeBatchOCRJobExists: activeJobInfo.exists,
+            activeJobID: activeJobInfo.id,
+            activeJobSource: activeJobInfo.source,
+            activeJobLimit: activeJobInfo.limit,
+            activeJobState: activeJobInfo.state,
+            activeJobCreatedAt: activeJobInfo.createdAt,
+            activeJobUpdatedAt: activeJobInfo.updatedAt,
+            activeJobLastHeartbeatAt: activeJobInfo.lastHeartbeatAt,
+            activeJobProcessedCount: activeJobInfo.processedCount,
+            activeJobTotalCount: activeJobInfo.totalCount,
+            activeJobIsStale: activeJobInfo.isStale,
             pausedJobPendingTargets: pausedJobPendingTargetCount,
+            pausedJobCount: pausedJobCount,
+            runningJobCount: runningJobCount,
+            candidateJobBlockedReason: activeJobInfo.blockedReason,
             staleProcessingTargets: staleProcessingTargetCount,
             orphanProcessingTargets: orphanProcessingTargetCount,
             invalidOrStaleJobCount: invalidOrStaleJobCount,
@@ -3570,6 +3606,54 @@ final class BatchOCRJobService: ObservableObject {
         job.filterSnapshot.contains("整理タブ: 読取候補")
     }
 
+    private func activeJobDiagnostics() -> BatchOCRActiveJobDiagnostics {
+        guard let job = currentJob else {
+            return BatchOCRActiveJobDiagnostics(
+                exists: false,
+                id: nil,
+                source: nil,
+                limit: nil,
+                state: nil,
+                createdAt: nil,
+                updatedAt: nil,
+                lastHeartbeatAt: nil,
+                processedCount: nil,
+                totalCount: nil,
+                isStale: false,
+                blockedReason: nil
+            )
+        }
+
+        let now = Date()
+        let isOldActiveJob = job.state.isActive && now.timeIntervalSince(job.updatedAt) > staleProcessingInterval
+        let isStale = isInvalidOrStaleJob(job) || staleProcessingTargetCount > 0 || orphanProcessingTargetCount > 0 || isOldActiveJob
+        let source = isReadCandidateScoped(job: job) ? "organizationReadCandidates" : "batchOCR"
+        let blockedReason: String?
+        switch job.state {
+        case .preparing, .running, .pausing, .cancelling:
+            blockedReason = isStale ? "active job may be stale" : "active BatchOCR job is running"
+        case .pausedBackground, .pausedUser:
+            blockedReason = "paused BatchOCR job needs resume or finish"
+        case .completed, .failed:
+            blockedReason = nil
+        }
+
+        return BatchOCRActiveJobDiagnostics(
+            exists: true,
+            id: job.id,
+            source: source,
+            limit: job.requestedLimit,
+            state: job.state,
+            createdAt: job.createdAt,
+            updatedAt: job.updatedAt,
+            lastHeartbeatAt: job.updatedAt,
+            processedCount: job.processedCount,
+            totalCount: job.plannedCount,
+            isStale: isStale,
+            blockedReason: blockedReason
+        )
+    }
+
     private func reasonIfZero(for diagnostics: BatchOCRTargetSelectionDiagnostics) -> String? {
         guard diagnostics.finalTargetCount == 0 else {
             return nil
@@ -4211,6 +4295,21 @@ struct BatchOCRCandidateDescriptor {
 struct BatchOCRTargetSelection {
     var candidates: [BatchOCRCandidateDescriptor]
     var diagnostics: BatchOCRTargetSelectionDiagnostics
+}
+
+private struct BatchOCRActiveJobDiagnostics {
+    var exists: Bool
+    var id: String?
+    var source: String?
+    var limit: Int?
+    var state: BatchOCRJobState?
+    var createdAt: Date?
+    var updatedAt: Date?
+    var lastHeartbeatAt: Date?
+    var processedCount: Int?
+    var totalCount: Int?
+    var isStale: Bool
+    var blockedReason: String?
 }
 
 private enum BatchOCRReadDecision {
