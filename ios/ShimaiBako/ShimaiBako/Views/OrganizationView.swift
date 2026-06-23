@@ -37,10 +37,10 @@ struct OrganizationView: View {
     }
 
     private var currentLoadedScopeTitle: String {
-        if photoLibrary.loadedAssetCount > 0 {
+        if indexService.indexedRecordCount > 0 {
+            "PhotoIndex保存済みの\(indexService.indexedRecordCount)件"
+        } else if photoLibrary.loadedAssetCount > 0 {
             "現在読み込み済みの\(photoLibrary.loadedAssetCount)件"
-        } else if indexService.indexedRecordCount > 0 {
-            "PhotoIndex保存済みの直近\(min(100, indexService.indexedRecordCount))件"
         } else {
             "読み込み済み範囲またはPhotoIndex保存済み範囲"
         }
@@ -99,11 +99,11 @@ struct OrganizationView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("画像認識で自動整理")
+            Text("写真を自動整理")
                 .font(.title2.bold())
                 .foregroundStyle(Color(red: 0.07, green: 0.18, blue: 0.31))
 
-            Text("現在は分類データの土台だけを用意しています。整理タブを開いても画像認識や大量処理は開始しません。")
+            Text("まずはスクショなど、写真情報だけで分かる範囲を整理します。画像認識による建物・看板などの分類は現在評価中です。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -184,15 +184,18 @@ struct OrganizationView: View {
             Label("軽量整理", systemImage: "arrow.triangle.2.circlepath")
                 .font(.headline)
 
-            Text("スクショなど、写真のメタデータだけで分かる範囲を整理します。現在は\(currentLoadedScopeTitle)だけを更新します。画像認識や読取は実行しません。元写真・元動画は変更しません。")
+            Text("スクショなど、写真のメタデータだけで分かる範囲を整理します。現在は\(currentLoadedScopeTitle)を更新できます。画像認識やOCRは実行しません。元写真・元動画は変更しません。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if classificationService.isUpdatingMetadata {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("軽量整理中...")
+                    Text("写真情報を整理しています")
                         .font(.caption.weight(.semibold))
+                    Text("画像認識やOCRは実行していません")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                     ProgressView(
                         value: Double(classificationService.metadataUpdateProcessedCount),
                         total: Double(max(classificationService.metadataUpdateTotalCount, 1))
@@ -201,6 +204,11 @@ struct OrganizationView: View {
                     Text("処理済み \(classificationService.metadataUpdateProcessedCount) / \(classificationService.metadataUpdateTotalCount)件")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let trigger = classificationService.metadataOrganizationRunTrigger {
+                        Text("実行: \(trigger.title)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -256,7 +264,7 @@ struct OrganizationView: View {
             }
 
             if photoLibrary.assets.isEmpty {
-                Text("写真タブで写真を読み込むと、読み込み済み範囲を軽量整理できます。")
+                Text("写真情報の準備中です。少し待ってからもう一度お試しください。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -328,17 +336,31 @@ struct OrganizationView: View {
     }
 
     private func updateMetadataOnlyFromBestSource() async {
-        if photoLibrary.assets.isEmpty == false {
-            await classificationService.updateMetadataOnly(
-                assets: photoLibrary.assets,
-                indexService: indexService
+        let libraryTotalAssets = max(
+            indexService.indexedRecordCount,
+            photoLibrary.totalAssetCount,
+            photoLibrary.loadedAssetCount,
+            summary.totalCount
+        )
+
+        let source = await indexService.organizationMetadataSource(limit: 1)
+        if source.totalCount > 0 {
+            await classificationService.updateMetadataOnlyFromPhotoIndexPages(
+                indexService: indexService,
+                libraryTotalAssets: max(libraryTotalAssets, source.totalCount),
+                trigger: .manual
             )
             return
         }
 
-        let source = await indexService.organizationMetadataSource(limit: 100)
-        if source.records.isEmpty == false {
-            await classificationService.updateMetadataOnly(indexRecords: source.records)
+        if photoLibrary.assets.isEmpty == false {
+            await classificationService.updateMetadataOnly(
+                assets: photoLibrary.assets,
+                indexService: indexService,
+                trigger: .manual,
+                libraryTotalAssets: max(libraryTotalAssets, photoLibrary.assets.count),
+                metadataSource: "photoLibraryAssets"
+            )
             return
         }
 
@@ -346,7 +368,10 @@ struct OrganizationView: View {
         if metadataAssets.isEmpty == false {
             await classificationService.updateMetadataOnly(
                 assets: metadataAssets,
-                indexService: indexService
+                indexService: indexService,
+                trigger: .manual,
+                libraryTotalAssets: max(libraryTotalAssets, photoLibrary.totalAssetCount, metadataAssets.count),
+                metadataSource: "photoKitMetadata"
             )
             return
         }

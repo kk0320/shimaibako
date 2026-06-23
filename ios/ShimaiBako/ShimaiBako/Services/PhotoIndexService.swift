@@ -287,10 +287,10 @@ final class PhotoIndexService: ObservableObject {
         }
     }
 
-    func organizationMetadataSource(limit: Int) async -> OrganizationMetadataSourceSnapshot {
+    func organizationMetadataSource(limit: Int, offset: Int = 0) async -> OrganizationMetadataSourceSnapshot {
         do {
             let summary = try await store.summary()
-            let records = try await store.loadPage(limit: max(limit, 1), offset: 0)
+            let records = try await store.loadPage(limit: max(limit, 1), offset: max(offset, 0))
             updateRecordCache(with: records)
             let totalCount = summary.indexedCount
             return OrganizationMetadataSourceSnapshot(

@@ -20,6 +20,7 @@ struct HomeView: View {
     @ObservedObject var deviceSafety: DeviceSafetyService
     @State private var selectedTab = HomeTab.initialSelection
     @State private var readCandidateSelection: ReadCandidateSelection? = .initialSelection
+    @State private var isCheckingMetadataAutoRun = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -97,6 +98,107 @@ struct HomeView: View {
         }
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(Color(red: 0.93, green: 0.98, blue: 1.00), for: .tabBar)
+        .task {
+            await maybeRunAutomaticMetadataOrganization(reason: "initial")
+        }
+        .onChange(of: photoLibrary.isLoading) { _, isLoading in
+            guard isLoading == false else {
+                return
+            }
+
+            Task {
+                await maybeRunAutomaticMetadataOrganization(reason: "photoLoadingCompleted")
+            }
+        }
+        .onChange(of: indexService.indexedRecordCount) { _, _ in
+            Task {
+                await maybeRunAutomaticMetadataOrganization(reason: "photoIndexUpdated")
+            }
+        }
+        .onChange(of: indexService.isIndexStorePreparing) { _, isPreparing in
+            guard isPreparing == false else {
+                return
+            }
+
+            Task {
+                await maybeRunAutomaticMetadataOrganization(reason: "photoIndexReady")
+            }
+        }
+    }
+
+    private func maybeRunAutomaticMetadataOrganization(reason _: String) async {
+        #if DEBUG
+        if Self.shouldSkipAutomaticMetadataOrganizationForDebugValidation {
+            return
+        }
+        #endif
+
+        guard isCheckingMetadataAutoRun == false else {
+            return
+        }
+        guard photoLibrary.canReadPhotos,
+              photoLibrary.isLoading == false,
+              indexService.isIndexStorePreparing == false,
+              classificationService.isLoading == false,
+              classificationService.isUpdatingMetadata == false else {
+            return
+        }
+
+        isCheckingMetadataAutoRun = true
+        defer { isCheckingMetadataAutoRun = false }
+
+        let libraryTotalCount = max(
+            indexService.indexedRecordCount,
+            photoLibrary.totalAssetCount,
+            photoLibrary.loadedAssetCount,
+            classificationService.summary.totalCount
+        )
+
+        let indexSource = await indexService.organizationMetadataSource(limit: 1)
+        if indexSource.totalCount > 0,
+           classificationService.shouldRunAutomaticMetadataOrganization(
+               libraryTotalAssets: max(libraryTotalCount, indexSource.totalCount),
+               sourceTotalAssets: indexSource.totalCount
+           ) {
+            await classificationService.updateMetadataOnlyFromPhotoIndexPages(
+                indexService: indexService,
+                libraryTotalAssets: max(libraryTotalCount, indexSource.totalCount),
+                trigger: .automatic
+            )
+            return
+        }
+
+        if photoLibrary.assets.isEmpty == false,
+           classificationService.shouldRunAutomaticMetadataOrganization(
+               libraryTotalAssets: max(libraryTotalCount, photoLibrary.assets.count),
+               sourceTotalAssets: photoLibrary.assets.count
+           ) {
+            await classificationService.updateMetadataOnly(
+                assets: photoLibrary.assets,
+                indexService: indexService,
+                trigger: .automatic,
+                libraryTotalAssets: max(libraryTotalCount, photoLibrary.assets.count),
+                metadataSource: "photoLibraryAssets"
+            )
+            return
+        }
+
+        let metadataAssets = await photoLibrary.organizationMetadataAssets(limit: 100)
+        guard metadataAssets.isEmpty == false,
+              classificationService.shouldRunAutomaticMetadataOrganization(
+                  libraryTotalAssets: max(libraryTotalCount, photoLibrary.totalAssetCount, metadataAssets.count),
+                  sourceTotalAssets: metadataAssets.count
+              ) else {
+            return
+        }
+
+        await classificationService.updateMetadataOnly(
+            assets: metadataAssets,
+            indexService: indexService,
+            trigger: .automatic,
+            libraryTotalAssets: max(libraryTotalCount, photoLibrary.totalAssetCount, metadataAssets.count),
+            metadataSource: "photoKitMetadata"
+        )
     }
 }
 
@@ -136,6 +238,16 @@ private extension HomeTab {
         return .photos
     }
 }
+
+#if DEBUG
+private extension HomeView {
+    static var shouldSkipAutomaticMetadataOrganizationForDebugValidation: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains("-ShimaiBakoRunMetadataOnlyOrganizationValidation") ||
+            arguments.contains("-ShimaiBakoRunMetadataOnlyOrganizationAutoRunValidation")
+    }
+}
+#endif
 
 private extension Optional where Wrapped == ReadCandidateSelection {
     static var initialSelection: ReadCandidateSelection? {

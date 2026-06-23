@@ -114,7 +114,9 @@ struct ContentView: View {
                         indexService: indexService
                     )
                 }
-                if ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunMetadataOnlyOrganizationValidation") {
+                let shouldRunMetadataValidation = ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunMetadataOnlyOrganizationValidation")
+                let shouldRunMetadataAutoRunValidation = ProcessInfo.processInfo.arguments.contains("-ShimaiBakoRunMetadataOnlyOrganizationAutoRunValidation")
+                if shouldRunMetadataValidation || shouldRunMetadataAutoRunValidation {
                     if photoLibrary.canReadPhotos, photoLibrary.assets.isEmpty {
                         await photoLibrary.loadRecentAssets()
                     }
@@ -150,6 +152,15 @@ struct ContentView: View {
                         photoLibrary.loadedAssetCount,
                         indexMetadataSource.totalCount
                     )
+                    let sourceTotalAssets = max(
+                        indexMetadataSource.totalCount,
+                        validationIndexRecords.count,
+                        validationAssets.count
+                    )
+                    let autoRunEligible = classificationService.shouldRunAutomaticMetadataOrganization(
+                        libraryTotalAssets: libraryTotalAssets,
+                        sourceTotalAssets: sourceTotalAssets
+                    )
                     await classificationService.runMetadataOnlyOrganizationValidation(
                         assets: validationAssets,
                         indexRecords: validationIndexRecords,
@@ -161,7 +172,10 @@ struct ContentView: View {
                         photoLibraryAssetsCount: photoLibraryAssetsCount,
                         photoIndexTotalCount: indexMetadataSource.photoIndexTotalCount,
                         sqliteTotalCount: indexMetadataSource.sqliteTotalCount,
-                        sourceUnavailableReason: sourceUnavailableReason
+                        sourceUnavailableReason: sourceUnavailableReason,
+                        autoRunEligible: autoRunEligible || shouldRunMetadataAutoRunValidation,
+                        autoRunTriggered: shouldRunMetadataAutoRunValidation,
+                        manualRunTriggered: shouldRunMetadataValidation && shouldRunMetadataAutoRunValidation == false
                     )
                 }
                 #endif

@@ -629,3 +629,68 @@ P7の検証では、K Phoneで `metadata-only organization validation`、`BatchO
 P7以降も、Vision本番処理やClassificationJobにはまだ進まない。次の改善は、既存の整理タブ、読取候補、候補限定OCR、通常BatchOCRの範囲で、表示、説明、検証導線、実機操作性を整える方針とする。
 
 P7でも引き続き、元写真・元動画は削除・変更しない。PhotoKit書き込み/削除API、外部API、クラウド送信、有料サービスは追加しない。画像本体、サムネイル本体、顔画像、顔テンプレート、大量特徴ベクトルは保存しない。全数OCRは復活させない。
+
+## P8 軽量整理を実際に動く導線にする
+
+P8では、整理タブが実使用で意味を持つように、メタデータだけでできる軽量整理を写真読み込み後に自動実行し、整理タブからも手動更新できる導線を整える。対象はスクショ、読取候補、要確認、未整理だけに限定する。
+
+P8で使う情報は次に限定する。
+
+- PhotoIndex / SQLite metadata
+- PhotoKitの読み取り専用メタデータ
+- assetIdentifier
+- isScreenshot
+- mediaType
+- OCR状態
+- 既存分類状態
+
+画像本体、サムネイル本体、Vision解析、顔検出、人物識別、外部API、PhotoKit書き込み/削除APIは使わない。
+
+写真読み込み完了後、またはPhotoIndex更新後に、PhotoClassificationが未作成または現在のメタデータsourceに対して古い場合だけ、軽量整理を自動で1回実行する。自動実行は `classifierVersion`、ライブラリ件数、source件数から作る署名をUserDefaultsに保存し、同じ状態でアプリ起動ごとに何度も走らないようにする。実行中は二重起動しない。
+
+PhotoIndexが利用できる場合は、PhotoIndexのページ取得を使い、500件単位でメタデータだけを読み込んで軽量分類を更新する。UI更新は約1秒に1回までに抑え、PhotoGrid全体のreloadやサムネイル取得は発生させない。PhotoIndexがまだ空の場合は、読み込み済みの `PhotoAsset`、またはPhotoKitの読み取り専用メタデータを小さな範囲で使う。
+
+整理タブには手動の `軽量整理を更新` ボタンを置く。手動更新も自動実行と同じmetadata-only処理を使い、PhotoIndexがある場合はページ単位で更新する。写真情報がまだ準備できていない場合は、処理不能な理由として「写真情報の準備中です。少し待ってからもう一度お試しください。」を表示する。
+
+軽量整理中は、整理タブに次を表示する。
+
+```text
+写真情報を整理しています
+画像認識やOCRは実行していません
+処理済み n / total件
+```
+
+件数表示では、以前の `totalAssets=100` 問題を避けるため、次を分ける。
+
+```text
+libraryTotalAssets
+processedAssets
+summaryTotalAssets
+summaryClassifiedCount
+```
+
+読取候補件数は引き続き `readCandidate` かつOCR未処理の写真だけを数える。OCR本文あり、文字なし判定済み、処理中の写真は候補から外し、失敗分は再試行候補として残す。
+
+DEBUG検証 `-ShimaiBakoRunMetadataOnlyOrganizationValidation` は、P8から次を追加で出す。
+
+```text
+autoRunEligible
+autoRunTriggered
+manualRunTriggered
+metadataOrganizationInProgress
+libraryTotalAssets
+processedAssets
+summaryTotalAssets
+summaryClassifiedCount
+screenshotCount
+readCandidateCount
+unorganizedCount
+usedVision
+usedImageBody
+usedThumbnailBody
+usedPhotoKitWriteAPI
+```
+
+`-ShimaiBakoRunMetadataOnlyOrganizationAutoRunValidation` を指定した場合は、自動実行相当として検証し、`autoRunTriggered` をtrueとしてレポートする。
+
+P8でも、Vision本番処理、ClassificationJob、建物 / 工事現場 / 看板分類、Core ML、全数OCR復活には進まない。元写真・元動画は削除・変更しない。

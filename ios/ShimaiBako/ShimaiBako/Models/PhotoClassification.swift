@@ -354,6 +354,45 @@ struct PhotoClassificationUpdateSummary: Equatable {
     )
 }
 
+enum MetadataOrganizationRunTrigger: String, Codable, Equatable {
+    case automatic
+    case manual
+    case validation
+
+    var title: String {
+        switch self {
+        case .automatic:
+            "自動"
+        case .manual:
+            "手動"
+        case .validation:
+            "検証"
+        }
+    }
+}
+
+struct MetadataOrganizationRunResult: Equatable {
+    var trigger: MetadataOrganizationRunTrigger
+    var metadataSource: String
+    var libraryTotalAssets: Int
+    var sourceTotalAssets: Int
+    var processedAssets: Int
+    var result: String
+    var message: String
+    var finishedAt: Date?
+
+    static let empty = MetadataOrganizationRunResult(
+        trigger: .manual,
+        metadataSource: "",
+        libraryTotalAssets: 0,
+        sourceTotalAssets: 0,
+        processedAssets: 0,
+        result: "",
+        message: "",
+        finishedAt: nil
+    )
+}
+
 #if DEBUG
 struct PhotoClassificationSelfTestReport: Equatable {
     var manualOverridesAutomatic: Bool
@@ -371,6 +410,10 @@ struct PhotoClassificationSelfTestReport: Equatable {
 
 struct MetadataOnlyOrganizationValidationReport: Codable, Equatable {
     var generatedAt: Date
+    var autoRunEligible: Bool
+    var autoRunTriggered: Bool
+    var manualRunTriggered: Bool
+    var metadataOrganizationInProgress: Bool
     var totalAssets: Int
     var libraryTotalAssets: Int
     var validationLimit: Int

@@ -10,6 +10,8 @@ final class PhotoClassificationService: ObservableObject {
     @Published private(set) var metadataUpdateTotalCount = 0
     @Published private(set) var lastUpdateSummary: PhotoClassificationUpdateSummary = .empty
     @Published private(set) var lastMetadataUpdatedAt: Date?
+    @Published private(set) var metadataOrganizationRunTrigger: MetadataOrganizationRunTrigger?
+    @Published private(set) var lastMetadataOrganizationRunResult: MetadataOrganizationRunResult = .empty
     @Published var errorMessage: String?
     #if DEBUG
     @Published private(set) var selfTestReport: PhotoClassificationSelfTestReport?
@@ -17,10 +19,16 @@ final class PhotoClassificationService: ObservableObject {
     #endif
 
     private let store: PhotoClassificationStoring
+    private let userDefaults: UserDefaults
     private var shouldCancelMetadataUpdate = false
+    private let automaticRunSignatureKey = "shimaibako.metadataOrganization.lastAutomaticRunSignature"
+    private let automaticRunResultKey = "shimaibako.metadataOrganization.lastAutomaticRunResult"
+    private let automaticRunAtKey = "shimaibako.metadataOrganization.lastAutomaticRunAt"
+    private let metadataClassifierVersion = "p2-metadata-v1"
 
-    init(store: PhotoClassificationStoring? = nil) {
+    init(store: PhotoClassificationStoring? = nil, userDefaults: UserDefaults = .standard) {
         self.store = store ?? JSONPhotoClassificationStore()
+        self.userDefaults = userDefaults
 
         Task {
             await load()
@@ -114,7 +122,10 @@ final class PhotoClassificationService: ObservableObject {
 
     func updateMetadataOnly(
         assets: [PhotoAsset],
-        indexService: PhotoIndexService
+        indexService: PhotoIndexService,
+        trigger: MetadataOrganizationRunTrigger = .manual,
+        libraryTotalAssets: Int? = nil,
+        metadataSource: String = "photoLibraryAssets"
     ) async {
         guard isUpdatingMetadata == false else {
             return
@@ -122,11 +133,12 @@ final class PhotoClassificationService: ObservableObject {
 
         guard assets.isEmpty == false else {
             lastUpdateSummary = .empty
-            errorMessage = "軽量整理できる読み込み済み写真がありません。"
+            errorMessage = "写真情報の準備中です。少し待ってからもう一度お試しください。"
             return
         }
 
         isUpdatingMetadata = true
+        metadataOrganizationRunTrigger = trigger
         shouldCancelMetadataUpdate = false
         metadataUpdateProcessedCount = 0
         metadataUpdateTotalCount = assets.count
@@ -190,21 +202,35 @@ final class PhotoClassificationService: ObservableObject {
         lastUpdateSummary = updateSummary
         lastMetadataUpdatedAt = Date()
         await saveAll()
+        finishMetadataOrganizationRun(
+            trigger: trigger,
+            metadataSource: metadataSource,
+            libraryTotalAssets: max(libraryTotalAssets ?? assets.count, assets.count),
+            sourceTotalAssets: assets.count,
+            processedAssets: updateSummary.processedCount,
+            result: shouldCancelMetadataUpdate ? "cancelled" : "completed"
+        )
         isUpdatingMetadata = false
     }
 
-    func updateMetadataOnly(indexRecords: [PhotoIndexRecord]) async {
+    func updateMetadataOnly(
+        indexRecords: [PhotoIndexRecord],
+        trigger: MetadataOrganizationRunTrigger = .manual,
+        libraryTotalAssets: Int? = nil,
+        metadataSource: String = "sqlitePhotoIndex"
+    ) async {
         guard isUpdatingMetadata == false else {
             return
         }
 
         guard indexRecords.isEmpty == false else {
             lastUpdateSummary = .empty
-            errorMessage = "軽量整理できるPhotoIndexメタデータがありません。"
+            errorMessage = "写真情報の準備中です。少し待ってからもう一度お試しください。"
             return
         }
 
         isUpdatingMetadata = true
+        metadataOrganizationRunTrigger = trigger
         shouldCancelMetadataUpdate = false
         metadataUpdateProcessedCount = 0
         metadataUpdateTotalCount = indexRecords.count
@@ -266,11 +292,194 @@ final class PhotoClassificationService: ObservableObject {
         lastUpdateSummary = updateSummary
         lastMetadataUpdatedAt = Date()
         await saveAll()
+        finishMetadataOrganizationRun(
+            trigger: trigger,
+            metadataSource: metadataSource,
+            libraryTotalAssets: max(libraryTotalAssets ?? indexRecords.count, indexRecords.count),
+            sourceTotalAssets: indexRecords.count,
+            processedAssets: updateSummary.processedCount,
+            result: shouldCancelMetadataUpdate ? "cancelled" : "completed"
+        )
         isUpdatingMetadata = false
+    }
+
+    @discardableResult
+    func updateMetadataOnlyFromPhotoIndexPages(
+        indexService: PhotoIndexService,
+        libraryTotalAssets: Int,
+        trigger: MetadataOrganizationRunTrigger,
+        pageSize: Int = 500,
+        limit: Int? = nil
+    ) async -> MetadataOrganizationRunResult {
+        guard isUpdatingMetadata == false else {
+            return lastMetadataOrganizationRunResult
+        }
+
+        let normalizedPageSize = max(pageSize, 1)
+        let firstPage = await indexService.organizationMetadataSource(limit: normalizedPageSize, offset: 0)
+        let sourceTotalAssets = firstPage.totalCount
+        let targetTotal = min(limit ?? sourceTotalAssets, sourceTotalAssets)
+
+        guard sourceTotalAssets > 0, firstPage.records.isEmpty == false, targetTotal > 0 else {
+            lastUpdateSummary = .empty
+            errorMessage = "写真情報の準備中です。少し待ってからもう一度お試しください。"
+            let result = MetadataOrganizationRunResult(
+                trigger: trigger,
+                metadataSource: firstPage.metadataSource,
+                libraryTotalAssets: max(libraryTotalAssets, sourceTotalAssets),
+                sourceTotalAssets: sourceTotalAssets,
+                processedAssets: 0,
+                result: "skipped",
+                message: firstPage.sourceUnavailableReason ?? "metadataSourceUnavailable",
+                finishedAt: Date()
+            )
+            lastMetadataOrganizationRunResult = result
+            return result
+        }
+
+        isUpdatingMetadata = true
+        metadataOrganizationRunTrigger = trigger
+        shouldCancelMetadataUpdate = false
+        metadataUpdateProcessedCount = 0
+        metadataUpdateTotalCount = targetTotal
+        errorMessage = nil
+
+        var nextRecordsByID = recordsByAssetID
+        var updateSummary = PhotoClassificationUpdateSummary(
+            processedCount: 0,
+            totalCount: targetTotal,
+            screenshotCount: 0,
+            readCandidateCount: 0,
+            needsReviewCount: 0,
+            unorganizedCount: 0,
+            manualProtectedCount: 0
+        )
+        var lastPublishedAt = Date.distantPast
+        var offset = 0
+        var currentPage = firstPage.records
+
+        while updateSummary.processedCount < targetTotal, currentPage.isEmpty == false {
+            for indexRecord in currentPage {
+                if shouldCancelMetadataUpdate || updateSummary.processedCount >= targetTotal {
+                    break
+                }
+
+                var record = nextRecordsByID[indexRecord.localIdentifier] ?? PhotoClassification(assetIdentifier: indexRecord.localIdentifier)
+                record.applyMetadataOnly(
+                    asset: nil,
+                    indexRecord: indexRecord,
+                    isScreenshot: indexRecord.isScreenshot,
+                    updatedAt: Date()
+                )
+                nextRecordsByID[indexRecord.localIdentifier] = record
+                updateSummary.processedCount += 1
+                updateSummary.manualProtectedCount += record.manualCategory == nil ? 0 : 1
+
+                if record.isScreenshot || record.resolvedCategory == .screenshot {
+                    updateSummary.screenshotCount += 1
+                }
+                if record.contentTags.contains(Self.readCandidateTag) || record.resolvedCategory == .readCandidate {
+                    updateSummary.readCandidateCount += 1
+                }
+                if record.resolvedCategory == .needsReview {
+                    updateSummary.needsReviewCount += 1
+                }
+                if record.resolvedCategory == nil || record.resolvedCategory == .unorganized {
+                    updateSummary.unorganizedCount += 1
+                }
+
+                let now = Date()
+                if now.timeIntervalSince(lastPublishedAt) >= 1 || updateSummary.processedCount == targetTotal {
+                    recordsByAssetID = nextRecordsByID
+                    metadataUpdateProcessedCount = updateSummary.processedCount
+                    lastUpdateSummary = updateSummary
+                    lastPublishedAt = now
+                    await Task.yield()
+                }
+            }
+
+            offset += currentPage.count
+            guard shouldCancelMetadataUpdate == false, updateSummary.processedCount < targetTotal else {
+                break
+            }
+
+            currentPage = await indexService.organizationMetadataSource(
+                limit: normalizedPageSize,
+                offset: offset
+            ).records
+        }
+
+        recordsByAssetID = nextRecordsByID
+        metadataUpdateProcessedCount = updateSummary.processedCount
+        lastUpdateSummary = updateSummary
+        lastMetadataUpdatedAt = Date()
+        await saveAll()
+
+        let resultText = shouldCancelMetadataUpdate ? "cancelled" : "completed"
+        finishMetadataOrganizationRun(
+            trigger: trigger,
+            metadataSource: firstPage.metadataSource,
+            libraryTotalAssets: max(libraryTotalAssets, sourceTotalAssets),
+            sourceTotalAssets: sourceTotalAssets,
+            processedAssets: updateSummary.processedCount,
+            result: resultText
+        )
+        isUpdatingMetadata = false
+        return lastMetadataOrganizationRunResult
     }
 
     func cancelMetadataUpdate() {
         shouldCancelMetadataUpdate = true
+    }
+
+    func shouldRunAutomaticMetadataOrganization(
+        libraryTotalAssets: Int,
+        sourceTotalAssets: Int
+    ) -> Bool {
+        guard isUpdatingMetadata == false, isLoading == false else {
+            return false
+        }
+
+        let normalizedLibraryTotal = max(libraryTotalAssets, sourceTotalAssets)
+        guard normalizedLibraryTotal > 0, sourceTotalAssets > 0 else {
+            return false
+        }
+
+        let signature = automaticRunSignature(
+            libraryTotalAssets: normalizedLibraryTotal,
+            sourceTotalAssets: sourceTotalAssets
+        )
+        if userDefaults.string(forKey: automaticRunSignatureKey) == signature {
+            return false
+        }
+
+        if recordsByAssetID.isEmpty {
+            return true
+        }
+
+        if summary.totalCount < min(normalizedLibraryTotal, sourceTotalAssets) {
+            return true
+        }
+
+        return userDefaults.string(forKey: automaticRunResultKey) != "completed"
+    }
+
+    func markAutomaticMetadataOrganizationCompletedIfNeeded(
+        libraryTotalAssets: Int,
+        sourceTotalAssets: Int,
+        result: String
+    ) {
+        let normalizedLibraryTotal = max(libraryTotalAssets, sourceTotalAssets)
+        guard normalizedLibraryTotal > 0, sourceTotalAssets > 0 else {
+            return
+        }
+
+        userDefaults.set(
+            automaticRunSignature(libraryTotalAssets: normalizedLibraryTotal, sourceTotalAssets: sourceTotalAssets),
+            forKey: automaticRunSignatureKey
+        )
+        userDefaults.set(result, forKey: automaticRunResultKey)
+        userDefaults.set(Date().timeIntervalSince1970, forKey: automaticRunAtKey)
     }
 
     func load() async {
@@ -295,6 +504,49 @@ final class PhotoClassificationService: ObservableObject {
         } catch {
             errorMessage = "分類データを保存できませんでした: \(error.localizedDescription)"
         }
+    }
+
+    private func finishMetadataOrganizationRun(
+        trigger: MetadataOrganizationRunTrigger,
+        metadataSource: String,
+        libraryTotalAssets: Int,
+        sourceTotalAssets: Int,
+        processedAssets: Int,
+        result: String
+    ) {
+        let message: String
+        switch result {
+        case "completed":
+            message = "軽量整理が完了しました"
+        case "cancelled":
+            message = "軽量整理を中止しました"
+        default:
+            message = "軽量整理を実行できませんでした"
+        }
+
+        lastMetadataOrganizationRunResult = MetadataOrganizationRunResult(
+            trigger: trigger,
+            metadataSource: metadataSource,
+            libraryTotalAssets: libraryTotalAssets,
+            sourceTotalAssets: sourceTotalAssets,
+            processedAssets: processedAssets,
+            result: result,
+            message: message,
+            finishedAt: Date()
+        )
+        metadataOrganizationRunTrigger = nil
+
+        if trigger == .automatic {
+            markAutomaticMetadataOrganizationCompletedIfNeeded(
+                libraryTotalAssets: libraryTotalAssets,
+                sourceTotalAssets: sourceTotalAssets,
+                result: result
+            )
+        }
+    }
+
+    private func automaticRunSignature(libraryTotalAssets: Int, sourceTotalAssets: Int) -> String {
+        "\(metadataClassifierVersion)|library:\(libraryTotalAssets)|source:\(sourceTotalAssets)"
     }
 
     private func count(
@@ -371,13 +623,27 @@ final class PhotoClassificationService: ObservableObject {
         photoLibraryAssetsCount: Int,
         photoIndexTotalCount: Int,
         sqliteTotalCount: Int,
-        sourceUnavailableReason: String?
+        sourceUnavailableReason: String?,
+        autoRunEligible: Bool = false,
+        autoRunTriggered: Bool = false,
+        manualRunTriggered: Bool = true
     ) async -> MetadataOnlyOrganizationValidationReport {
         let manualReport = runManualPrioritySelfTest()
         if indexRecords.isEmpty == false {
-            await updateMetadataOnly(indexRecords: indexRecords)
+            await updateMetadataOnly(
+                indexRecords: indexRecords,
+                trigger: autoRunTriggered ? .automatic : .validation,
+                libraryTotalAssets: libraryTotalAssets,
+                metadataSource: metadataSource
+            )
         } else {
-            await updateMetadataOnly(assets: assets, indexService: indexService)
+            await updateMetadataOnly(
+                assets: assets,
+                indexService: indexService,
+                trigger: autoRunTriggered ? .automatic : .validation,
+                libraryTotalAssets: libraryTotalAssets,
+                metadataSource: metadataSource
+            )
         }
 
         let summary = self.summary
@@ -424,6 +690,10 @@ final class PhotoClassificationService: ObservableObject {
 
         let report = MetadataOnlyOrganizationValidationReport(
             generatedAt: Date(),
+            autoRunEligible: autoRunEligible,
+            autoRunTriggered: autoRunTriggered,
+            manualRunTriggered: manualRunTriggered,
+            metadataOrganizationInProgress: isUpdatingMetadata,
             totalAssets: processedSourceCount,
             libraryTotalAssets: normalizedLibraryTotalAssets,
             validationLimit: validationLimit,
